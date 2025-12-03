@@ -1,35 +1,47 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { HomeFeed } from "./pages/HomeFeed/HomeFeed";
+import { Search } from "./pages/SearchPage/SearchPage";
+import { PublicProfile } from "./pages/PublicProfile/PublicProfile";
+import { MyProfile } from "./pages/MyProfile/MyProfile";
+import { EditProfile } from "./pages/EditProfile/EditProfile";
+import { CreateRecipe } from "./pages/CreateRecipe/CreateRecipe";
+import { RecipeDetail } from "./pages/RecipeDetail/RecipeDetail";
+import { Login } from "./pages/LoginPage/LoginPage";
+import { Signup } from "./pages/SignupPage/SignupPage";
+import { Notifications } from "./pages/NotificationsPage/NotificationsPage";
+import { useState } from "react";
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
+
+  const handleLogin = () => setIsLoggedIn(true);
+  const handleSignup = () => setIsLoggedIn(true);
+  const handleLogout = () => setIsLoggedIn(false);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <Router>
+      <Routes>
 
-export default App
+        {/* Guest routes */}
+        <Route path="/login" element={<Login onLogin={handleLogin} />} />
+        <Route path="/signup" element={<Signup onSignup={handleSignup} />} />
+
+        {/* Normal pages */}
+        <Route path="/" element={<HomeFeed isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
+        <Route path="/search" element={<Search isLoggedIn={isLoggedIn} />} />
+        <Route path="/profile/:id" element={<PublicProfile isLoggedIn={isLoggedIn} />} />
+        <Route path="/recipe/:id" element={<RecipeDetail isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
+
+        {/* Pages requiring login */}
+        <Route path="/me" element={isLoggedIn ? <MyProfile /> : <Navigate to="/login" replace />} />
+        <Route path="/edit-profile" element={isLoggedIn ? <EditProfile /> : <Navigate to="/login" replace />} />
+        <Route path="/create" element={isLoggedIn ? <CreateRecipe /> : <Navigate to="/login" replace />} />
+        <Route path="/notifications" element={isLoggedIn ? <Notifications /> : <Navigate to="/login" replace />} />
+
+        {/* Default */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+
+      </Routes>
+    </Router>
+  );
+}

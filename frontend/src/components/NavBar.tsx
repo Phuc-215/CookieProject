@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Search, Bell, User, Plus, LogOut, UserCircle } from 'lucide-react';
 import { PixelButton } from './PixelButton';
 import { useNav } from "../hooks/useNav";
-
+import logo from "../assets/logo.svg";
 interface NavBarProps {
   isLoggedIn?: boolean;
   onLogout?: () => void;
@@ -64,8 +64,18 @@ export function NavBar({
             className="text-xl sm:text-2xl cursor-pointer shrink-0 text-[var(--foreground)] font-pixel"
             onClick={nav.home}
           >
-            {title}
-          </h1>
+            <img 
+              src={logo} 
+              alt="Logo"
+              className="w-12 h-12 mr-4"
+            />
+
+            <h1 
+              className="text-xl sm:text-2xl text-[var(--foreground)] font-pixel"
+            >
+              {title}
+            </h1>
+          </div>
 
           {/* Desktop Search */}
           <div className="flex-1 max-w-md mx-4 hidden md:block">

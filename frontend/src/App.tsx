@@ -10,6 +10,7 @@ import { RecipeDetail } from "./pages/RecipeDetail";
 import { Login } from "./pages/LoginPage";
 import { Signup } from "./pages/SignupPage";
 import { Notifications } from "./pages/NotificationsPage";
+import { Error } from "./pages/Error";
 
 import { useState } from "react";
 
@@ -46,7 +47,7 @@ export default function App() {
         <Route path="/notifications" element={isLoggedIn ? <Notifications /> : <Navigate to="/login" replace />} />
 
         {/* Default */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Error isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
 
       </Routes>
     </Router>

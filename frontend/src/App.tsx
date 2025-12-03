@@ -14,7 +14,7 @@ import { Notifications } from "./pages/NotificationsPage";
 import { useState } from "react";
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const handleLogin = () => setIsLoggedIn(true);
   const handleSignup = () => setIsLoggedIn(true);
@@ -37,7 +37,12 @@ export default function App() {
         {/* Pages requiring login */}
         <Route path="/me" element={isLoggedIn ? <MyProfile /> : <Navigate to="/login" replace />} />
         <Route path="/edit-profile" element={isLoggedIn ? <EditProfile /> : <Navigate to="/login" replace />} />
-        <Route path="/create" element={isLoggedIn ? <CreateRecipe /> : <Navigate to="/login" replace />} />
+        <Route path="/create" element={
+            <CreateRecipe 
+              isLoggedIn={isLoggedIn}
+              onLogout={handleLogout}
+            />
+          } />
         <Route path="/notifications" element={isLoggedIn ? <Notifications /> : <Navigate to="/login" replace />} />
 
         {/* Default */}

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Bell, User, Plus, LogOut, UserCircle } from 'lucide-react';
+import { ArrowLeft, Search, Bell, User, Plus, LogOut, UserCircle } from 'lucide-react';
 import { PixelButton } from './PixelButton';
 import { useNav } from "../hooks/useNav";
 
@@ -8,6 +8,8 @@ interface NavBarProps {
   onLogout?: () => void;
   title?: string;
   notificationCount?: number;
+  showBackButton?: boolean; 
+  onBack?: () => void;
 }
 
 export function NavBar({ 
@@ -15,12 +17,23 @@ export function NavBar({
   onLogout,
   title = 'Cookie',
   notificationCount = 0,
+  showBackButton = false,
+  onBack
 }: NavBarProps) {
   
   const [showDropdown, setShowDropdown] = useState(false);
   const [localQuery, setLocalQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const nav = useNav();
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    }
+    else {
+      nav.back();
+    }
+  }
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -38,6 +51,14 @@ export function NavBar({
       <div className="max-w-7xl mx-auto px-4 py-4">
         
         <div className="flex items-center justify-between gap-4">
+          {showBackButton && 
+            (<button 
+              className="p-2 hover:bg-[var(--cream)] transition-colors" 
+              onClick={handleBack}>
+                <ArrowLeft className="w-5 h-5" />
+            </button>)
+          }
+
           {/* Logo */}
           <h1 
             className="text-xl sm:text-2xl cursor-pointer shrink-0 text-[var(--foreground)] font-pixel"

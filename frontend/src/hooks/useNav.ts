@@ -9,7 +9,7 @@ export function useNav() {
     home: () => n("/"),
     login: () => n("/login"),
     signup: () => n("/signup"),
-    search: () => n("/search"),
+    search: (q?: string) => q ? n(`/search?q=${encodeURIComponent(q)}`) : n("/search"),
     me: () => n("/me"),
     editProfile: () => n("/edit-profile"),
     profile: (id: string | number) => n(`/profile/${id}`),

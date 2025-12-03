@@ -80,11 +80,7 @@ const MOCK_RECIPES = [
 
 export function HomeFeed({ isLoggedIn = false, onLogout }: HomeFeedProps) {
   const [recipes] = useState(MOCK_RECIPES);
-  const [searchQuery, setSearchQuery] = useState('');
-  const nav = useNav(); 
-  const handleSearchSubmit = () => {
-    nav.search();
-  };
+  const nav = useNav();
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
@@ -93,9 +89,6 @@ export function HomeFeed({ isLoggedIn = false, onLogout }: HomeFeedProps) {
         isLoggedIn={isLoggedIn}
         onLogout={onLogout}
         notificationCount={3}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        onSearchSubmit={handleSearchSubmit}
       />
 
       {/* Hero Section */}

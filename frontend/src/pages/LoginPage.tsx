@@ -18,8 +18,9 @@ export function Login({ onLogin }: LoginProps) {
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login - in real app, validate credentials
+      // Mock login success
     onLogin?.();
+    nav.home(); 
   };
 
   return (
@@ -29,9 +30,6 @@ export function Login({ onLogin }: LoginProps) {
         isLoggedIn={false}
         notificationCount={0}
         onLogout={() => {}}
-        searchQuery=""
-        onSearchChange={() => {}}
-        onSearchSubmit={() => {}}
       />
 
       {/* Login Form */}
@@ -76,7 +74,7 @@ export function Login({ onLogin }: LoginProps) {
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  className="w-full px-4 py-3 pixel-border bg-white placeholder:text-[var(--choco)]/50 pr-12"
+                  className="w-full px-4 py-3 pixel-border bg-white placeholder:text-[var(--choco)]/50 pr-12 focus:outline-none focus:shadow-[0_0_0_3px_var(--brown)] transition-shadow`"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

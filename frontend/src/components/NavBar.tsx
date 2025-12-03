@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Search, Bell, User, Plus, LogOut, UserCircle } from 'lucide-react';
 import { PixelButton } from './PixelButton';
 import { useNav } from "../hooks/useNav";
@@ -8,9 +8,6 @@ interface NavBarProps {
   onLogout?: () => void;
   title?: string;
   notificationCount?: number;
-  searchQuery?: string;
-  onSearchChange?: (query: string) => void;
-  onSearchSubmit?: () => void;
 }
 
 export function NavBar({ 
@@ -18,12 +15,10 @@ export function NavBar({
   onLogout,
   title = 'Cookie',
   notificationCount = 0,
-  searchQuery = '',
-  onSearchChange,
-  onSearchSubmit
 }: NavBarProps) {
   
   const [showDropdown, setShowDropdown] = useState(false);
+  const [localQuery, setLocalQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const nav = useNav();
 
@@ -37,10 +32,6 @@ export function NavBar({
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
-
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && onSearchSubmit) onSearchSubmit();
-  };
 
   return (
     <header className="border-b-[3px] border-[var(--border)] bg-[white] sticky top-0 z-50">
@@ -68,9 +59,11 @@ export function NavBar({
                   font-vt
                 "
                 placeholder="Search recipes..."
-                value={searchQuery}
-                onChange={(e) => onSearchChange?.(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
+                value={localQuery}
+                onChange={(e) => setLocalQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") nav.search(localQuery);
+                }}
               />
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--foreground)]/50" />
             </div>
@@ -82,7 +75,7 @@ export function NavBar({
             {/* Mobile Search */}
             <button 
               className="md:hidden p-2 hover:bg-[var(--cream)] transition-colors"
-              onClick={nav.search}
+              onClick={() => nav.search(localQuery)}
               title="Search"
             >
               <Search className="w-5 h-5 text-[var(--foreground)]" />

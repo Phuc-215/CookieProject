@@ -13,7 +13,7 @@ export function PixelInput({ label, className = '', ...props }: PixelInputProps)
         </label>
       )}
       <input
-        className={`w-full px-4 py-3 pixel-border bg-white text-[var(--choco)] placeholder:text-[var(--choco)]/50 focus:outline-none focus:shadow-[0_0_0_3px_#FF8FAB] transition-shadow ${className}`}
+        className={`w-full px-4 py-3 pixel-border bg-white text-[var(--choco)] placeholder:text-[var(--choco)]/50 focus:outline-none focus:shadow-[0_0_0_3px_var(--brown)] transition-shadow ${className}`}
         {...props}
       />
     </div>

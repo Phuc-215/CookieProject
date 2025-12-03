@@ -1,37 +1,66 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
 import { PixelInput } from '../components/PixelInput';
 import { PixelButton } from '../components/PixelButton';
 import { NavBar } from '../components/NavBar';
 import { useNav } from '../hooks/useNav'; 
 import signup_hamster from "../assets/signup_hamster.svg";
+
+const signupSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  email: z.string()
+    .min(1, "Email is required")
+    .email("Invalid email address"),
+  password: z.string()
+    .min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string()
+    .min(1, "Please confirm your password"),
+  agreeToTerms: z.boolean().refine((val) => val === true, {
+    message: "You must accept the terms",
+  }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"], // Gắn lỗi vào field confirmPassword
+});
+
+type SignupFormData = z.infer<typeof signupSchema>;
+
 interface SignupProps {
   onSignup?: () => void;
 }
 
 export function Signup({ onSignup }: SignupProps) {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [agreeToTerms, setAgreeToTerms] = useState(false);
+  
   const nav = useNav();
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Basic validation
-    if (password !== confirmPassword) {
-      alert('Passwords do not match!');
-      return;
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors, isValid }
+  } = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
+    mode: 'onChange', // Validate ngay khi rời khỏi field
+    defaultValues: {
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      agreeToTerms: false,
     }
-    
-    if (!agreeToTerms) {
-      alert('Please accept the Terms of Service');
-      return;
-    }
-    
+  });
+
+  // Watch checkbox value for custom UI
+  const agreeToTermsValue = watch('agreeToTerms');
+
+  const onSubmit = (data: SignupFormData) => {
+    console.log("Signup Data:", data);
     // Mock signup success
     onSignup?.();
     nav.home();
@@ -69,26 +98,34 @@ export function Signup({ onSignup }: SignupProps) {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Username */}
-            <PixelInput
-              label="Username *"
-              type="text"
-              placeholder="BakerBob"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
+            <div>
+              <PixelInput
+                label="Username *"
+                type="text"
+                placeholder="BakerBob"
+                {...register("username")}
+                error={errors.username?.message}
+              />
+              {errors.username && (
+                <p className="text-pink-500 text-xs mt-1 font-bold">{errors.username.message}</p>
+              )}
+            </div>
 
             {/* Email */}
-            <PixelInput
-              label="Email Address *"
-              type="email"
-              placeholder="baker@cookie.exe"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+            <div>
+              <PixelInput
+                label="Email Address *"
+                type="email"
+                placeholder="baker@cookie.exe"
+                {...register("email")}
+                error={errors.email?.message}
+              />
+              {errors.email && (
+                <p className="text-pink-500 text-xs mt-1 font-bold">{errors.email.message}</p>
+              )}
+            </div>
 
             {/* Password */}
             <div>
@@ -98,12 +135,14 @@ export function Signup({ onSignup }: SignupProps) {
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  className="w-full px-4 py-3 pixel-border bg-white placeholder:text-[var(--choco)]/50 pr-12  focus:outline-none focus:shadow-[0_0_0_3px_var(--brown)] transition-shadow"
+                  className={`w-full px-4 py-3 pixel-border bg-white placeholder:text-[var(--choco)]/50 pr-12 focus:outline-none transition-shadow
+                    ${errors.password 
+                      ? 'border-2 border-pink-500 focus:shadow-[0_0_0_3px_#f9a8d4]' 
+                      : 'focus:shadow-[0_0_0_3px_var(--brown)]'
+                    }
+                  `}
                   placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={8}
+                  {...register("password")}
                 />
                 <button
                   type="button"
@@ -117,9 +156,13 @@ export function Signup({ onSignup }: SignupProps) {
                   )}
                 </button>
               </div>
-              <p className="text-xs text-[var(--choco)]/50 mt-1">
-                Minimum 8 characters
-              </p>
+              {errors.password ? (
+                 <p className="text-pink-500 text-xs mt-1 font-bold">{errors.password.message}</p>
+              ) : (
+                <p className="text-xs text-[var(--choco)]/50 mt-1">
+                  Minimum 6 characters
+                </p>
+              )}
             </div>
 
             {/* Confirm Password */}
@@ -130,11 +173,14 @@ export function Signup({ onSignup }: SignupProps) {
               <div className="relative">
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
-                  className="w-full px-4 py-3 pixel-border bg-white placeholder:text-[var(--choco)]/50 pr-12  focus:outline-none focus:shadow-[0_0_0_3px_var(--brown)] transition-shadow"
+                  className={`w-full px-4 py-3 pixel-border bg-white placeholder:text-[var(--choco)]/50 pr-12 focus:outline-none transition-shadow
+                    ${errors.confirmPassword 
+                      ? 'border-2 border-pink-500 focus:shadow-[0_0_0_3px_#f9a8d4]' 
+                      : 'focus:shadow-[0_0_0_3px_var(--brown)]'
+                    }
+                  `}
                   placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
+                  {...register("confirmPassword")}
                 />
                 <button
                   type="button"
@@ -148,39 +194,57 @@ export function Signup({ onSignup }: SignupProps) {
                   )}
                 </button>
               </div>
+              {errors.confirmPassword && (
+                 <p className="text-pink-500 text-xs mt-1 font-bold">{errors.confirmPassword.message}</p>
+              )}
             </div>
 
             {/* Terms Agreement */}
-            <label className="flex items-start gap-3 cursor-pointer">
-              <div
-                className={`w-5 h-5 pixel-border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
-                  agreeToTerms ? 'bg-[var(--mint)]' : 'bg-white'
-                }`}
-                onClick={() => setAgreeToTerms(!agreeToTerms)}
-              >
-                {agreeToTerms && <span className="text-xs">✓</span>}
-              </div>
-              <span className="text-sm">
-                I agree to the{' '}
-                <button
-                  type="button"
-                  className="underline hover:text-[var(--mint)] uppercase"
+            <div>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <div
+                  className={`w-5 h-5 pixel-border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                    agreeToTermsValue ? 'bg-[var(--mint)]' : 'bg-white'
+                  } ${errors.agreeToTerms ? 'border-pink-500 shadow-[0_0_0_2px_#f9a8d4]' : ''}`}
                 >
-                  Terms of Service
-                </button>{' '}
-                and{' '}
-                <button
-                  type="button"
-                  className="underline hover:text-[var(--mint)] uppercase"
-                >
-                  Privacy Policy
-                </button>
-              </span>
-            </label>
+                  {agreeToTermsValue && <span className="text-xs">✓</span>}
+                </div>
+                {/* Hidden Checkbox for form registration */}
+                <input type="checkbox" className="hidden" {...register("agreeToTerms")} />
+
+                <span className="text-sm">
+                  I agree to the{' '}
+                  <button
+                    type="button"
+                    className="underline hover:text-[var(--mint)] uppercase"
+                    onClick={(e) => e.stopPropagation()} 
+                  >
+                    Terms of Service
+                  </button>{' '}
+                  and{' '}
+                  <button
+                    type="button"
+                    className="underline hover:text-[var(--mint)] uppercase"
+                    onClick={(e) => e.stopPropagation()} 
+                  >
+                    Privacy Policy
+                  </button>
+                </span>
+              </label>
+              {errors.agreeToTerms && (
+                 <p className="text-pink-500 text-xs mt-1 font-bold ml-8">{errors.agreeToTerms.message}</p>
+              )}
+            </div>
 
             {/* Submit Button */}
-            <PixelButton variant="primary" size="lg" className="w-full" type="submit">
-              Create Account
+            <PixelButton 
+              variant="primary" 
+              size="lg" 
+              className={`w-full ${(!isValid) ? 'opacity-50 cursor-not-allowed' : ''}`}
+              type="submit"
+              disabled={!isValid}
+            >
+              {'Create Account'}
             </PixelButton>
 
             {/* Divider */}

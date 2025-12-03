@@ -1,26 +1,57 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod'; 
+
 import { PixelInput } from '../components/PixelInput';
 import { PixelButton } from '../components/PixelButton';
 import { NavBar } from '../components/NavBar';
-import { useNav } from '../hooks/useNav'; 
+import { useNav } from '../hooks/useNav';
 import login_hamster from "../assets/login_hamster.svg";
+
+const loginSchema = z.object({
+  email: z.string()
+    .min(1, "Email is required")
+    .email("Invalid email address"),
+  password: z.string()
+    .min(6, "Password must be at least 6 characters"),
+  rememberMe: z.boolean().optional(),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
+
 interface LoginProps {
   onLogin?: () => void;
 }
 
 export function Login({ onLogin }: LoginProps) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const nav = useNav();
-  
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-      // Mock login success
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isValid }
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    mode: 'onChange',
+    defaultValues: {
+      email: '',
+      password: '',
+      rememberMe: false,
+    }
+  });
+
+  const rememberMeValue = watch('rememberMe');
+
+  const onSubmit = (data: LoginFormData) => {
+    console.log("Form Data:", data); 
+    
     onLogin?.();
-    nav.home(); 
+    nav.home();
   };
 
   return (
@@ -37,17 +68,10 @@ export function Login({ onLogin }: LoginProps) {
         <div className="pixel-card bg-white p-8">
           {/* Logo */}
           <div className="mb-8 text-center">
-              <div className="inline-block w-32 h-32 relative mb-4">
-                <img
-                  src={login_hamster}
-                  alt="Baker Hamster"
-                  className="w-full h-full object-contain"
-                />
-              </div>
-            <h2 
-              className="text-lg mb-2" 
-              style={{ fontFamily: "'Press Start 2P', cursive" }}
-            >
+            <div className="inline-block w-32 h-32 relative mb-4">
+              <img src={login_hamster} alt="Baker Hamster" className="w-full h-full object-contain" />
+            </div>
+            <h2 className="text-lg mb-2" style={{ fontFamily: "'Press Start 2P', cursive" }}>
               Welcome Back!
             </h2>
             <p className="text-sm text-[var(--choco)]/70">
@@ -55,18 +79,26 @@ export function Login({ onLogin }: LoginProps) {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email */}
-            <PixelInput
-              label="Email Address *"
-              type="email"
-              placeholder="baker@cookie.exe"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+          {/* Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            
+            {/* Email Field */}
+            <div>
+              <PixelInput
+                label="Email Address *"
+                type="email"
+                placeholder="baker@cookie.exe"
+                // Spread register props
+                {...register("email")}
+                error={errors.email?.message} 
+              />
+              {/* Email error */}
+              {errors.email && (
+                <p className="inline-block text-pink-500">{errors.email.message}</p>
+              )}
+            </div>
 
-            {/* Password */}
+            {/* Password Field */}
             <div>
               <label className="block mb-2 uppercase text-sm tracking-wide">
                 Password *
@@ -74,11 +106,13 @@ export function Login({ onLogin }: LoginProps) {
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  className="w-full px-4 py-3 pixel-border bg-white placeholder:text-[var(--choco)]/50 pr-12 focus:outline-none focus:shadow-[0_0_0_3px_var(--brown)] transition-shadow`"
+                  className={`w-full px-4 py-3 pixel-border bg-white placeholder:text-[var(--choco)]/50 pr-12 focus:outline-none transition-shadow ${
+                    errors.password
+                      ? 'border-pink-500 shadow-[0_0_0_3px_#f9a8d4]'
+                      : 'focus:shadow-[0_0_0_3px_var(--brown)]'           
+                  }`}
                   placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
+                  {...register("password")}
                 />
                 <button
                   type="button"
@@ -92,21 +126,28 @@ export function Login({ onLogin }: LoginProps) {
                   )}
                 </button>
               </div>
+              {/* Password */}
+              {errors.password && (
+                <p className="inline-block text-pink-500">{errors.password.message}</p>
+              )}
             </div>
 
             {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
                 <div
                   className={`w-5 h-5 pixel-border flex items-center justify-center transition-colors ${
-                    rememberMe ? 'bg-[var(--mint)]' : 'bg-white'
+                    rememberMeValue ? 'bg-[var(--mint)]' : 'bg-white'
                   }`}
-                  onClick={() => setRememberMe(!rememberMe)}
+                  onClick={() => setValue('rememberMe', !rememberMeValue)}
                 >
-                  {rememberMe && <span className="text-xs">✓</span>}
+                  {rememberMeValue && <span className="text-xs">✓</span>}
                 </div>
+                <input type="checkbox" className="hidden" {...register("rememberMe")} />
+                
                 <span className="text-sm">Remember Me</span>
               </label>
+              
               <button
                 type="button"
                 className="text-sm text-[var(--choco)] hover:underline uppercase"
@@ -115,9 +156,15 @@ export function Login({ onLogin }: LoginProps) {
               </button>
             </div>
 
-            {/* Submit Button */}
-            <PixelButton variant="secondary" size="lg" className="w-full" type="submit">
-              Log In
+            <PixelButton 
+              variant="secondary" 
+              size="lg" 
+              className={`w-full ${!isValid ? 'opacity-50 cursor-not-allowed' : ''}`} 
+              type="submit"
+              
+              disabled={!isValid} 
+            >
+              {'Log In'}
             </PixelButton>
 
             {/* Divider */}

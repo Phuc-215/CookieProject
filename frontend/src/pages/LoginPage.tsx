@@ -4,7 +4,7 @@ import { PixelInput } from '../components/PixelInput';
 import { PixelButton } from '../components/PixelButton';
 import { NavBar } from '../components/NavBar';
 import { useNav } from '../hooks/useNav'; 
-
+import login_hamster from "../assets/login_hamster.svg";
 interface LoginProps {
   onLogin?: () => void;
 }
@@ -39,7 +39,7 @@ export function Login({ onLogin }: LoginProps) {
           <div className="mb-8 text-center">
               <div className="inline-block w-32 h-32 relative mb-4">
                 <img
-                  src="../../src/assets/login_hamster.svg"
+                  src={login_hamster}
                   alt="Baker Hamster"
                   className="w-full h-full object-contain"
                 />

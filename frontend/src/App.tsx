@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
-import { HomeFeed } from "./pages/HomeFeed";
+import { HomeFeed } from "./pages/HomeFeed/HomeFeed";
 import { Search } from "./pages/SearchPage";
 import { PublicProfile } from "./pages/PublicProfile";
 import { MyProfile } from "./pages/MyProfile";

@@ -11,8 +11,12 @@ interface RecipeCardProps {
   isLiked?: boolean;
   isSaved?: boolean;
   onClick?: () => void;
+  onLike?: (id: string) => void;
+  onSave?: (id: string) => void;
   showDelete?: boolean;
   onDelete?: (id: string) => void;
+  large?: boolean;
+  small?: boolean;
 }
 
 export function RecipeCard({
@@ -26,9 +30,20 @@ export function RecipeCard({
   isLiked = false,
   isSaved = false,
   onClick,
+  onLike,
+  onSave,
   showDelete = false,
   onDelete,
+  large,
+  small,
 }: RecipeCardProps) {
+
+  const sizeMode = small
+    ? "small"
+    : large
+    ? "large"
+    : "default";
+
   const difficultyColor = {
     Easy: "bg-[var(--secondary)] text-[var(--secondary-foreground)]",
     Medium: "bg-[var(--primary)] text-[var(--primary-foreground)]",
@@ -37,17 +52,24 @@ export function RecipeCard({
 
   return (
     <div
-      className="
-        pixel-card bg-white
-        cursor-pointer
-        hover:translate-x-1 hover:translate-y-1
-        hover:shadow-[2px_2px_0_var(--border)]
+      className={`
+        pixel-card bg-white cursor-pointer
+        hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0_var(--border)]
         transition-all
-      "
+        ${sizeMode === "small" ? "flex flex-row" : ""}
+      `}
       onClick={onClick}
     >
-      {/* Image Section */}
-      <div className="relative aspect-square bg-[var(--card)]">
+
+      {/* IMAGE */}
+      <div
+        className={`
+          relative bg-[var(--card)]
+          ${sizeMode === "small" ? "w-36 h-50 flex-shrink-0" : ""}
+          ${sizeMode === "large" ? "aspect-[3/2]" : ""}
+          ${sizeMode === "default" ? "aspect-square" : ""}
+        `}
+      >
         <img
           src={image}
           alt={title}
@@ -55,46 +77,62 @@ export function RecipeCard({
           style={{ imageRendering: "pixelated" }}
         />
 
-        <div className="absolute top-2 right-2 flex gap-2">
-          {/* Like Button */}
+        {/* ACTION ICONS */}
+        <div
+          className={`absolute top-2 right-2 flex gap-2 ${
+            sizeMode === "small" ? "scale-75 origin-top-right" : ""
+          }`}
+        >
           <button
             className={`
               w-8 h-8 pixel-border flex items-center justify-center
               ${isLiked ? "bg-[var(--primary)]" : "bg-white"}
             `}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onLike?.(id);
+            }}
           >
             <Heart
-              className={`
-                w-4 h-4
-                ${isLiked ? "fill-[var(--primary-foreground)]" : ""}
-              `}
+              className={`w-4 h-4 ${
+                isLiked ? "fill-[var(--primary-foreground)]" : ""
+              }`}
             />
           </button>
 
-          {/* Save Button */}
           <button
             className={`
               w-8 h-8 pixel-border flex items-center justify-center
               ${isSaved ? "bg-[var(--secondary)]" : "bg-white"}
             `}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSave?.(id);
+            }}
           >
             <Bookmark
-              className={`
-                w-4 h-4
-                ${isSaved ? "fill-[var(--secondary-foreground)]" : ""}
-              `}
+              className={`w-4 h-4 ${
+                isSaved ? "fill-[var(--secondary-foreground)]" : ""
+              }`}
             />
           </button>
         </div>
       </div>
 
-      {/* Content Section */}
-      <div className="p-4 border-t-[3px] border-[var(--border)]">
-        <h4 className="uppercase mb-2 truncate">{title}</h4>
+      {/* CONTENT */}
+      <div
+        className={`
+          p-4 py-5
+          ${
+            sizeMode === "small"
+              ? "border-l-[3px] border-[var(--border)] flex flex-col justify-center flex-1 gap-2"
+              : "border-t-[3px] border-[var(--border)]"
+          }
+        `}
+      >
+        <h4 className="uppercase font-bold break-words leading-tight">{title}</h4>
 
-        <p className="text-sm text-[color-mix(in_srgb,var(--foreground) 70%,transparent)] mb-3">
+        <p className="text-sm text-[color-mix(in_srgb,var(--foreground)70%,transparent)]">
           by {author}
         </p>
 
@@ -109,23 +147,19 @@ export function RecipeCard({
             {time}
           </span>
 
-          {/* Likes count */}
           <span className="px-2 py-1 text-xs pixel-border bg-white uppercase ml-auto flex items-center gap-1">
             <Heart className="w-3 h-3 fill-[var(--primary)]" />
             {likes}
           </span>
         </div>
 
-        {/* Delete Button */}
         {showDelete && (
           <button
             className="
               w-full mt-3 px-3 py-2 pixel-border
               bg-[var(--primary)]
-              hover:bg-[color-mix(in_srgb,var(--primary) 85%, black)]
-              transition-colors
-              flex items-center justify-center gap-2
-              text-sm uppercase
+              hover:bg-[color-mix(in_srgb,var(--primary)85%,black)]
+              transition-colors flex items-center justify-center gap-2 text-sm uppercase
             "
             onClick={(e) => {
               e.stopPropagation();

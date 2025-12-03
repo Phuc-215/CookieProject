@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+/* ============ Root Theme ============ */
+:root {
+  --font-size: 16px;
+
+  --choco: #5d4037;
+  --cream: #fff8e1;
+  --pink: #ff8fab;
+  --mint: #4db6ac;
+  --brown: #d7b899;
+
+  --background: var(--cream);
+  --foreground: var(--choco);
+  --border: var(--choco);
+
+  --primary: var(--pink);
+  --primary-foreground: var(--choco);
+
+  --secondary: var(--mint);
+  --secondary-foreground: var(--choco);
+
+  --card: var(--cream);
+  --card-foreground: var(--choco);
+
+  --ring: var(--choco);
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 700;
+
+  --radius: 0;
+
+  /* Typography scale*/
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+}
+
+/* ============ Dark Mode ============ */
+.dark {
+  --background: var(--choco);
+  --foreground: var(--cream);
+
+  --card: var(--choco);
+  --card-foreground: var(--cream);
+
+  --border: var(--cream);
+  --ring: var(--cream);
+}
+
+/* ============ Typography ============ */
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: "VT323", monospace;
+    font-size: var(--font-size);
+
+    background-image:
+      linear-gradient(var(--brown) 1px, transparent 1px),
+      linear-gradient(90deg, var(--brown) 1px, transparent 1px);
+    background-size: 30px 30px;
+    background-position: 0 0;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: "Press Start 2P", cursive;
+  }
+
+  h1 { font-size: var(--text-3xl); line-height: 1.6; }
+  h2 { font-size: var(--text-2xl); line-height: 1.6; }
+  h3 { font-size: var(--text-lg);   line-height: 1.6; }
+  h4 { font-size: var(--text-base); line-height: 1.5; font-weight: var(--font-weight-medium); }
+}
+
+/* ============ Pixel Utilities ============ */
+@layer utilities {
+  .pixel-shadow {
+    box-shadow: 4px 4px 0 var(--choco);
+  }
+
+  .pixel-border {
+    border: 3px solid var(--choco);
+  }
+
+  .pixel-btn {
+    border: 3px solid var(--choco);
+    box-shadow: 4px 4px 0 var(--choco);
+    transition: 0.1s;
+  }
+
+  .pixel-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0 var(--choco);
+  }
+
+  .pixel-card {
+    border: 3px solid var(--choco);
+    box-shadow: 4px 4px 0 var(--choco);
+  }
+}

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Search} from 'lucide-react';
-import { PixelButton } from '../../components/PixelButton';
-import { RecipeCard } from '../../components/RecipeCard';
-import { NavBar } from '../../components/NavBar';
-import { useNav } from '../../hooks/useNav'; 
+import { PixelButton } from '../components/PixelButton';
+import { RecipeCard } from '../components/RecipeCard';
+import { NavBar } from '../components/NavBar';
+import { useNav } from '../hooks/useNav'; 
 interface HomeFeedProps {
   isLoggedIn?: boolean;
   onLogout?: () => void;

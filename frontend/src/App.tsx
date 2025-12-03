@@ -1,14 +1,16 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { HomeFeed } from "./pages/HomeFeed/HomeFeed";
-import { Search } from "./pages/SearchPage/SearchPage";
-import { PublicProfile } from "./pages/PublicProfile/PublicProfile";
-import { MyProfile } from "./pages/MyProfile/MyProfile";
-import { EditProfile } from "./pages/EditProfile/EditProfile";
-import { CreateRecipe } from "./pages/CreateRecipe/CreateRecipe";
-import { RecipeDetail } from "./pages/RecipeDetail/RecipeDetail";
-import { Login } from "./pages/LoginPage/LoginPage";
-import { Signup } from "./pages/SignupPage/SignupPage";
-import { Notifications } from "./pages/NotificationsPage/NotificationsPage";
+
+import { HomeFeed } from "./pages/HomeFeed";
+import { Search } from "./pages/SearchPage";
+import { PublicProfile } from "./pages/PublicProfile";
+import { MyProfile } from "./pages/MyProfile";
+import { EditProfile } from "./pages/EditProfile";
+import { CreateRecipe } from "./pages/CreateRecipe";
+import { RecipeDetail } from "./pages/RecipeDetail";
+import { Login } from "./pages/LoginPage";
+import { Signup } from "./pages/SignupPage";
+import { Notifications } from "./pages/NotificationsPage";
+
 import { useState } from "react";
 
 export default function App() {

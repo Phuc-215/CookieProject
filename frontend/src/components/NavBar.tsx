@@ -60,8 +60,8 @@ export function NavBar({
           }
 
           {/* Logo */}
-          <h1 
-            className="text-xl sm:text-2xl cursor-pointer shrink-0 text-[var(--foreground)] font-pixel"
+          <div 
+            className="flex items-center cursor-pointer shrink-0"
             onClick={nav.home}
           >
             <img 
@@ -190,7 +190,6 @@ export function NavBar({
 
           </div>
         </div>
-
       </div>
     </header>
   );

@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Upload, Camera, X, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { Upload, Camera, X, Plus } from 'lucide-react';
 import { PixelButton } from '../components/PixelButton';
 import { PixelInput } from '../components/PixelInput';
 import { PixelTextarea } from '../components/PixelTextarea';
 import { PixelTag } from '../components/PixelTag';
-import { useNavigate } from 'react-router-dom';
 import { NavBar } from '../components/NavBar';
 import { useNav } from '@/hooks/useNav';
 
@@ -45,7 +44,6 @@ export function CreateRecipe({isLoggedIn, onLogout} : CreateRecipeProps) {
   ]);
   const [mainImage, setMainImage] = useState<string | null>(null);
 
-  const navigate = useNavigate();
   const nav = useNav();
 
   const handleAddIngredient = () => {
@@ -83,7 +81,7 @@ export function CreateRecipe({isLoggedIn, onLogout} : CreateRecipeProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFF8E1]">
+    <div className="min-h-screen bg-[var(--background-image)]">
       {/* Header */}
       <NavBar 
         isLoggedIn={isLoggedIn}
@@ -300,10 +298,10 @@ export function CreateRecipe({isLoggedIn, onLogout} : CreateRecipeProps) {
 
           {/* Action Buttons */}
           <div className="flex gap-4 pt-6 border-t-[3px] border-[#5D4037]">
-            <PixelButton variant="outline" className="flex-1" onClick={() => onNavigate?.('home')}>
+            <PixelButton variant="outline" className="flex-1" onClick={() => nav.home}>
               Save Draft
             </PixelButton>
-            <PixelButton variant="secondary" className="flex-1" onClick={() => onNavigate?.('home')}>
+            <PixelButton variant="secondary" className="flex-1" onClick={() => nav.home()}>
               Publish Recipe
             </PixelButton>
           </div>

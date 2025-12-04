@@ -31,7 +31,7 @@ export default function App() {
 
         {/* Normal pages */}
         <Route path="/" element={<HomeFeed isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
-        <Route path="/search" element={<Search isLoggedIn={isLoggedIn} />} />
+        <Route path="/search" element={<Search isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
         <Route path="/profile/:id" element={<PublicProfile isLoggedIn={isLoggedIn} />} />
         <Route path="/recipe/:id" element={<RecipeDetail isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
 
@@ -44,8 +44,7 @@ export default function App() {
               onLogout={handleLogout}
             />
           } />
-        <Route path="/notifications" element={isLoggedIn ? <Notifications /> : <Navigate to="/login" replace />} />
-
+        <Route path="/notifications" element={isLoggedIn ? <Notifications isLoggedIn={isLoggedIn} onLogout={handleLogout} /> : <Navigate to="/login" replace />} />
         {/* Default */}
         <Route path="*" element={<Error isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
 

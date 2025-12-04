@@ -111,6 +111,7 @@ export function Notifications({ isLoggedIn, onLogout }: NotificationsPageProps) 
       <NavBar
         isLoggedIn={isLoggedIn}
         onLogout={onLogout}
+        showBackButton={true}
         notificationCount={unreadCount}
       />
 

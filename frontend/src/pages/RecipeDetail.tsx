@@ -115,7 +115,8 @@ export function RecipeDetail({ isLoggedIn = false, onLogout }: RecipeDetailProps
       <NavBar
         isLoggedIn={isLoggedIn}
         onLogout={onLogout}
-        notificationCount={0}
+        notificationCount={1}
+        showBackButton={true}
       />
 
       <div className="max-w-5xl mx-auto px-4 py-8">

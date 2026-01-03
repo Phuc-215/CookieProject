@@ -4,11 +4,14 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod'; 
 
-import { PixelInput } from '../components/PixelInput';
-import { PixelButton } from '../components/PixelButton';
-import { NavBar } from '../components/NavBar';
+import { PixelInput } from '@/components/PixelInput';
+import { PixelButton } from '@/components/PixelButton';
+import { NavBar } from '@/components/NavBar';
+import { ForgotPasswordModal } from '@/features/auth/ForgotPasswordModal';
+import { ResetPasswordModal } from '@/features/auth/ResetPasswordModal';
+import { ResetSuccessModal } from '@/features/auth/ResetSuccessModal';
 import { useNav } from '../hooks/useNav';
-import login_hamster from "../assets/login_hamster.svg";
+import login_hamster from "@/assets/login_hamster.svg";
 
 const loginSchema = z.object({
   email: z.string()
@@ -28,6 +31,9 @@ interface LoginProps {
 export function Login({ onLogin }: LoginProps) {
   const [showPassword, setShowPassword] = useState(false);
   const nav = useNav();
+  const [openForgot, setOpenForgot] = useState(false);
+  const [openReset, setOpenReset] = useState(false);
+  const [openSuccess, setOpenSuccess] = useState(false);
 
   const {
     register,
@@ -151,6 +157,7 @@ export function Login({ onLogin }: LoginProps) {
               <button
                 type="button"
                 className="text-sm text-[var(--choco)] hover:underline uppercase"
+                onClick={() => setOpenForgot(true)}
               >
                 Forgot?
               </button>
@@ -193,6 +200,43 @@ export function Login({ onLogin }: LoginProps) {
           </form>
         </div>
       </div>
+      {/* FORGOT */}
+      <ForgotPasswordModal
+        open={openForgot}
+        onClose={() => setOpenForgot(false)}
+        onNext={() => {
+          setOpenForgot(false);
+          setOpenReset(true);
+        }}
+      />
+
+      {/* RESET */}
+      {openReset && (
+        <ResetPasswordModal
+          onBack={() => {
+            setOpenReset(false);
+            setOpenForgot(true);
+          }}
+          onClose={() => setOpenReset(false)}
+          onSuccess={() => {
+            setOpenReset(false);
+            setOpenSuccess(true);
+          }}
+        />
+      )}
+
+      {/* SUCCESS */}
+      {openSuccess && (
+        <ResetSuccessModal
+          onClose={() => {
+            setOpenSuccess(false);
+            // nếu cần quay về login:
+            // setOpenLogin(true);
+          }}
+        />
+      )}
+
+
     </div>
   );
 }

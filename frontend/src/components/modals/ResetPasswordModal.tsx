@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { PixelModal } from '@/components/PixelModal';
+import { PixelModal } from '@/components/modals/PixelModal';
 import { PixelButton } from '@/components/PixelButton';
 
 export function ResetPasswordModal({

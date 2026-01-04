@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { PixelModal } from '@/components/PixelModal';
+import { PixelModal } from '@/components/modals/PixelModal';
 import { PixelButton } from '@/components/PixelButton';
 import { PixelInput } from '@/components/PixelInput';
 import security_hamster from "@/assets/security_hamster.svg";

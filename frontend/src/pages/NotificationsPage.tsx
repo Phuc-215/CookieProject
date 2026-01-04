@@ -84,7 +84,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
 ];
 
 export function Notifications({ isLoggedIn, onLogout }: NotificationsPageProps) {
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [notifications] = useState(MOCK_NOTIFICATIONS);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const getNotificationIcon = (type: NotificationType) => {
     switch (type) {

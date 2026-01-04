@@ -42,7 +42,7 @@ export function CreateRecipe({isLoggedIn, onLogout} : CreateRecipeProps) {
     { id: '1', instruction: 'Preheat oven to 350°F (175°C)', image: null },
     { id: '2', instruction: 'Mix dry ingredients in a large bowl', image: null },
   ]);
-  const [mainImage, setMainImage] = useState<string | null>(null);
+  const [mainImage] = useState<string | null>(null);
 
   const nav = useNav();
 

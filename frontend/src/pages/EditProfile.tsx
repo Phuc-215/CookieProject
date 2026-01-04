@@ -3,7 +3,7 @@ import { User, Upload } from 'lucide-react';
 import { PixelButton } from '@/components/PixelButton';
 import { PixelInput } from '@/components/PixelInput';
 import { PixelTextarea } from '@/components/PixelTextarea';
-import { SecurityCheckModal } from '@/features/SecurityCheckModal';
+import { SecurityCheckModal } from '@/components/modals/SecurityCheckModal';
 import { NavBar } from '../components/NavBar';
 import { useNav } from '@/hooks/useNav';
 
@@ -99,7 +99,7 @@ export function EditProfile() {
               </div>
               <div>
                 <label className="cursor-pointer">
-                  <PixelButton variant="outline" size="md" as="span">
+                  <PixelButton variant="outline" size="md">
                     <Upload className="w-4 h-4 inline mr-2" />
                     Upload Photo
                   </PixelButton>

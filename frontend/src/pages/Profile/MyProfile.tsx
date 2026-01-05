@@ -40,17 +40,18 @@ const DRAFT_RECIPES = [
   },
 ];
 
-const SAVED_RECIPES = [
+const MY_COLLECTIONS = [
   {
-    id: '3',
-    title: 'Rainbow Macarons',
-    image: 'https://images.unsplash.com/photo-1580421383318-f87fc861a696',
-    author: 'SweetChef',
-    difficulty: 'Hard' as const,
-    time: '120 min',
-    likes: 523,
+    id: 'c1',
+    title: 'Weekend Baking',
+    recipeCount: 5,
+    coverImages: [
+      'https://images.unsplash.com/photo-1499636136210-6f4ee915583e',
+      'https://images.unsplash.com/photo-1506224772180-d75b3efbe9be',
+    ],
   },
 ];
+
 interface MyProfileProps {
   isLoggedIn: boolean;
   onLogout?: () => void;
@@ -63,7 +64,7 @@ export function MyProfile({ isLoggedIn, onLogout }: MyProfileProps) {
       profileUser={MY_USER}
       recipes={MY_RECIPES}
       drafts={DRAFT_RECIPES}
-      savedRecipes={SAVED_RECIPES}
+      collections={MY_COLLECTIONS}
       isLoggedIn={isLoggedIn}
       onLogout={onLogout}
     />

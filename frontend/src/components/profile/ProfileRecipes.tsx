@@ -1,14 +1,13 @@
 import { RecipeCard } from '@/components/RecipeCard';
+import { useNav } from '../../hooks/useNav'; 
 import type { Recipe } from '@/types/Recipe';
 
-type ProfileTab = 'recipes' | 'drafts' | 'collections';
-
+type ProfileRecipeTab = 'recipes' | 'drafts';
 interface ProfileRecipesProps {
-  tab: ProfileTab;
+  tab: ProfileRecipeTab;
   isOwner: boolean;
   recipes: Recipe[];
   drafts: Recipe[];
-  savedRecipes: Recipe[];
 }
 
 export function ProfileRecipes({
@@ -16,14 +15,9 @@ export function ProfileRecipes({
   isOwner,
   recipes,
   drafts,
-  savedRecipes,
 }: ProfileRecipesProps) {
-  const data: Recipe[] =
-    tab === 'recipes'
-      ? recipes
-      : tab === 'drafts'
-      ? drafts
-      : savedRecipes;
+  const data = tab === 'recipes' ? recipes : drafts;
+  const nav = useNav();
 
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -31,8 +25,9 @@ export function ProfileRecipes({
         <RecipeCard
           key={recipe.id}
           {...recipe}
-          showEdit={isOwner && tab !== 'collections'}
-          showDelete={isOwner && tab !== 'collections'}
+          onClick={() => nav.recipe(recipe.id)}
+          showEdit={isOwner}
+          showDelete={isOwner}
         />
       ))}
     </div>

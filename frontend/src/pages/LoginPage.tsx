@@ -7,9 +7,9 @@ import * as z from 'zod';
 import { PixelInput } from '@/components/PixelInput';
 import { PixelButton } from '@/components/PixelButton';
 import { NavBar } from '@/components/NavBar';
-import { ForgotPasswordModal } from '@/features/auth/ForgotPasswordModal';
-import { ResetPasswordModal } from '@/features/auth/ResetPasswordModal';
-import { ResetSuccessModal } from '@/features/auth/ResetSuccessModal';
+import { ForgotPasswordModal } from '@/components/modals/ForgotPasswordModal';
+import { ResetPasswordModal } from '@/components/modals/ResetPasswordModal';
+import { ResetSuccessModal } from '@/components/modals/ResetSuccessModal';
 import { useNav } from '../hooks/useNav';
 import login_hamster from "@/assets/login_hamster.svg";
 
@@ -235,8 +235,6 @@ export function Login({ onLogin }: LoginProps) {
           }}
         />
       )}
-
-
     </div>
   );
 }

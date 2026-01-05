@@ -1,4 +1,4 @@
-import { PixelModal } from '@/components/PixelModal';
+import { PixelModal } from '@/components/modals/PixelModal';
 import { PixelButton } from '@/components/PixelButton';
 import success_hamster from '@/assets/success_hamster.svg';
 

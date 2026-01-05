@@ -1,4 +1,4 @@
-import { Heart, Bookmark, Trash2 } from "lucide-react";
+import { Heart, Bookmark, Trash2, Pencil } from "lucide-react";
 
 interface RecipeCardProps {
   id: string;
@@ -15,6 +15,8 @@ interface RecipeCardProps {
   onSave?: (id: string) => void;
   showDelete?: boolean;
   onDelete?: (id: string) => void;
+  showEdit?: boolean;
+  onEdit?: (id: string) => void;
   large?: boolean;
   small?: boolean;
 }
@@ -34,6 +36,8 @@ export function RecipeCard({
   onSave,
   showDelete = false,
   onDelete,
+  showEdit = false,
+  onEdit,
   large,
   small,
 }: RecipeCardProps) {
@@ -153,22 +157,45 @@ export function RecipeCard({
           </span>
         </div>
 
-        {showDelete && (
-          <button
-            className="
-              w-full mt-3 px-3 py-2 pixel-border
-              bg-[var(--primary)]
-              hover:bg-[color-mix(in_srgb,var(--primary)85%,black)]
-              transition-colors flex items-center justify-center gap-2 text-sm uppercase
-            "
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete?.(id);
-            }}
-          >
-            <Trash2 className="w-4 h-4" />
-            Delete Recipe
-          </button>
+        {(showEdit || showDelete) && (
+          <div className="mt-3 flex gap-2">
+            {showEdit && (
+              <button
+                className="
+                  flex-1 px-4 py-2 pixel-border
+                  bg-[var(--secondary)]
+                  hover:bg-[color-mix(in_srgb,var(--secondary)85%,black)]
+                  transition-colors
+                  flex items-center justify-center gap-2
+                  text-sm uppercase
+                "
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit?.(id);
+                }}
+              >
+                <Pencil className="w-4 h-4" />
+                Edit
+              </button>
+            )}
+                        {showDelete && (
+              <button
+                className="
+                  px-3 py-2 pixel-border
+                  bg-[var(--primary)]
+                  hover:bg-[color-mix(in_srgb,var(--primary)85%,black)]
+                  transition-colors
+                  flex items-center justify-center
+                "
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete?.(id);
+                }}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

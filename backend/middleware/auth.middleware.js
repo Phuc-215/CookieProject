@@ -1,0 +1,25 @@
+const jwt = require("jsonwebtoken");
+
+const JWT_SECRET = process.env.JWT_SECRET || "default_secret_key";
+
+function authMiddleware(req, res, next) {
+  console.log("Auth Header:", req.headers["authorization"]);
+
+  const authHeader = req.headers["authorization"];
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    console.error("JWT Error:", err.message);
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
+}
+
+
+module.exports = { authMiddleware };

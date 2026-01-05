@@ -3,10 +3,9 @@ import empty_others_hamster from "@/assets/empty_others_hamster.svg";
 
 interface ProfileEmptyStateProps {
   isOwner: boolean;
-  tab: 'recipes' | 'drafts';
 }
 
-export function ProfileEmptyState({ isOwner, tab }: ProfileEmptyStateProps) {
+export function ProfileEmptyState({ isOwner}: ProfileEmptyStateProps) {
   if (isOwner) {
     return (
       <div className="pixel-card bg-white p-10 text-center">

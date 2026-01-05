@@ -1,4 +1,5 @@
 import { RecipeCard } from '@/components/RecipeCard';
+import { ProfileEmptyState } from './ProfileEmptyState';
 import { useNav } from '../../hooks/useNav'; 
 import type { Recipe } from '@/types/Recipe';
 
@@ -38,7 +39,6 @@ export function ProfileRecipes({
     return (
       <ProfileEmptyState
         isOwner={isOwner}
-        tab={tab}
       />
     );
   }

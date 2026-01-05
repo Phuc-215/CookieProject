@@ -39,6 +39,7 @@ export default function App() {
         <Route path="/me" element={isLoggedIn ? <MyProfile isLoggedIn={isLoggedIn} onLogout={handleLogout} /> : <Navigate to="/login" replace />} />
         <Route path="/edit-profile" element={isLoggedIn ? <EditProfile /> : <Navigate to="/login" replace />} />
         <Route path="/create" element={<CreateRecipe isLoggedIn={isLoggedIn} onLogout={handleLogout}/>} />
+        <Route path="/edit/:id" element={<CreateRecipe isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
         <Route path="/notifications" element={isLoggedIn ? <Notifications isLoggedIn={isLoggedIn} onLogout={handleLogout} /> : <Navigate to="/login" replace />} />
 
         {/* Default */}

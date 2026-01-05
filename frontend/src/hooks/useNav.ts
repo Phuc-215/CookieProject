@@ -14,6 +14,7 @@ export function useNav() {
     editProfile: () => n("/edit-profile"),
     profile: (id: string | number) => n(`/profile/${id}`),
     create: () => n("/create"),
+    editRecipe: (id: string | number) => n(`/edit/${id}`),
     notifications: () => n("/notifications"),
     recipe: (id: string | number) => n(`/recipe/${id}`),
   };

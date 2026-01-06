@@ -64,7 +64,9 @@ export function Login({ onLogin }: LoginProps) {
         password: data.password,
       });
 
-      localStorage.setItem('token', res.data.token);
+      // Save tokens to localStorage
+      localStorage.setItem('accessToken', res.data.accessToken);
+      localStorage.setItem('refreshToken', res.data.refreshToken);
       onLogin?.();
       nav.home();
     } catch (err: any) {

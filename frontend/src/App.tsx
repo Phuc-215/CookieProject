@@ -16,15 +16,16 @@ import { useState } from "react";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(
-  Boolean(localStorage.getItem('token')));
-
+    Boolean(localStorage.getItem('accessToken'))
+  );
 
   const handleLogin = () => {
     setIsLoggedIn(true);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     setIsLoggedIn(false);
   };
 

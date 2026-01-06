@@ -69,8 +69,6 @@ export function Signup({ onSignup }: SignupProps) {
         email: data.email,
         password: data.password,
       });
-      
-      onSignup?.();
 
       nav.login();
     } catch (err: any) {

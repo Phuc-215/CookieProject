@@ -15,11 +15,20 @@ import { Error } from "./pages/Error";
 import { useState } from "react";
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(
+  Boolean(localStorage.getItem('token')));
 
-  const handleLogin = () => setIsLoggedIn(true);
+
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsLoggedIn(false);
+  };
+
   const handleSignup = () => setIsLoggedIn(true);
-  const handleLogout = () => setIsLoggedIn(false);
 
   return (
     <Router>
@@ -36,10 +45,33 @@ export default function App() {
         <Route path="/recipe/:id" element={<RecipeDetail isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
 
         {/* Pages requiring login */}
-        <Route path="/me" element={isLoggedIn ? <MyProfile isLoggedIn={isLoggedIn} onLogout={handleLogout} /> : <Navigate to="/login" replace />} />
-        <Route path="/edit-profile" element={isLoggedIn ? <EditProfile /> : <Navigate to="/login" replace />} />
-        <Route path="/create" element={<CreateRecipe isLoggedIn={isLoggedIn} onLogout={handleLogout}/>} />
-        <Route path="/notifications" element={isLoggedIn ? <Notifications isLoggedIn={isLoggedIn} onLogout={handleLogout} /> : <Navigate to="/login" replace />} />
+        <Route
+          path="/me"
+          element={
+            isLoggedIn
+              ? <MyProfile isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+              : <Navigate to="/login" replace />
+          }
+        />
+        <Route
+          path="/edit-profile"
+          element={isLoggedIn ? <EditProfile /> : <Navigate to="/login" replace />}
+        />
+
+        <Route
+          path="/create"
+          element={isLoggedIn ? <CreateRecipe isLoggedIn={isLoggedIn} onLogout={handleLogout}/> : <Navigate to="/login" replace />}
+        />
+
+        <Route
+          path="/notifications"
+          element={
+            isLoggedIn
+              ? <Notifications isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+              : <Navigate to="/login" replace />
+          }
+        />
+
 
         {/* Default */}
         <Route path="*" element={<Error isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { loginApi } from '@/api/auth.api';
 import * as z from 'zod'; 
 
 import { PixelInput } from '@/components/PixelInput';
@@ -34,6 +35,7 @@ export function Login({ onLogin }: LoginProps) {
   const [openForgot, setOpenForgot] = useState(false);
   const [openReset, setOpenReset] = useState(false);
   const [openSuccess, setOpenSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     register,
@@ -53,12 +55,24 @@ export function Login({ onLogin }: LoginProps) {
 
   const rememberMeValue = watch('rememberMe');
 
-  const onSubmit = (data: LoginFormData) => {
-    console.log("Form Data:", data); 
-    
-    onLogin?.();
-    nav.home();
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      setSubmitError(null);
+
+      const res = await loginApi({
+        email: data.email,
+        password: data.password,
+      });
+
+      localStorage.setItem('token', res.data.token);
+      onLogin?.();
+      nav.home();
+    } catch (err: any) {
+      setSubmitError(err.response?.data?.message || 'Login failed');
+    }
   };
+
+
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
@@ -162,7 +176,11 @@ export function Login({ onLogin }: LoginProps) {
                 Forgot?
               </button>
             </div>
-
+            {submitError && (
+              <p className="text-pink-500 text-sm text-center mt-3">
+                {submitError}
+              </p>
+            )}
             <PixelButton 
               variant="secondary" 
               size="lg" 

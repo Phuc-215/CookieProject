@@ -3,6 +3,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { registerApi } from '../api/auth.api';
 
 import { PixelInput } from '../components/PixelInput';
 import { PixelButton } from '../components/PixelButton';
@@ -36,6 +37,7 @@ interface SignupProps {
 export function Signup({ onSignup }: SignupProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   
   const nav = useNav();
 
@@ -59,12 +61,26 @@ export function Signup({ onSignup }: SignupProps) {
   // Watch checkbox value for custom UI
   const agreeToTermsValue = watch('agreeToTerms');
 
-  const onSubmit = (data: SignupFormData) => {
-    console.log("Signup Data:", data);
-    // Mock signup success
-    onSignup?.();
-    nav.home();
+  const onSubmit = async (data: SignupFormData) => {
+    try {
+      setSubmitError(null); 
+      await registerApi({
+        username: data.username,
+        email: data.email,
+        password: data.password,
+      });
+      
+      onSignup?.();
+
+      nav.login();
+    } catch (err: any) {
+      setSubmitError(
+        err.response?.data?.message || 'Signup failed'
+      );
+    }
   };
+  
+
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
@@ -236,6 +252,11 @@ export function Signup({ onSignup }: SignupProps) {
               )}
             </div>
 
+            {submitError && (
+              <p className="text-pink-500 text-sm text-center mt-3">
+                {submitError}
+              </p>
+            )}
             {/* Submit Button */}
             <PixelButton 
               variant="primary" 

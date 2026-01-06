@@ -21,10 +21,16 @@ exports.login = async ({ email, password }) => {
   );
 
   const user = result.rows[0];
-  if (!user) throw new Error('User not found');
+
+  if (!user) {
+    return { error: 'USER_NOT_FOUND' };
+  }
 
   const isMatch = await comparePassword(password, user.password_hash);
-  if (!isMatch) throw new Error('Invalid password');
 
-  return user;
+  if (!isMatch) {
+    return { error: 'INVALID_PASSWORD' };
+  }
+
+  return { user };
 };

@@ -1,5 +1,5 @@
 // services/recipes.service.js
-const { pool } = require('../db');
+const { pool } = require('../config/db');
 
 exports.likeRecipe = async (userId, recipeId) => {
     const client = await pool.connect();

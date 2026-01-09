@@ -1,5 +1,5 @@
 // services/search.service.js
-const { pool } = require('../db');
+const { pool } = require('../config/db');
 
 exports.search = async ({ title, ingredientIds_included, ingredientIds_excluded, userId }) => {
     // 1. Base Query

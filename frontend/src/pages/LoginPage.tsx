@@ -3,6 +3,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginApi } from '@/api/auth.api';
+import { AxiosError } from 'axios';
 import * as z from 'zod'; 
 
 import { PixelInput } from '@/components/PixelInput';
@@ -27,6 +28,8 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 interface Viewer {
   username: string;
+  email?: string;
+  id?: string;
 }
 interface LoginProps {
   onLogin: (user: Viewer) => void;
@@ -66,10 +69,11 @@ export function Login({ onLogin }: LoginProps) {
 
       setTokens(res.data.accessToken, res.data.refreshToken);
       localStorage.setItem('user', JSON.stringify(res.data.user));
-      onLogin?.();
+      onLogin(res.data.user);
       nav.home();
-    } catch (err: any) {
-      setSubmitError(err.response?.data?.message || 'Login failed');
+    } catch (err: unknown) {
+      const error = err as AxiosError<{ message?: string }>;
+      setSubmitError(error.response?.data?.message || 'Login failed');
     }
   };
 

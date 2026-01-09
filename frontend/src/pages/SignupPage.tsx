@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { AxiosError } from 'axios';
 import * as z from 'zod';
 import { registerApi } from '../api/auth.api';
 
@@ -33,6 +34,8 @@ type SignupFormData = z.infer<typeof signupSchema>;
 
 interface Viewer {
   username: string;
+  email?: string;
+  id?: string;
 }
 interface SignupProps {
   onSignup: (user: Viewer) => void;
@@ -67,21 +70,24 @@ export function Signup({ onSignup }: SignupProps) {
 
   const onSubmit = async (data: SignupFormData) => {
     try {
-      setSubmitError(null); 
+      setSubmitError(null);
+
       const res = await registerApi({
         username: data.username,
         email: data.email,
         password: data.password,
       });
 
-      nav.login();
-    } catch (err: any) {
-      setSubmitError(
-        err.response?.data?.message || 'Signup failed'
-      );
+      setTokens(res.data.accessToken, res.data.refreshToken);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+
+      onSignup(res.data.user);
+      nav.home();
+    } catch (err: unknown) {
+      const error = err as AxiosError<{ message?: string }>;
+      setSubmitError(error.response?.data?.message || 'Signup failed');
     }
   };
-  
 
 
   return (

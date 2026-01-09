@@ -12,7 +12,7 @@ interface Viewer {
 
 interface CollectionPageProps {
   isLoggedIn: boolean;
-  viewer: Viewer | null;
+  viewer?: Viewer | null;
 }
 
 export function CollectionPage({

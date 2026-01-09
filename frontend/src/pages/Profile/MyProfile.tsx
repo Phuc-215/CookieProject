@@ -26,7 +26,7 @@ interface Viewer {
 }
 interface MyProfileProps {
   isLoggedIn: boolean;
-  viewer: Viewer | null;
+  viewer?: Viewer | null;
   onLogout: () => void;
 }
 

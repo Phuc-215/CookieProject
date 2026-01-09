@@ -75,7 +75,8 @@ export default function App() {
           <Route path="/edit/:id" element={<CreateRecipe isLoggedIn={isLoggedIn} onLogout={handleLogout} />} /> 
           <Route path="/collections/edit" element={<EditCollection mode="create" />} />
           <Route path="/notifications" element={<Notifications isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
-          <Route path="/collections/create" element={<EditCollection mode="create" />} />
+          <Route path="/edit-collection/:id" element={<EditCollection mode="edit" />} />
+          <Route path="/collections/new" element={<EditCollection mode="create" />}/>
         </Route>
 
         {/* Fallback */}

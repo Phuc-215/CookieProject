@@ -1,7 +1,8 @@
-const { signAccessToken, signRefreshToken } = require('../utils/jwt');
+const { signAccessToken, signRefreshToken, signVerificationToken, verifyToken, signResetToken, generateVerificationCode } = require('../utils/jwt');
 const { comparePassword } = require('../utils/password');
 const { pool } = require('../config/db');
 const { hashPassword } = require('../utils/password');
+const { sendVerificationEmail } = require('./email.service');
 const jwt = require('jsonwebtoken');
 
 exports.login = async ({ email, password }) => {
@@ -66,13 +67,50 @@ exports.register = async ({ username, email, password }) => {
   const passwordHash = await hashPassword(password);
 
   const result = await pool.query(
-    `INSERT INTO users (username, email, password_hash)
-     VALUES ($1, $2, $3)
+    `INSERT INTO users (username, email, password_hash, is_verified)
+     VALUES ($1, $2, $3, false)
      RETURNING id, username, email`,
     [username, email, passwordHash]
   );
 
-  return result.rows[0];
+  const newUser = result.rows[0];
+
+  // Generate 6-digit verification code
+  const verificationCode = generateVerificationCode();
+
+  // Save verification code to DB (valid for 24 hours)
+  await pool.query(
+    `INSERT INTO verification_tokens (user_id, token, expires_at)
+     VALUES ($1, $2, NOW() + INTERVAL '24 hours')`,
+    [newUser.id, verificationCode]
+  );
+
+  // Send verification code to email
+  await sendVerificationEmail(newUser.email, verificationCode);
+
+  // Generate JWT tokens for immediate login
+  const payload = {
+    id: newUser.id,
+    email: newUser.email,
+    username: newUser.username
+  };
+
+  const accessToken = signAccessToken(payload);
+  const refreshToken = signRefreshToken({ id: newUser.id });
+
+  // Save refresh token to DB
+  await pool.query(
+    `INSERT INTO refresh_tokens (user_id, token, expires_at)
+     VALUES ($1, $2, NOW() + INTERVAL '7 days')`,
+    [newUser.id, refreshToken]
+  );
+
+  return {
+    user: payload,
+    accessToken,
+    refreshToken,
+    verificationCode // Return code for testing (remove in production)
+  };
 };
 
 exports.logout = async (refreshToken) => {
@@ -89,4 +127,105 @@ exports.logout = async (refreshToken) => {
     'DELETE FROM refresh_tokens WHERE token = $1',
     [refreshToken]
   );
+};
+
+exports.verifyEmail = async (code) => {
+  // Validate code format (6 digits)
+  if (!code || !/^\d{6}$/.test(code.toString())) {
+    return { error: 'Invalid verification code format' };
+  }
+
+  // Check if code exists in DB and not expired
+  const codeCheck = await pool.query(
+    `SELECT user_id FROM verification_tokens 
+     WHERE token = $1 AND expires_at > NOW()`,
+    [code.toString()]
+  );
+
+  if (codeCheck.rowCount === 0) {
+    return { error: 'Verification code expired or invalid' };
+  }
+
+  const userId = codeCheck.rows[0].user_id;
+
+  // Update user as verified
+  await pool.query(
+    'UPDATE users SET is_verified = true WHERE id = $1',
+    [userId]
+  );
+
+  // Delete verification code
+  await pool.query(
+    'DELETE FROM verification_tokens WHERE token = $1',
+    [code.toString()]
+  );
+
+  return { success: true };
+};
+
+exports.refreshToken = async (refreshToken) => {
+  if (!refreshToken) {
+    return { error: 'Refresh token required' };
+  }
+
+  // Verify refresh token signature
+  let payload;
+  try {
+    payload = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+  } catch (err) {
+    return { error: 'Invalid or expired refresh token' };
+  }
+
+  // Check if refresh token exists in DB and not expired
+  const tokenCheck = await pool.query(
+    `SELECT user_id FROM refresh_tokens 
+     WHERE token = $1 AND expires_at > NOW()`,
+    [refreshToken]
+  );
+
+  if (tokenCheck.rowCount === 0) {
+    return { error: 'Refresh token expired or revoked' };
+  }
+
+  const userId = tokenCheck.rows[0].user_id;
+
+  // Get user info
+  const userResult = await pool.query(
+    'SELECT id, email, username FROM users WHERE id = $1',
+    [userId]
+  );
+
+  if (userResult.rowCount === 0) {
+    return { error: 'User not found' };
+  }
+
+  const user = userResult.rows[0];
+
+  // Generate new tokens
+  const tokenPayload = {
+    id: user.id,
+    email: user.email,
+    username: user.username
+  };
+
+  const newAccessToken = signAccessToken(tokenPayload);
+  const newRefreshToken = signRefreshToken({ id: user.id });
+
+  // Delete old refresh token and insert new one (token rotation)
+  await pool.query(
+    `DELETE FROM refresh_tokens WHERE token = $1`,
+    [refreshToken]
+  );
+
+  await pool.query(
+    `INSERT INTO refresh_tokens (user_id, token, expires_at)
+     VALUES ($1, $2, NOW() + INTERVAL '7 days')`,
+    [userId, newRefreshToken]
+  );
+
+  return {
+    user: tokenPayload,
+    accessToken: newAccessToken,
+    refreshToken: newRefreshToken
+  };
 };

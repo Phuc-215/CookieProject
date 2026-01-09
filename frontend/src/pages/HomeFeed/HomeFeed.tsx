@@ -197,15 +197,17 @@ export function HomeFeed({ isLoggedIn = false, onLogout }: HomeFeedProps) {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {MOCK_COLLECTIONS.map((col) => (
-            <CollectionCard
-              key={col.id}
-              title={col.title}
-              recipeCount={col.recipeCount}
-              coverImages={col.coverImages}
-              // onClick={() => nav.collection(col.id)}
-            />
-          ))}
+        {MOCK_COLLECTIONS.map((col) => (
+          <CollectionCard
+            key={col.id}
+            id={col.id}
+            title={col.title}
+            recipeCount={col.recipeCount}
+            coverImages={col.coverImages}
+            ownerUsername="CookieMaster" // mock, sau này lấy từ API
+            onClick={() => nav.collection(col.id)}
+          />
+        ))}
         </div>
       </section>
 

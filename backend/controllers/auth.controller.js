@@ -1,9 +1,19 @@
 const authService = require('../services/auth.service');
+const { registerSchema, loginSchema, refreshTokenSchema } = require('../validations/auth.validation');
 
 exports.register = async (req, res) => {
   try {
-    const result = await authService.register(req.body);
-    console.log('LOGIN RESULT FROM SERVICE:', result);
+    // Validate request body
+    const { error, value } = registerSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        message: 'Validation failed',
+        details: error.details.map(d => d.message)
+      });
+    }
+
+    const result = await authService.register(value);
+    console.log('REGISTER RESULT FROM SERVICE:', result);
 
     if (result.error === 'USERNAME_EXISTS') {
       return res.status(409).json({
@@ -17,9 +27,13 @@ exports.register = async (req, res) => {
       });
     }
 
+    // Return user info + tokens on successful registration
     res.status(201).json({
-      message: 'Register success',
-      user: result
+      message: 'Register success. Please verify your email.',
+      user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      verificationToken: result.verificationToken
     });
 
   } catch (err) {
@@ -68,6 +82,56 @@ exports.logout = async (req, res) => {
     res.json({ message: 'Logout success' });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.verifyEmail = async (req, res) => {
+  try {
+    const { code } = req.body;
+
+    if (!code) {
+      return res.status(400).json({ message: 'Verification code required' });
+    }
+
+    const result = await authService.verifyEmail(code);
+
+    if (result.error) {
+      return res.status(400).json({ message: result.error });
+    }
+
+    res.json({ message: 'Email verified successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.refresh = async (req, res) => {
+  try {
+    // Validate request body
+    const { error, value } = refreshTokenSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        message: 'Validation failed',
+        details: error.details.map(d => d.message)
+      });
+    }
+
+    const result = await authService.refreshToken(value.refreshToken);
+
+    if (result.error) {
+      return res.status(401).json({ message: result.error });
+    }
+
+    res.json({
+      message: 'Token refreshed successfully',
+      user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken
+    });
+  } catch (err) {
+    console.error('REFRESH TOKEN ERROR:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };

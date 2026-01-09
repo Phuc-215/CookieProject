@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
 import { HomeFeed } from "./pages/HomeFeed/HomeFeed";
-import { Search } from "./pages/SearchPage";
+import SearchPage from "./pages/SearchPage";
 import { PublicProfile } from "./pages/PublicProfile";
 import { MyProfile } from "./pages/MyProfile";
 import { EditProfile } from "./pages/EditProfile";
@@ -31,7 +31,7 @@ export default function App() {
 
         {/* Normal pages */}
         <Route path="/" element={<HomeFeed isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
-        <Route path="/search" element={<Search isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
+        <Route path="/search" element={<SearchPage isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
         <Route path="/profile/:id" element={<PublicProfile isLoggedIn={isLoggedIn} />} />
         <Route path="/recipe/:id" element={<RecipeDetail isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
 

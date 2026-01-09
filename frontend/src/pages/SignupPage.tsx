@@ -29,8 +29,11 @@ const signupSchema = z.object({
 
 type SignupFormData = z.infer<typeof signupSchema>;
 
+interface Viewer {
+  username: string;
+}
 interface SignupProps {
-  onSignup?: () => void;
+  onSignup: (user: Viewer) => void;
 }
 
 export function Signup({ onSignup }: SignupProps) {
@@ -62,7 +65,11 @@ export function Signup({ onSignup }: SignupProps) {
   const onSubmit = (data: SignupFormData) => {
     console.log("Signup Data:", data);
     // Mock signup success
-    onSignup?.();
+    // mock user (sau này thay bằng API)
+    const user = {
+      username: "SweetChef",
+    };
+    onSignup?.(user);
     nav.home();
   };
 

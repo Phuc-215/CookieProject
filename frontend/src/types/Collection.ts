@@ -1,6 +1,9 @@
 export interface Collection {
   id: string;
   title: string;
-  recipeCount: number;
+  ownerUsername: string;
   coverImages: string[];
+  description: string;
+  recipeIds: string[];
+  recipeCount: number;
 }

@@ -1,4 +1,6 @@
 import { ProfilePage } from './ProfilePage';
+import { MOCK_COLLECTIONS } from "@/mocks/mock_collection";
+import { MOCK_RECIPES } from "@/mocks/mock_recipe";
 
 const MOCK_USER = {
   username: 'BakerBob',
@@ -6,27 +8,6 @@ const MOCK_USER = {
   following: 156,
   bio: 'Home baker exploring pixel-perfect recipes!',
 };
-
-const MOCK_USER_RECIPES = [
-  {
-    id: '1',
-    title: 'Classic Chocolate Chip',
-    image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e',
-    author: 'BakerBob',
-    difficulty: 'Easy' as const,
-    time: '30 min',
-    likes: 245,
-  },
-  {
-    id: '2',
-    title: 'Glazed Donuts',
-    image: 'https://images.unsplash.com/photo-1506224772180-d75b3efbe9be',
-    author: 'BakerBob',
-    difficulty: 'Medium' as const,
-    time: '60 min',
-    likes: 412,
-  },
-];
 
 interface PublicProfileProps {
   isLoggedIn: boolean;
@@ -38,7 +19,8 @@ export function PublicProfile({ isLoggedIn, onLogout }: PublicProfileProps) {
     <ProfilePage
       viewer={{ username: null }}      // public = guest
       profileUser={MOCK_USER}
-      recipes={MOCK_USER_RECIPES}
+      recipes={MOCK_RECIPES}
+      collections={MOCK_COLLECTIONS}
       isLoggedIn={isLoggedIn}
       onLogout={onLogout}
     />

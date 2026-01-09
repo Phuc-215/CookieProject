@@ -17,6 +17,8 @@ interface RecipeCardProps {
   onDelete?: (id: string) => void;
   showEdit?: boolean;
   onEdit?: (id: string) => void;
+  canRemove?: boolean; // for cookie jar view
+  onRemove?: () => void;
   large?: boolean;
   small?: boolean;
 }
@@ -38,6 +40,8 @@ export function RecipeCard({
   onDelete,
   showEdit = false,
   onEdit,
+  canRemove = false,
+  onRemove,
   large,
   small,
 }: RecipeCardProps) {
@@ -157,8 +161,10 @@ export function RecipeCard({
           </span>
         </div>
 
-        {(showEdit || showDelete) && (
+        {(showEdit || showDelete || canRemove) && (
           <div className="mt-3 flex gap-2">
+            
+            {/* EDIT */}
             {showEdit && (
               <button
                 className="
@@ -178,7 +184,9 @@ export function RecipeCard({
                 Edit
               </button>
             )}
-                        {showDelete && (
+
+            {/* DELETE (profile / owner) */}
+            {showDelete && (
               <button
                 className="
                   px-3 py-2 pixel-border
@@ -195,8 +203,32 @@ export function RecipeCard({
                 <Trash2 className="w-4 h-4" />
               </button>
             )}
+
+            {/* REMOVE (collection) */}
+            {canRemove && (
+              <button
+                className="
+                  mt-3 w-full
+                  px-4 py-2
+                  pixel-border
+                  bg-[var(--primary)]
+                  hover:bg-[color-mix(in_srgb,var(--primary)85%,black)]
+                  transition-colors
+                  flex items-center justify-center gap-2
+                  text-sm uppercase
+                "
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove?.();
+                }}
+              >
+                <Trash2 className="w-4 h-4" />
+                Remove from Cookie Jar
+              </button>
+            )}
           </div>
         )}
+
       </div>
     </div>
   );

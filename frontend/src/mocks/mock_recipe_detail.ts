@@ -1,0 +1,61 @@
+export const RECIPE = {
+  id: '1',
+  title: 'Classic Chocolate Chip Cookies',
+  description: 'The ultimate chocolate chip cookie recipe! Crispy edges, chewy centers, and loaded with melty chocolate chips. Perfect for any occasion.',
+  image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaG9jb2xhdGUlMjBjaGlwJTIwY29va2llc3xlbnwxfHx8fDE3NjQyMDU4MzN8MA&ixlib=rb-4.1.0&q=80&w=1080',
+  author: {
+    username: 'BakerBob',
+    avatar: null,
+  },
+  difficulty: 'Easy',
+  prepTime: '15 min',
+  cookTime: '12 min',
+  servings: '24 cookies',
+  likes: 245,
+  isLiked: false,
+  isSaved: false,
+  ingredients: [
+    '2 1/4 cups all-purpose flour',
+    '1 tsp baking soda',
+    '1 tsp salt',
+    '1 cup (2 sticks) butter, softened',
+    '3/4 cup granulated sugar',
+    '3/4 cup packed brown sugar',
+    '2 large eggs',
+    '2 tsp vanilla extract',
+    '2 cups chocolate chips',
+  ],
+  steps: [
+    'Preheat oven to 375°F (190°C).',
+    'In a small bowl, combine flour, baking soda, and salt. Set aside.',
+    'In a large bowl, beat butter, granulated sugar, and brown sugar until creamy.',
+    'Add eggs and vanilla extract to butter mixture. Beat well.',
+    'Gradually blend in flour mixture.',
+    'Stir in chocolate chips.',
+    'Drop rounded tablespoons of dough onto ungreased cookie sheets.',
+    'Bake for 9-11 minutes or until golden brown.',
+    'Cool on baking sheet for 2 minutes, then remove to wire rack.',
+  ],
+  tags: ['Cookies', 'Chocolate', 'Dessert', 'American'],
+};
+
+export const COMMENTS = [
+  {
+    id: '1',
+    author: 'SweetChef',
+    text: 'These turned out amazing! I added some sea salt on top before baking.',
+    timestamp: '2 hours ago',
+  },
+  {
+    id: '2',
+    author: 'CookieFan',
+    text: 'Perfect recipe! My family loved them. Making another batch tomorrow.',
+    timestamp: '1 day ago',
+  },
+  {
+    id: '3',
+    author: 'ChocMaster',
+    text: 'Pro tip: chill the dough for 30 minutes before baking for even better results!',
+    timestamp: '3 days ago',
+  },
+];

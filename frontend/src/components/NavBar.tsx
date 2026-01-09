@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Search, Bell, User, Plus, LogOut, UserCircle } from 'lucide-react';
 import { PixelButton } from './PixelButton';
-import { useNav } from "../hooks/useNav";
-import logo from "../assets/logo.svg";
+import { useNav } from "@/hooks/useNav";
+import logo from "@/assets/logo.svg";
 interface NavBarProps {
   isLoggedIn?: boolean;
   onLogout?: () => void;

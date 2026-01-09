@@ -82,7 +82,12 @@ export function Signup({ onSignup }: SignupProps) {
       localStorage.setItem('user', JSON.stringify(res.data.user));
 
       onSignup(res.data.user);
-      nav.home();
+      
+      // Store verification code and redirect to verify email page
+      if (res.data.verificationCode) {
+        localStorage.setItem('verificationCode', res.data.verificationCode);
+      }
+      nav.go('/verify-email');
     } catch (err: unknown) {
       const error = err as AxiosError<{ message?: string }>;
       setSubmitError(error.response?.data?.message || 'Signup failed');

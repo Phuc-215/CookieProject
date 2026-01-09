@@ -9,6 +9,7 @@ import { CreateRecipe } from "./pages/CreateRecipe";
 import { RecipeDetail } from "./pages/RecipeDetail";
 import { Login } from "./pages/LoginPage";
 import { Signup } from "./pages/SignupPage";
+import { VerifyEmail } from "./pages/VerifyEmailPage";
 import { Notifications } from "./pages/NotificationsPage";
 import { Error } from "./pages/Error";
 import { CollectionPage } from "./pages/CollectionPage";
@@ -59,6 +60,7 @@ export default function App() {
         {/* Guest */}
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
         <Route path="/signup" element={<Signup onSignup={handleSignup} />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
 
         {/* Public */}
         <Route path="/" element={<HomeFeed isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />

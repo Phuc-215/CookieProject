@@ -62,21 +62,30 @@ export function Notifications({ isLoggedIn, onLogout }: NotificationsPageProps) 
   // const [notifications] = useState(MOCK_NOTIFICATIONS);
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const response = await getNotificationsApi(1, 1); // Fetch first 50 notifications
+        setLoading(true);
+        const response = await getNotificationsApi(page, limit);
+
         setNotifications(response.data?.data || []);
-        console.log('Fetched notifications:', response.data?.data);  
+        setTotalPages(response.data?.meta?.total_pages || 1);
       } catch (error) {
         console.error('Failed to fetch notifications:', error);
         setNotifications([]);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchNotifications();
-  }, []);
+  }, [page, limit]);
 
   const handleMarkAllAsRead = async () => {
     try {
@@ -108,7 +117,7 @@ export function Notifications({ isLoggedIn, onLogout }: NotificationsPageProps) 
   };
   
   // Fetch notifications on component mount
-  const [filter, setFilter] = useState<'all' | 'unread'>('all');
+
   const getNotificationIcon = (type: NotificationType) => {
     switch (type) {
       case 'like':
@@ -127,6 +136,25 @@ export function Notifications({ isLoggedIn, onLogout }: NotificationsPageProps) 
     : notifications;
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
+
+  const maxVisible = 3;
+  const half = Math.floor(maxVisible / 2);
+
+  let startPage = Math.max(2, page - half);
+  let endPage = Math.min(totalPages - 1, page + half);
+
+  if (page <= half + 1) {
+    startPage = 2;
+    endPage = Math.min(totalPages - 1, maxVisible);
+  }
+
+  if (page >= totalPages - half) {
+    endPage = totalPages - 1;
+    startPage = Math.max(2, totalPages - maxVisible + 1);
+  }
+
+  const showLeftEllipsis = startPage > 2;
+  const showRightEllipsis = endPage < totalPages - 1;
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
@@ -238,6 +266,79 @@ export function Notifications({ isLoggedIn, onLogout }: NotificationsPageProps) 
             ))
           )}
         </div>
+        {/*Pagination?*/}
+        {totalPages > 1 && (
+          <div className="mt-8 flex justify-center items-center gap-1 text-sm">
+
+            {/* Prev */}
+            <button
+              disabled={page === 1}
+              onClick={() => setPage(p => p - 1)}
+              className="px-2 py-2 pixel-border bg-white hover:bg-[#FFF8E1] disabled:opacity-40"
+            >
+              ‹
+            </button>
+
+            {/* Page 1 */}
+            <button
+              onClick={() => setPage(1)}
+              className={`px-3 py-2 pixel-border
+                ${page === 1 ? 'bg-[#5D4037] text-white' : 'bg-white hover:bg-[#FFF8E1]'}
+              `}
+            >
+              1
+            </button>
+
+            {/* Left ellipsis */}
+            {showLeftEllipsis && <span className="px-1 text-[#5D4037]/50">…</span>}
+
+            {/* Middle pages */}
+            {Array.from(
+              { length: endPage - startPage + 1 },
+              (_, i) => startPage + i
+            ).map(p => (
+              <button
+                key={p}
+                onClick={() => setPage(p)}
+                className={`px-3 py-2 pixel-border
+                  ${p === page
+                    ? 'bg-[#5D4037] text-white'
+                    : 'bg-white hover:bg-[#FFF8E1]'
+                  }
+                `}
+              >
+                {p}
+              </button>
+            ))}
+
+            {/* Right ellipsis */}
+            {showRightEllipsis && <span className="px-1 text-[#5D4037]/50">…</span>}
+
+            {/* Last page */}
+            {totalPages > 1 && (
+              <button
+                onClick={() => setPage(totalPages)}
+                className={`px-3 py-2 pixel-border
+                  ${page === totalPages
+                    ? 'bg-[#5D4037] text-white'
+                    : 'bg-white hover:bg-[#FFF8E1]'
+                  }
+                `}
+              >
+                {totalPages}
+              </button>
+            )}
+
+            {/* Next */}
+            <button
+              disabled={page === totalPages}
+              onClick={() => setPage(p => p + 1)}
+              className="px-2 py-2 pixel-border bg-white hover:bg-[#FFF8E1] disabled:opacity-40"
+            >
+              ›
+            </button>
+          </div>
+        )}
 
         {/* Empty State for Unread Filter */}
         {filter === 'unread' && filteredNotifications.length === 0 && unreadCount === 0 && (

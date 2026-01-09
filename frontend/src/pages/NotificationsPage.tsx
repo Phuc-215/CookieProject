@@ -161,6 +161,21 @@ export function Notifications({ isLoggedIn, onLogout }: NotificationsPageProps) 
           >
             Unread ({unreadCount})
           </button>
+
+          {/* Mark all as read */}
+          <button
+            disabled={unreadCount === 0}
+            onClick={handleMarkAllAsRead}
+            className={`
+              px-6 py-3 pixel-border text-sm uppercase transition-colors
+              ${unreadCount === 0
+                ? 'bg-white text-[#5D4037]/40 cursor-not-allowed'
+                : 'bg-white hover:bg-[#FFF8E1] text-[#5D4037]'
+              }
+            `}
+          >
+            Mark all read
+          </button>
         </div>
 
         {/* Notifications List */}

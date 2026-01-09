@@ -140,29 +140,33 @@ export function Notifications({ isLoggedIn, onLogout }: NotificationsPageProps) 
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Filter Tabs */}
-        <div className="mb-6 flex gap-3">
-          <button
-            className={`px-6 py-3 pixel-border text-sm uppercase transition-colors ${
-              filter === 'all'
-                ? 'bg-[#5D4037] text-white'
-                : 'bg-white hover:bg-[#FFF8E1]'
-            }`}
-            onClick={() => setFilter('all')}
-          >
-            All ({notifications.length})
-          </button>
-          <button
-            className={`px-6 py-3 pixel-border text-sm uppercase transition-colors ${
-              filter === 'unread'
-                ? 'bg-[#5D4037] text-white'
-                : 'bg-white hover:bg-[#FFF8E1]'
-            }`}
-            onClick={() => setFilter('unread')}
-          >
-            Unread ({unreadCount})
-          </button>
+        <div className="mb-6 flex items-center justify-between">
+          {/* Tabs */}
+          <div className="flex gap-3">
+            <button
+              className={`px-6 py-3 pixel-border text-sm uppercase transition-colors ${
+                filter === 'all'
+                  ? 'bg-[#5D4037] text-white'
+                  : 'bg-white hover:bg-[#FFF8E1]'
+              }`}
+              onClick={() => setFilter('all')}
+            >
+              All ({notifications.length})
+            </button>
 
-          {/* Mark all as read */}
+            <button
+              className={`px-6 py-3 pixel-border text-sm uppercase transition-colors ${
+                filter === 'unread'
+                  ? 'bg-[#5D4037] text-white'
+                  : 'bg-white hover:bg-[#FFF8E1]'
+              }`}
+              onClick={() => setFilter('unread')}
+            >
+              Unread ({unreadCount})
+            </button>
+          </div>
+
+          {/* Mark all read */}
           <button
             disabled={unreadCount === 0}
             onClick={handleMarkAllAsRead}

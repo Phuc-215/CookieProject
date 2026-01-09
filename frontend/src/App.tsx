@@ -13,31 +13,42 @@ import { Login } from "./pages/LoginPage";
 import { Signup } from "./pages/SignupPage";
 import { Notifications } from "./pages/NotificationsPage";
 import { Error } from "./pages/Error";
+import { clearTokens, getRefreshToken } from '@/utils/token';
+import { logoutApi } from '@/api/auth.api';
+
+
 
 import { useState } from "react";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 interface Viewer {
   username: string;
 }
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [viewer, setViewer] = useState<Viewer | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(
+    Boolean(localStorage.getItem('accessToken'))
+  );
 
-  const handleSignup = (user: Viewer) => {
-    setViewer(user);
+  const handleLogin = () => {
     setIsLoggedIn(true);
   };
 
-  const handleLogin = (user: Viewer) => {
-    setViewer(user);
-    setIsLoggedIn(true);
+  const handleLogout = async () => {
+    try {
+      const refreshToken = getRefreshToken();
+      if (refreshToken) {
+        await logoutApi(refreshToken);
+      }
+    } catch (err) {
+      console.warn('Logout API failed');
+    } finally {
+      clearTokens();
+      setIsLoggedIn(false);
+    }
   };
 
-  const handleLogout = () => {
-    setViewer(null);
-    setIsLoggedIn(false);
-  };
+  const handleSignup = () => setIsLoggedIn(true);
 
   return (
     <Router>
@@ -47,7 +58,7 @@ export default function App() {
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
         <Route path="/signup" element={<Signup onSignup={handleSignup} />} />
 
-        {/* Normal pages */}
+        {/* Public routes */}
         <Route path="/" element={<HomeFeed isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
         <Route path="/search" element={<Search isLoggedIn={isLoggedIn} />} />
         <Route path="/profile/:id" element={<PublicProfile isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
@@ -62,7 +73,7 @@ export default function App() {
         <Route path="/collections/new" element={ isLoggedIn? <EditCollection mode="create" />: <Navigate to="/login" replace />}/>
         <Route path="/notifications" element={isLoggedIn ? <Notifications isLoggedIn={isLoggedIn} onLogout={handleLogout} /> : <Navigate to="/login" replace />} />
 
-        {/* Default */}
+        {/* Fallback */}
         <Route path="*" element={<Error isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
 
       </Routes>

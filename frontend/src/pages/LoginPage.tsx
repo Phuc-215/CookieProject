@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { loginApi } from '@/api/auth.api';
 import * as z from 'zod'; 
 
 import { PixelInput } from '@/components/PixelInput';
@@ -12,6 +13,7 @@ import { ResetPasswordModal } from '@/components/modals/ResetPasswordModal';
 import { ResetSuccessModal } from '@/components/modals/ResetSuccessModal';
 import { useNav } from '@/hooks/useNav';
 import login_hamster from "@/assets/login_hamster.svg";
+import { setTokens } from '@/utils/token';
 
 const loginSchema = z.object({
   email: z.string()
@@ -36,6 +38,7 @@ export function Login({ onLogin }: LoginProps) {
   const [openForgot, setOpenForgot] = useState(false);
   const [openReset, setOpenReset] = useState(false);
   const [openSuccess, setOpenSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     register,
@@ -55,16 +58,19 @@ export function Login({ onLogin }: LoginProps) {
 
   const rememberMeValue = watch('rememberMe');
 
-  const onSubmit = (data: LoginFormData) => {
-    console.log("Form Data:", data); 
-    
-    // mock user (sau này thay bằng API)
-    const user = {
-      username: "SweetChef",
-    };
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      setSubmitError(null);
 
-    onLogin(user);
-    nav.home();
+      const res = await loginApi(data);
+
+      setTokens(res.data.accessToken, res.data.refreshToken);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+      onLogin?.();
+      nav.home();
+    } catch (err: any) {
+      setSubmitError(err.response?.data?.message || 'Login failed');
+    }
   };
 
   return (
@@ -169,7 +175,11 @@ export function Login({ onLogin }: LoginProps) {
                 Forgot?
               </button>
             </div>
-
+            {submitError && (
+              <p className="text-pink-500 text-sm text-center mt-3">
+                {submitError}
+              </p>
+            )}
             <PixelButton 
               variant="secondary" 
               size="lg" 

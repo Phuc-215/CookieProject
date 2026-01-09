@@ -63,6 +63,7 @@ export function Login({ onLogin }: LoginProps) {
       const res = await loginApi(data);
 
       setTokens(res.data.accessToken, res.data.refreshToken);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
       onLogin?.();
       nav.home();
     } catch (err: any) {

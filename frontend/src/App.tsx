@@ -17,6 +17,7 @@ import { logoutApi } from '@/api/auth.api';
 
 
 import { useState } from "react";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(
@@ -51,42 +52,21 @@ export default function App() {
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
         <Route path="/signup" element={<Signup onSignup={handleSignup} />} />
 
-        {/* Normal pages */}
+        {/* Public routes */}
         <Route path="/" element={<HomeFeed isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
         <Route path="/search" element={<Search isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
         <Route path="/profile/:id" element={<PublicProfile isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
         <Route path="/recipe/:id" element={<RecipeDetail isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
 
-        {/* Pages requiring login */}
-        <Route
-          path="/me"
-          element={
-            isLoggedIn
-              ? <MyProfile isLoggedIn={isLoggedIn} onLogout={handleLogout} />
-              : <Navigate to="/login" replace />
-          }
-        />
-        <Route
-          path="/edit-profile"
-          element={isLoggedIn ? <EditProfile /> : <Navigate to="/login" replace />}
-        />
+        {/* Protected routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/me" element={<MyProfile isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
+          <Route path="/edit-profile" element={<EditProfile />} />
+          <Route path="/create" element={<CreateRecipe isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
+          <Route path="/notifications" element={<Notifications isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
+        </Route>
 
-        <Route
-          path="/create"
-          element={isLoggedIn ? <CreateRecipe isLoggedIn={isLoggedIn} onLogout={handleLogout}/> : <Navigate to="/login" replace />}
-        />
-
-        <Route
-          path="/notifications"
-          element={
-            isLoggedIn
-              ? <Notifications isLoggedIn={isLoggedIn} onLogout={handleLogout} />
-              : <Navigate to="/login" replace />
-          }
-        />
-
-
-        {/* Default */}
+        {/* Fallback */}
         <Route path="*" element={<Error isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
 
       </Routes>

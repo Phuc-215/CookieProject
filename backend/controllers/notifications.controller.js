@@ -5,7 +5,7 @@ exports.getNotifications = async (req, res) => {
         const userId = 8;
         // Parse Query Params
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 20;
+        const limit = parseInt(req.query.limit) || 1;
         const type = req.query.type || null; // Optional: ?type=like
         console.log('Fetching notifications for user:', userId, 'Page:', page, 'Limit:', limit, 'Type:', type);
         const result = await notificationsService.getNotifications(userId, page, limit, type);

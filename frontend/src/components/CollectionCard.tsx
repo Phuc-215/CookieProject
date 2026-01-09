@@ -5,7 +5,7 @@ interface CollectionCardProps {
   title: string;
   recipeCount: number;
   coverImages: string[];
-
+  ownerUsername: string;
   onClick?: (id: string) => void;
 
   showEdit?: boolean;
@@ -20,6 +20,7 @@ export function CollectionCard({
   title,
   recipeCount,
   coverImages,
+  ownerUsername,
   onClick,
   showEdit = false,
   onEdit,
@@ -27,6 +28,7 @@ export function CollectionCard({
   onDelete,
 }: CollectionCardProps) {
   return (
+    
     <div
       className="
         pixel-card bg-white cursor-pointer
@@ -93,6 +95,9 @@ export function CollectionCard({
         <h3 className="uppercase font-bold break-words leading-tight">
           {title}
         </h3>
+        <p className="text-xs opacity-50 mb-1">
+          by {ownerUsername}
+        </p>
         <p className="text-sm opacity-60">
           {recipeCount} {recipeCount === 1 ? 'recipe' : 'recipes'}
         </p>

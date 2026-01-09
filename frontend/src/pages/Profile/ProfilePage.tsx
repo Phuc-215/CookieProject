@@ -30,8 +30,8 @@ interface ProfilePageProps {
 export function ProfilePage({
   viewer,
   profileUser,
-  recipes,
-  drafts = [],
+  recipes: initialRecipes,
+  drafts: initialDrafts = [],
   collections = [],
   isLoggedIn,
   onLogout,
@@ -39,9 +39,17 @@ export function ProfilePage({
   const nav = useNav();
   const isOwner = !!isLoggedIn && viewer?.username === profileUser.username;
 
+  const [recipes, setRecipes] = useState(initialRecipes);
+  const [drafts, setDrafts] = useState(initialDrafts);
+
   const [activeTab, setActiveTab] = useState<
     'recipes' | 'collections' | 'drafts'
   >('recipes');
+
+  const handleDeleteRecipe = (id: string) => {
+    setRecipes((prev) => prev.filter((r) => r.id !== id));
+    setDrafts((prev) => prev.filter((r) => r.id !== id));
+  };
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
@@ -72,6 +80,7 @@ export function ProfilePage({
             isOwner={isOwner}
             recipes={recipes}
             drafts={drafts}
+            onDeleteRecipe={handleDeleteRecipe}
           />
         )}
       </div>

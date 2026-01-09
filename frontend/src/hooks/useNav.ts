@@ -14,7 +14,11 @@ export function useNav() {
     editProfile: () => n("/edit-profile"),
     profile: (id: string | number) => n(`/profile/${id}`),
     create: () => n("/create"),
+    editRecipe: (id: string | number) => n(`/edit/${id}`),
     notifications: () => n("/notifications"),
     recipe: (id: string | number) => n(`/recipe/${id}`),
+    collection: (id: string | number) => n(`/collections/${id}`),
+    editCollection: (id: string | number) => n(`/edit-collection/${id}`),
+    createCollection: () => n("/collections/new"),
   };
 }

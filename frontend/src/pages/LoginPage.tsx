@@ -11,7 +11,7 @@ import { NavBar } from '@/components/NavBar';
 import { ForgotPasswordModal } from '@/components/modals/ForgotPasswordModal';
 import { ResetPasswordModal } from '@/components/modals/ResetPasswordModal';
 import { ResetSuccessModal } from '@/components/modals/ResetSuccessModal';
-import { useNav } from '../hooks/useNav';
+import { useNav } from '@/hooks/useNav';
 import login_hamster from "@/assets/login_hamster.svg";
 import { setTokens } from '@/utils/token';
 
@@ -25,9 +25,11 @@ const loginSchema = z.object({
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
-
+interface Viewer {
+  username: string;
+}
 interface LoginProps {
-  onLogin?: () => void;
+  onLogin: (user: Viewer) => void;
 }
 
 export function Login({ onLogin }: LoginProps) {

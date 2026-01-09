@@ -72,6 +72,8 @@ export default function App() {
           <Route path="/me" element={<MyProfile isLoggedIn={isLoggedIn} viewer={viewer} onLogout={handleLogout} />} />
           <Route path="/edit-profile" element={<EditProfile />} />
           <Route path="/create" element={<CreateRecipe isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
+          <Route path="/edit/:id" element={<CreateRecipe isLoggedIn={isLoggedIn} onLogout={handleLogout} />} /> 
+          <Route path="/collections/edit" element={<EditCollection mode="create" />} />
           <Route path="/notifications" element={<Notifications isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
           <Route path="/collections/create" element={<EditCollection mode="create" />} />
         </Route>

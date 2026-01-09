@@ -15,3 +15,6 @@ export const registerApi = (data: {
 
 export const refreshApi = (refreshToken: string) =>
   api.post('/auth/refresh', { refreshToken });
+
+export const logoutApi = (refreshToken: string) =>
+  api.post('/auth/logout', { refreshToken });

@@ -11,6 +11,10 @@ import { Login } from "./pages/LoginPage";
 import { Signup } from "./pages/SignupPage";
 import { Notifications } from "./pages/NotificationsPage";
 import { Error } from "./pages/Error";
+import { clearTokens, getRefreshToken } from '@/utils/token';
+import { logoutApi } from '@/api/auth.api';
+
+
 
 import { useState } from "react";
 
@@ -23,10 +27,18 @@ export default function App() {
     setIsLoggedIn(true);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    setIsLoggedIn(false);
+  const handleLogout = async () => {
+    try {
+      const refreshToken = getRefreshToken();
+      if (refreshToken) {
+        await logoutApi(refreshToken);
+      }
+    } catch (err) {
+      console.warn('Logout API failed');
+    } finally {
+      clearTokens();
+      setIsLoggedIn(false);
+    }
   };
 
   const handleSignup = () => setIsLoggedIn(true);

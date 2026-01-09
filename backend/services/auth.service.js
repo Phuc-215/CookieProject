@@ -2,8 +2,7 @@ const { signAccessToken, signRefreshToken } = require('../utils/jwt');
 const { comparePassword } = require('../utils/password');
 const { pool } = require('../config/db');
 const { hashPassword } = require('../utils/password');
-
-
+const jwt = require('jsonwebtoken');
 
 exports.login = async ({ email, password }) => {
   email = email.trim().toLowerCase();
@@ -74,4 +73,20 @@ exports.register = async ({ username, email, password }) => {
   );
 
   return result.rows[0];
+};
+
+exports.logout = async (refreshToken) => {
+  if (!refreshToken) return;
+
+  let payload;
+  try {
+    payload = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+  } catch {
+    return;
+  }
+
+  await pool.query(
+    'DELETE FROM refresh_tokens WHERE token = $1',
+    [refreshToken]
+  );
 };

@@ -58,3 +58,16 @@ exports.login = async (req, res) => {
   }
 
 };
+
+exports.logout = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    await authService.logout(refreshToken);
+
+    res.json({ message: 'Logout success' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

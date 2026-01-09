@@ -13,6 +13,7 @@ import { ResetPasswordModal } from '@/components/modals/ResetPasswordModal';
 import { ResetSuccessModal } from '@/components/modals/ResetSuccessModal';
 import { useNav } from '../hooks/useNav';
 import login_hamster from "@/assets/login_hamster.svg";
+import { setTokens } from '@/utils/token';
 
 const loginSchema = z.object({
   email: z.string()
@@ -59,22 +60,15 @@ export function Login({ onLogin }: LoginProps) {
     try {
       setSubmitError(null);
 
-      const res = await loginApi({
-        email: data.email,
-        password: data.password,
-      });
+      const res = await loginApi(data);
 
-      // Save tokens to localStorage
-      localStorage.setItem('accessToken', res.data.accessToken);
-      localStorage.setItem('refreshToken', res.data.refreshToken);
+      setTokens(res.data.accessToken, res.data.refreshToken);
       onLogin?.();
       nav.home();
     } catch (err: any) {
       setSubmitError(err.response?.data?.message || 'Login failed');
     }
   };
-
-
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">

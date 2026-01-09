@@ -10,6 +10,7 @@ import { PixelButton } from '../components/PixelButton';
 import { NavBar } from '../components/NavBar';
 import { useNav } from '../hooks/useNav'; 
 import signup_hamster from "../assets/signup_hamster.svg";
+import { setTokens } from '@/utils/token';
 
 const signupSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -64,7 +65,7 @@ export function Signup({ onSignup }: SignupProps) {
   const onSubmit = async (data: SignupFormData) => {
     try {
       setSubmitError(null); 
-      await registerApi({
+      const res = await registerApi({
         username: data.username,
         email: data.email,
         password: data.password,

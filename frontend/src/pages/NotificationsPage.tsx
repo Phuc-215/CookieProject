@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Heart, MessageCircle, UserPlus, Bell } from 'lucide-react';
 import { PixelButton } from '../components/PixelButton';
 import { NavBar } from '../components/NavBar';
-
+import {getNotificationsApi, markAllAsReadApi, markAsReadApi} from '@/api/noti.api';
 type NotificationType = 'like' | 'comment' | 'follow' | 'system';
 
 interface NotificationsPageProps {
@@ -12,79 +12,102 @@ interface NotificationsPageProps {
 interface Notification {
   id: string;
   type: NotificationType;
-  message: string;
-  user?: string;
-  timestamp: string;
-  isRead: boolean;
-  link?: string;
+  is_read: boolean;
+  created_at: string;
+  payload: any;
+  actor_id: number | null;
+  actor_name: string | null;
+  actor_avatar: string | null;
+  recipe_id: number | null;
+  recipe_slug: string | null;
+  recipe_title: string | null;
+  recipe_thumbnail: string | null;
 }
 
-const MOCK_NOTIFICATIONS: Notification[] = [
-  {
-    id: '1',
-    type: 'like',
-    message: 'liked your recipe "Classic Chocolate Chip Cookies"',
-    user: 'SweetChef',
-    timestamp: '5 min ago',
-    isRead: false,
-    link: 'recipe-detail',
-  },
-  {
-    id: '2',
-    type: 'comment',
-    message: 'commented on your recipe "Rainbow Macarons"',
-    user: 'BakerBob',
-    timestamp: '1 hour ago',
-    isRead: false,
-    link: 'recipe-detail',
-  },
-  {
-    id: '3',
-    type: 'follow',
-    message: 'started following you',
-    user: 'CookieFan',
-    timestamp: '2 hours ago',
-    isRead: false,
-    link: 'public-profile',
-  },
-  {
-    id: '4',
-    type: 'like',
-    message: 'and 12 others liked your recipe "Fudgy Brownies"',
-    user: 'DonutDave',
-    timestamp: '3 hours ago',
-    isRead: true,
-    link: 'recipe-detail',
-  },
-  {
-    id: '5',
-    type: 'system',
-    message: 'Your recipe "Vanilla Cupcakes" is trending! 🔥',
-    timestamp: '1 day ago',
-    isRead: true,
-  },
-  {
-    id: '6',
-    type: 'comment',
-    message: 'replied to your comment',
-    user: 'ChocMaster',
-    timestamp: '2 days ago',
-    isRead: true,
-    link: 'recipe-detail',
-  },
-  {
-    id: '7',
-    type: 'follow',
-    message: 'started following you',
-    user: 'PixelBaker',
-    timestamp: '3 days ago',
-    isRead: true,
-    link: 'public-profile',
-  },
-];
+const formatTimeAgo = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+};
+
+const getNotificationMessage = (notification: Notification): string => {
+  const { type, actor_name, recipe_title } = notification;
+  const actorName = actor_name || 'Someone';
+  const recipeTitle = recipe_title || 'a recipe';
+
+  switch (type) {
+    case 'like':
+      return `${actorName} liked ${recipeTitle}`;
+    case 'comment':
+      return `${actorName} commented on ${recipeTitle}`;
+    case 'follow':
+      return `${actorName} started following you`;
+    case 'system':
+      return `${recipeTitle} is trending!`;
+    default:
+      return 'New notification';
+  }
+};
+
 
 export function Notifications({ isLoggedIn, onLogout }: NotificationsPageProps) {
-  const [notifications] = useState(MOCK_NOTIFICATIONS);
+  // const [notifications] = useState(MOCK_NOTIFICATIONS);
+
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const response = await getNotificationsApi(1, 1); // Fetch first 50 notifications
+        setNotifications(response.data?.data || []);
+        console.log('Fetched notifications:', response.data?.data);  
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+        setNotifications([]);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllAsReadApi();
+      setNotifications((prevNotifications) =>
+        prevNotifications.map((notification) => ({
+          ...notification,
+          is_read: true,
+        }))
+      );
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
+    }
+  };
+
+  const handleMarkAsRead = async (notificationId: string) => {
+    try {
+      await markAsReadApi(notificationId);
+      setNotifications((prevNotifications) =>
+        prevNotifications.map((notification) =>
+          notification.id === notificationId
+            ? { ...notification, is_read: true }
+            : notification
+        )
+      );
+    } catch (error) {
+      console.error(`Failed to mark notification ${notificationId} as read:`, error);
+    }
+  };
+  
+  // Fetch notifications on component mount
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const getNotificationIcon = (type: NotificationType) => {
     switch (type) {
@@ -100,10 +123,10 @@ export function Notifications({ isLoggedIn, onLogout }: NotificationsPageProps) 
   };
 
   const filteredNotifications = filter === 'unread' 
-    ? notifications.filter(n => !n.isRead)
+    ? notifications.filter(n => !n.is_read)
     : notifications;
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
@@ -162,8 +185,9 @@ export function Notifications({ isLoggedIn, onLogout }: NotificationsPageProps) 
               <div
                 key={notification.id}
                 className={`pixel-card bg-white p-4 cursor-pointer transition-all hover:shadow-lg ${
-                  !notification.isRead ? 'border-l-8 border-l-[#FF8FAB]' : ''
+                  !notification.is_read ? 'border-l-8 border-l-[#FF8FAB]' : ''
                 }`}
+                onClick={() => handleMarkAsRead(notification.id)}
               >
                 <div className="flex items-start gap-4">
                   {/* Icon */}
@@ -179,20 +203,15 @@ export function Notifications({ isLoggedIn, onLogout }: NotificationsPageProps) 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm mb-1">
-                      {notification.user && (
-                        <span className="uppercase mr-1">{notification.user}</span>
-                      )}
-                      <span className={notification.user ? '' : 'uppercase'}>
-                        {notification.message}
-                      </span>
+                      {getNotificationMessage(notification)}
                     </p>
                     <p className="text-xs text-[#5D4037]/50 uppercase">
-                      {notification.timestamp}
+                      {formatTimeAgo(notification.created_at)}
                     </p>
                   </div>
 
                   {/* Unread Indicator */}
-                  {!notification.isRead && (
+                  {!notification.is_read && (
                     <div className="w-3 h-3 bg-[#FF8FAB] rounded-full shrink-0"></div>
                   )}
                 </div>

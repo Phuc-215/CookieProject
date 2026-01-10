@@ -204,3 +204,51 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+exports.verifyPassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    
+    if (!password) {
+      return res.status(400).json({ message: 'PASSWORD_REQUIRED' });
+    }
+
+    const userId = req.user.id;
+    const result = await authService.verifyPassword(userId, password);
+
+    if (result.error) {
+      return res.status(401).json({ message: result.error });
+    }
+
+    res.json({ message: 'Password verified', valid: true });
+  } catch (err) {
+    console.error('VERIFY PASSWORD ERROR:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'CURRENT_AND_NEW_PASSWORD_REQUIRED' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'PASSWORD_TOO_SHORT' });
+    }
+
+    const userId = req.user.id;
+    const result = await authService.changePassword(userId, currentPassword, newPassword);
+
+    if (result.error) {
+      return res.status(400).json({ message: result.error });
+    }
+
+    res.json({ message: 'Password changed successfully' });
+  } catch (err) {
+    console.error('CHANGE PASSWORD ERROR:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

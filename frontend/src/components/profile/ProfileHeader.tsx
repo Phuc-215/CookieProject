@@ -8,6 +8,7 @@ interface ProfileHeaderProps {
     followers: number;
     following: number;
     bio: string;
+    avatarUrl?: string;
   };
   isOwner: boolean;
   onEditProfile: () => void;
@@ -24,8 +25,12 @@ export function ProfileHeader({
     <div className="pixel-card bg-white p-8 mb-8">
       <div className="flex gap-8">
         {/* Avatar */}
-        <div className="w-32 h-32 pixel-border bg-[var(--primary)] flex items-center justify-center">
-          <User className="w-16 h-16 text-black" />
+        <div className="w-32 h-32 pixel-border bg-[var(--primary)] flex items-center justify-center overflow-hidden">
+          {user.avatarUrl ? (
+            <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+          ) : (
+            <User className="w-16 h-16 text-black" />
+          )}
         </div>
 
         {/* Info */}

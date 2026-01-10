@@ -326,3 +326,48 @@ exports.resetPassword = async (code, newPassword) => {
 
   return { success: true };
 };
+
+exports.verifyPassword = async (userId, password) => {
+  const result = await pool.query(
+    `SELECT password_hash FROM users WHERE id = $1`,
+    [userId]
+  );
+
+  if (result.rowCount === 0) {
+    return { error: 'USER_NOT_FOUND' };
+  }
+
+  const user = result.rows[0];
+  const isMatch = await comparePassword(password, user.password_hash);
+
+  if (!isMatch) {
+    return { error: 'INVALID_PASSWORD' };
+  }
+
+  return { valid: true };
+};
+
+exports.changePassword = async (userId, currentPassword, newPassword) => {
+  // Verify current password first
+  const verifyResult = await exports.verifyPassword(userId, currentPassword);
+  if (verifyResult.error) {
+    return verifyResult;
+  }
+
+  // Hash new password
+  const passwordHash = await hashPassword(newPassword);
+
+  // Update password
+  await pool.query(
+    `UPDATE users SET password_hash = $1 WHERE id = $2`,
+    [passwordHash, userId]
+  );
+
+  // Revoke all refresh tokens for security
+  await pool.query(
+    `DELETE FROM refresh_tokens WHERE user_id = $1`,
+    [userId]
+  );
+
+  return { success: true };
+};

@@ -13,12 +13,14 @@ import { useNav } from '@/hooks/useNav';
 interface ProfilePageProps {
   viewer: {
     username: string | null; // null = guest
+    avatar_url?: string | null;
   };
   profileUser: {
     username: string;
     followers: number;
     following: number;
     bio: string;
+    avatarUrl?: string | null;
   };
   recipes: Recipe[];
   drafts?: Recipe[];
@@ -57,7 +59,7 @@ export function ProfilePage({
 
       <div className="max-w-5xl mx-auto px-4 py-8">
         <ProfileHeader
-          user={{ ...profileUser, recipes: recipes.length }}
+          user={{ ...profileUser, recipes: recipes.length, avatarUrl: profileUser.avatarUrl ?? (viewer as any)?.avatar_url ?? null }}
           isOwner={isOwner}
           onEditProfile={() => nav.editProfile()}
           onCreateRecipe={() => nav.create()}

@@ -8,7 +8,7 @@ exports.likeRecipe = async (userId, recipeId) => {
 
         // Insert like record
         const insertLikeText = `
-            INSERT INTO recipe_likes (user_id, recipe_id, created_at)
+            INSERT INTO likes (user_id, recipe_id, created_at)
             VALUES ($1, $2, NOW())
             ON CONFLICT DO NOTHING
         `;
@@ -62,7 +62,7 @@ exports.unlikeRecipe = async (userId, recipeId) => {
 
 exports.addComment = async (userId, recipeId, content) => {
     const insertCommentText = `
-        INSERT INTO recipe_comments (user_id, recipe_id, content, created_at)
+        INSERT INTO comments (user_id, recipe_id, content, created_at)
         VALUES ($1, $2, $3, NOW())
         RETURNING id, user_id, recipe_id, content, created_at
     `;

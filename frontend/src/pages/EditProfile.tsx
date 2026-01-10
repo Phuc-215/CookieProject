@@ -603,7 +603,7 @@ export function EditProfile({ viewer }: EditProfileProps) {
             </div>
             <PixelButton
               size="sm"
-              variant="outline"
+              variant="destructive"
               onClick={() => startSecureAction('delete')}
             >
               Delete

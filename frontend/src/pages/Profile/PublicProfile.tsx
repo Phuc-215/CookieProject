@@ -22,7 +22,7 @@ interface PublicProfileProps {
 export function PublicProfile({ isLoggedIn, viewer, onLogout }: PublicProfileProps) {
   const { id } = useParams<{ id: string }>();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -31,7 +31,6 @@ export function PublicProfile({ isLoggedIn, viewer, onLogout }: PublicProfilePro
 
     (async () => {
       try {
-        setLoading(true);
         setError(null);
         const res = await getUserProfileApi(id);
         if (!active) return;
@@ -40,8 +39,6 @@ export function PublicProfile({ isLoggedIn, viewer, onLogout }: PublicProfilePro
         if (!active) return;
         const msg = err?.response?.data?.message || 'Failed to load profile';
         setError(msg);
-      } finally {
-        if (active) setLoading(false);
       }
     })();
 

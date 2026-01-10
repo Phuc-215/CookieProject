@@ -78,7 +78,6 @@ export function EditProfile({ viewer }: EditProfileProps) {
   const [pendingAction, setPendingAction] = useState<SecureAction>(null);
   const [showSecurityModal, setShowSecurityModal] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [verifying, setVerifying] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -632,7 +631,6 @@ export function EditProfile({ viewer }: EditProfileProps) {
           }}
           onConfirm={async (password) => {
             try {
-              setVerifying(true);
               setFormError(null);
               
               // Verify password with backend
@@ -651,7 +649,6 @@ export function EditProfile({ viewer }: EditProfileProps) {
               setShowSecurityModal(false);
               setPendingAction(null);
             } finally {
-              setVerifying(false);
             }
           }}
         />

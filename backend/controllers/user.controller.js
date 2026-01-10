@@ -106,7 +106,12 @@ exports.updateProfile = async (req, res) => {
     }
 
     if (updates.length === 0) {
-      return res.status(400).json({ message: 'NO_FIELDS_TO_UPDATE' });
+      // No fields to update - return current user data
+      const result = await pool.query(
+        `SELECT id, username, email, is_verified, avatar_url, bio FROM users WHERE id = $1`,
+        [userId]
+      );
+      return res.json({ user: result.rows[0] });
     }
 
     params.push(userId);

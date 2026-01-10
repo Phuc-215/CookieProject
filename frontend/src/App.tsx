@@ -39,7 +39,7 @@ export default function App() {
 
           {/* Public */}
           <Route path="/" element={<HomeFeed isLoggedIn={isLoggedIn} />} />
-          <Route path="/search" element={<Search isLoggedIn={isLoggedIn} />} />
+          <Route path="/search" element={<SearchPage isLoggedIn={isLoggedIn} />} />
           <Route path="/profile/:id" element={<PublicProfile isLoggedIn={isLoggedIn} viewer={viewer} onLogout={logout} />} />
           <Route path="/recipe/:id" element={<RecipeDetail isLoggedIn={isLoggedIn} />} />
           <Route path="/collections/:id" element={<CollectionPage isLoggedIn={isLoggedIn} viewer={viewer} />} />

@@ -10,7 +10,7 @@ exports.login = async ({ email, password }) => {
   email = email.trim().toLowerCase();
 
   const result = await pool.query(
-    `SELECT id, email, username, password_hash
+    `SELECT id, email, username, avatar_url, password_hash
      FROM users WHERE email = $1`,
     [email]
   );
@@ -24,7 +24,8 @@ exports.login = async ({ email, password }) => {
   const payload = {
     id: user.id,
     email: user.email,
-    username: user.username
+    username: user.username,
+    avatar_url: user.avatar_url
   };
 
   const accessToken = signAccessToken(payload);
@@ -70,7 +71,7 @@ exports.register = async ({ username, email, password }) => {
   const result = await pool.query(
     `INSERT INTO users (username, email, password_hash, is_verified)
      VALUES ($1, $2, $3, false)
-     RETURNING id, username, email`,
+     RETURNING id, username, email, avatar_url`,
     [username, email, passwordHash]
   );
 
@@ -93,7 +94,8 @@ exports.register = async ({ username, email, password }) => {
   const payload = {
     id: newUser.id,
     email: newUser.email,
-    username: newUser.username
+    username: newUser.username,
+    avatar_url: newUser.avatar_url
   };
 
   const accessToken = signAccessToken(payload);

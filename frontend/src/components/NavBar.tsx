@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Search, Bell, User, Plus, LogOut, UserCircle } from 'lucide-react';
 import { PixelButton } from './PixelButton';
+import { Avatar } from './Avatar';
 import { useNav } from "@/hooks/useNav";
 import { useAuth } from "@/contexts/AuthContext";
 import logo from "@/assets/logo.svg";
@@ -26,7 +27,7 @@ export function NavBar({
   const [localQuery, setLocalQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const nav = useNav();
-  const { logout } = useAuth();
+  const { logout, viewer } = useAuth();
 
   const handleBack = () => {
     if (onBack) {
@@ -140,13 +141,15 @@ export function NavBar({
                 {/* Profile */}
                 <div className="relative" ref={dropdownRef}>
                   <button 
-                    className="p-2 hover:bg-[var(--cream)] transition-colors"
+                    className="hover:bg-[var(--cream)] transition-colors"
                     onClick={() => setShowDropdown(!showDropdown)}
                     title="Profile"
                   >
-                    <div className="w-8 h-8 bg-[var(--mint)] pixel-border flex items-center justify-center">
-                      <User className="w-5 h-5 text-[var(--foreground)]" />
-                    </div>
+                    <Avatar 
+                      src={viewer?.avatar_url ?? undefined} 
+                      alt={viewer?.username || 'User'} 
+                      size={32}
+                    />
                   </button>
 
                   {/* Dropdown */}

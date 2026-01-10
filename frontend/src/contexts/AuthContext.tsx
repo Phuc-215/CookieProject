@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useMemo } from "react";
+import { createContext, useContext, useState, useMemo, useEffect } from "react";
 import type { Viewer } from "@/types/Viewer";
 import { clearTokens, getRefreshToken } from "@/utils/token";
 import { logoutApi } from "@/api/auth.api";
+import { getUserProfileApi } from "@/api/user.api";
 
 interface AuthContextType {
   viewer: Viewer | null;
@@ -20,6 +21,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   const isLoggedIn = Boolean(localStorage.getItem("accessToken"));
+
+  // Fetch full user profile on mount if user is logged in
+  useEffect(() => {
+    if (isLoggedIn && viewer?.id) {
+      getUserProfileApi(viewer.id)
+        .then((res) => {
+          const updatedUser: Viewer = {
+            id: res.data.id,
+            username: res.data.username,
+            email: viewer.email, // Keep email from localStorage if available
+            avatar_url: res.data.avatar_url,
+          };
+          setViewer(updatedUser);
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+        })
+        .catch((err) => {
+          console.error('Failed to fetch user profile:', err);
+        });
+    }
+  }, []);
 
   const login = (user: Viewer) => {
     setViewer(user);

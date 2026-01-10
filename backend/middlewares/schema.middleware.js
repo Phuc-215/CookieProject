@@ -1,5 +1,4 @@
 module.exports = function(schema) {
-  // Middleware signature must be (req, res, next)
   return function(req, res, next) {
     try {
       const validator = schema.default || schema;

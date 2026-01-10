@@ -7,9 +7,9 @@ var logger = require('morgan');
 require('dotenv').config();
 
 var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+var usersRouter = require('./routes/users.route');
 var authRouter = require('./routes/auth.route');
-var recipesRouter = require('./routes/recipes.route')
+var recipeRouter = require('./routes/recipe.route')
 
 
 var { connectDB } = require('./config/db'); 
@@ -39,7 +39,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/auth', authRouter);
-app.use('/recipes', recipesRouter);
+app.use('/recipe', recipeRouter);
 
 connectDB(); 
 

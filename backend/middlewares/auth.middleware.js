@@ -11,7 +11,11 @@ exports.requireAuth = (req, res, next) => {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = payload;
+    // Ensure id is always an integer
+    req.user = {
+      ...payload,
+      id: parseInt(payload.id, 10)
+    };
     next();
   } catch (err) {
     return res.status(401).json({ message: 'TOKEN_INVALID' });

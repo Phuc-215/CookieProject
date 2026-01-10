@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginApi } from '@/api/auth.api';
+import { AxiosError } from 'axios';
 import * as z from 'zod'; 
 
 import { PixelInput } from '@/components/PixelInput';
@@ -27,6 +28,8 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 interface Viewer {
   username: string;
+  email?: string;
+  id?: string;
 }
 interface LoginProps {
   onLogin: (user: Viewer) => void;
@@ -38,7 +41,18 @@ export function Login({ onLogin }: LoginProps) {
   const [openForgot, setOpenForgot] = useState(false);
   const [openReset, setOpenReset] = useState(false);
   const [openSuccess, setOpenSuccess] = useState(false);
+  const [resetToken, setResetToken] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tokenParam = params.get('token');
+    if (tokenParam) {
+      setResetToken(tokenParam);
+      setOpenReset(true);
+      setOpenForgot(false);
+    }
+  }, []);
 
   const {
     register,
@@ -66,10 +80,11 @@ export function Login({ onLogin }: LoginProps) {
 
       setTokens(res.data.accessToken, res.data.refreshToken);
       localStorage.setItem('user', JSON.stringify(res.data.user));
-      onLogin?.();
+      onLogin(res.data.user);
       nav.home();
-    } catch (err: any) {
-      setSubmitError(err.response?.data?.message || 'Login failed');
+    } catch (err: unknown) {
+      const error = err as AxiosError<{ message?: string }>;
+      setSubmitError(error.response?.data?.message || 'Login failed');
     }
   };
 
@@ -230,6 +245,7 @@ export function Login({ onLogin }: LoginProps) {
       {/* RESET */}
       {openReset && (
         <ResetPasswordModal
+          initialToken={resetToken}
           onBack={() => {
             setOpenReset(false);
             setOpenForgot(true);
@@ -237,6 +253,7 @@ export function Login({ onLogin }: LoginProps) {
           onClose={() => setOpenReset(false)}
           onSuccess={() => {
             setOpenReset(false);
+            setResetToken('');
             setOpenSuccess(true);
           }}
         />

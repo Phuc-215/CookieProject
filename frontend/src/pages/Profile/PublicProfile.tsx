@@ -1,24 +1,84 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { ProfilePage } from './ProfilePage';
 import { MOCK_COLLECTIONS } from "@/mocks/mock_collection";
 import { MOCK_RECIPES } from "@/mocks/mock_recipe";
+import { getUserProfileApi } from '@/api/user.api';
+import type { UserProfile } from '@/types/User';
 
-const MOCK_USER = {
-  username: 'BakerBob',
-  followers: 234,
-  following: 156,
-  bio: 'Home baker exploring pixel-perfect recipes!',
-};
+interface Viewer {
+  id: number;
+  username: string;
+  email?: string;
+  avatar_url?: string | null;
+}
 
 interface PublicProfileProps {
   isLoggedIn: boolean;
+  viewer?: Viewer | null;
   onLogout?: () => void;
 }
 
-export function PublicProfile({ isLoggedIn, onLogout }: PublicProfileProps) {
+export function PublicProfile({ isLoggedIn, viewer, onLogout }: PublicProfileProps) {
+  const { id } = useParams<{ id: string }>();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    let active = true;
+
+    (async () => {
+      try {
+        setError(null);
+        const res = await getUserProfileApi(id);
+        if (!active) return;
+        setProfile(res.data);
+      } catch (err: any) {
+        if (!active) return;
+        const msg = err?.response?.data?.message || 'Failed to load profile';
+        setError(msg);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  const profileUser = useMemo(() => {
+    if (!profile) {
+      return {
+        username: 'Loading...',
+        followers: 0,
+        following: 0,
+        bio: '',
+        avatarUrl: null,
+      };
+    }
+
+    return {
+      username: profile.username,
+      followers: 0,
+      following: 0,
+      bio: profile.bio || '',
+      avatarUrl: profile.avatar_url || null,
+    };
+  }, [profile]);
+
+  if (!id) {
+    return <div className="p-8">Invalid profile link</div>;
+  }
+
+  if (error) {
+    return <div className="p-8 text-pink-600">{error}</div>;
+  }
+
   return (
     <ProfilePage
-      viewer={{ username: null }}      // public = guest
-      profileUser={MOCK_USER}
+      viewer={{ username: viewer?.username ?? null }}
+      profileUser={profileUser}
       recipes={MOCK_RECIPES}
       collections={MOCK_COLLECTIONS}
       isLoggedIn={isLoggedIn}

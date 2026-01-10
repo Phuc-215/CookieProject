@@ -1,6 +1,6 @@
 const { pool } = require('../config/db');
 const path = require('path');
-const { supabase } = require('../config/supabaseClient');
+const { supabase } = require('../config/supabase');
 
 exports.getPublicProfile = async (req, res) => {
   try {
@@ -10,7 +10,7 @@ exports.getPublicProfile = async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT id, username, is_verified, avatar_url, bio
+      `SELECT id, username, is_verified, avatar_url, bio, followers_count, following_count
        FROM users
        WHERE id = $1`,
       [userId]
@@ -27,6 +27,8 @@ exports.getPublicProfile = async (req, res) => {
       is_verified: user.is_verified,
       avatar_url: user.avatar_url || null,
       bio: user.bio || '',
+      followers_count: user.followers_count || 0,
+      following_count: user.following_count || 0,
     });
   } catch (err) {
     console.error('getPublicProfile error:', err);
@@ -173,9 +175,9 @@ exports.getUserRecipes = async (req, res) => {
     // Try querying recipes table; if not exists, return []
     try {
       const result = await pool.query(
-        `SELECT id, title, image, created_at
+        `SELECT id, title, thumbnail_url AS image, created_at
          FROM recipes
-         WHERE author_id = $1
+         WHERE user_id = $1 AND status = 'published'
          ORDER BY created_at DESC`,
         [userId]
       );
@@ -223,6 +225,175 @@ exports.deleteAccount = async (req, res) => {
     res.json({ message: 'Account deleted successfully' });
   } catch (err) {
     console.error('deleteAccount error:', err);
+    res.status(500).json({ message: 'INTERNAL_SERVER_ERROR' });
+  }
+};
+exports.followUser = async (req, res) => {
+  try {
+    const followerId = req.user.id;
+    const followeeId = parseInt(req.params.id, 10);
+
+    if (Number.isNaN(followeeId)) {
+      return res.status(400).json({ message: 'INVALID_USER_ID' });
+    }
+
+    // Check: cannot follow self
+    if (followerId === followeeId) {
+      return res.status(400).json({ message: 'CANNOT_FOLLOW_SELF' });
+    }
+
+    // Check: followee exists
+    const followeeCheck = await pool.query(
+      `SELECT id FROM users WHERE id = $1`,
+      [followeeId]
+    );
+    if (followeeCheck.rowCount === 0) {
+      return res.status(404).json({ message: 'USER_NOT_FOUND' });
+    }
+
+    // Check: not already following (prevent duplicate)
+    const existingFollow = await pool.query(
+      `SELECT 1 FROM follows WHERE follower_id = $1 AND followee_id = $2`,
+      [followerId, followeeId]
+    );
+    if (existingFollow.rowCount > 0) {
+      return res.status(400).json({ message: 'ALREADY_FOLLOWING' });
+    }
+
+    // Insert follow relationship
+    await pool.query(
+      `INSERT INTO follows (follower_id, followee_id, created_at)
+       VALUES ($1, $2, now())`,
+      [followerId, followeeId]
+    );
+
+    // Increment counters
+    await pool.query(
+      `UPDATE users SET following_count = following_count + 1 WHERE id = $1`,
+      [followerId]
+    );
+    await pool.query(
+      `UPDATE users SET followers_count = followers_count + 1 WHERE id = $1`,
+      [followeeId]
+    );
+
+    // Create notification
+    await pool.query(
+      `INSERT INTO notifications (user_id, actor_id, type)
+       VALUES ($1, $2, 'follow')`,
+      [followeeId, followerId]
+    );
+
+    res.json({ message: 'User followed successfully' });
+  } catch (err) {
+    console.error('followUser error:', err);
+    res.status(500).json({ message: 'INTERNAL_SERVER_ERROR' });
+  }
+};
+
+exports.unfollowUser = async (req, res) => {
+  try {
+    const followerId = req.user.id;
+    const followeeId = parseInt(req.params.id, 10);
+
+    if (Number.isNaN(followeeId)) {
+      return res.status(400).json({ message: 'INVALID_USER_ID' });
+    }
+
+    if (followerId === followeeId) {
+      return res.status(400).json({ message: 'CANNOT_UNFOLLOW_SELF' });
+    }
+
+    // Ensure relationship exists
+    const del = await pool.query(
+      `DELETE FROM follows WHERE follower_id = $1 AND followee_id = $2`,
+      [followerId, followeeId]
+    );
+
+    if (del.rowCount === 0) {
+      return res.status(400).json({ message: 'NOT_FOLLOWING' });
+    }
+
+    // Decrement counters safely
+    await pool.query(
+      `UPDATE users SET following_count = GREATEST(following_count - 1, 0) WHERE id = $1`,
+      [followerId]
+    );
+    await pool.query(
+      `UPDATE users SET followers_count = GREATEST(followers_count - 1, 0) WHERE id = $1`,
+      [followeeId]
+    );
+
+    res.json({ message: 'User unfollowed successfully' });
+  } catch (err) {
+    console.error('unfollowUser error:', err);
+    res.status(500).json({ message: 'INTERNAL_SERVER_ERROR' });
+  }
+};
+
+exports.getFollowStatus = async (req, res) => {
+  try {
+    const followerId = req.user.id;
+    const followeeId = parseInt(req.params.id, 10);
+
+    if (Number.isNaN(followeeId)) {
+      return res.status(400).json({ message: 'INVALID_USER_ID' });
+    }
+
+    const result = await pool.query(
+      `SELECT 1 FROM follows WHERE follower_id = $1 AND followee_id = $2`,
+      [followerId, followeeId]
+    );
+
+    res.json({ isFollowing: result.rowCount > 0 });
+  } catch (err) {
+    console.error('getFollowStatus error:', err);
+    res.status(500).json({ message: 'INTERNAL_SERVER_ERROR' });
+  }
+};
+
+exports.getFollowers = async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    if (Number.isNaN(userId)) {
+      return res.status(400).json({ message: 'INVALID_USER_ID' });
+    }
+
+    const result = await pool.query(
+      `SELECT u.id, u.username, u.avatar_url
+       FROM follows f
+       JOIN users u ON f.follower_id = u.id
+       WHERE f.followee_id = $1
+       ORDER BY f.created_at DESC`,
+      [userId]
+    );
+
+    res.json({ users: result.rows });
+  } catch (err) {
+    console.error('getFollowers error:', err);
+    res.status(500).json({ message: 'INTERNAL_SERVER_ERROR' });
+  }
+};
+
+exports.getFollowings = async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    if (Number.isNaN(userId)) {
+      return res.status(400).json({ message: 'INVALID_USER_ID' });
+    }
+
+    const result = await pool.query(
+      `SELECT u.id, u.username, u.avatar_url
+       FROM follows f
+       JOIN users u ON f.followee_id = u.id
+       WHERE f.follower_id = $1
+       ORDER BY f.created_at DESC`,
+      [userId]
+    );
+
+    res.json({ users: result.rows });
+  } catch (err) {
+    console.error('getFollowings error:', err);
     res.status(500).json({ message: 'INTERNAL_SERVER_ERROR' });
   }
 };

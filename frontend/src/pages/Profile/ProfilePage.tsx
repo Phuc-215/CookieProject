@@ -15,7 +15,9 @@ interface ProfilePageProps {
     username: string | null; // null = guest
     avatar_url?: string | null;
   };
+  profileId?: string; // viewed profile id (for follow)
   profileUser: {
+    id?: string | number;
     username: string;
     followers: number;
     following: number;
@@ -31,6 +33,7 @@ interface ProfilePageProps {
 
 export function ProfilePage({
   viewer,
+  profileId,
   profileUser,
   recipes: initialRecipes,
   drafts: initialDrafts = [],
@@ -59,8 +62,9 @@ export function ProfilePage({
 
       <div className="max-w-5xl mx-auto px-4 py-8">
         <ProfileHeader
-          user={{ ...profileUser, recipes: recipes.length, avatarUrl: profileUser.avatarUrl ?? viewer?.avatar_url ?? null}}
+          user={{ id: profileUser.id ?? profileId, ...profileUser, recipes: recipes.length, avatarUrl: profileUser.avatarUrl ?? viewer?.avatar_url ?? null}}
           isOwner={isOwner}
+          isLoggedIn={isLoggedIn}
           onEditProfile={() => nav.editProfile()}
           onCreateRecipe={() => nav.create()}
         />

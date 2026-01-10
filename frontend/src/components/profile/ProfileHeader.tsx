@@ -1,6 +1,7 @@
 import { User as UserIcon, Settings, Plus } from 'lucide-react';
 import { PixelButton } from '@/components/PixelButton';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { followUserApi, unfollowUserApi, getFollowStatusApi } from '@/api/user.api';
 import {
   FollowersModal,
   FollowingsModal,
@@ -8,6 +9,7 @@ import {
 
 interface ProfileHeaderProps {
   user: {
+    id?: string | number;
     username: string;
     recipes: number;
     followers: number;
@@ -16,6 +18,7 @@ interface ProfileHeaderProps {
     avatarUrl?: string | null;
   };
   isOwner: boolean;
+  isLoggedIn: boolean;
   onEditProfile: () => void;
   onCreateRecipe: () => void;
 }
@@ -23,11 +26,81 @@ interface ProfileHeaderProps {
 export function ProfileHeader({
   user,
   isOwner,
+  isLoggedIn,
   onEditProfile,
   onCreateRecipe,
 }: ProfileHeaderProps) {
   const [openFollowers, setOpenFollowers] = useState(false);
   const [openFollowings, setOpenFollowings] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followersCount, setFollowersCount] = useState(user.followers);
+  const [followingCount, setFollowingCount] = useState(user.following);
+
+  // Sync counts when user prop changes
+  useEffect(() => {
+    setFollowersCount(user.followers);
+    setFollowingCount(user.following);
+  }, [user.followers, user.following]);
+
+  // Fetch initial follow status for non-owner profiles only when logged in
+  useEffect(() => {
+    if (isLoggedIn && !isOwner && user.id) {
+      getFollowStatusApi(user.id)
+        .then((res) => setIsFollowing(res.data.isFollowing))
+        .catch(() => {}); // silently fail if not authenticated
+    }
+  }, [user.id, isOwner, isLoggedIn]);
+
+  const handleFollow = async () => {
+    if (!user.id) return;
+    try {
+      setFollowLoading(true);
+      await followUserApi(user.id);
+      setIsFollowing(true);
+      setFollowersCount((c) => c + 1);
+
+      // bump viewer's following_count in localStorage if present
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        parsed.following_count = (parsed.following_count || 0) + 1;
+        localStorage.setItem('user', JSON.stringify(parsed));
+      }
+    } catch (err: any) {
+      const code = err?.response?.data?.message;
+      if (code === 'ALREADY_FOLLOWING') {
+        setIsFollowing(true);
+      }
+      // silently close; could add toasts if desired
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  const handleUnfollow = async () => {
+    if (!user.id) return;
+    try {
+      setFollowLoading(true);
+      await unfollowUserApi(user.id);
+      setIsFollowing(false);
+      setFollowersCount((c) => Math.max(0, c - 1));
+
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        parsed.following_count = Math.max(0, (parsed.following_count || 0) - 1);
+        localStorage.setItem('user', JSON.stringify(parsed));
+      }
+    } catch (err: any) {
+      const code = err?.response?.data?.message;
+      if (code === 'NOT_FOLLOWING') {
+        setIsFollowing(false);
+      }
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   return (
     <div className="pixel-card bg-white p-8 mb-8">
@@ -56,13 +129,19 @@ export function ProfileHeader({
               <div className="opacity-60">Recipes</div>
             </div>
 
-            <button onClick={() => setOpenFollowers(true)}>
-              <div className="font-bold text-center">{user.followers}</div>
+            <button 
+              onClick={() => setOpenFollowers(true)}
+              className="hover:opacity-70 transition-opacity cursor-pointer"
+            >
+              <div className="font-bold text-center">{followersCount}</div>
               <div className="opacity-60">Followers</div>
             </button>
 
-            <button onClick={() => setOpenFollowings(true)}>
-              <div className="font-bold text-center">{user.following}</div>
+            <button 
+              onClick={() => setOpenFollowings(true)}
+              className="hover:opacity-70 transition-opacity cursor-pointer"
+            >
+              <div className="font-bold text-center">{followingCount}</div>
               <div className="opacity-60">Following</div>
             </button>
           </div>
@@ -88,20 +167,32 @@ export function ProfileHeader({
                 </PixelButton>
             </div>
           ) : (
-            <PixelButton>+ Follow</PixelButton>
+            isLoggedIn ? (
+              isFollowing ? (
+                <PixelButton variant="outline" onClick={handleUnfollow} disabled={followLoading}>
+                  Unfollow
+                </PixelButton>
+              ) : (
+                <PixelButton onClick={handleFollow} disabled={followLoading}>
+                  + Follow
+                </PixelButton>
+              )
+            ) : null
           )}
         </div>
       </div>
 
-      {openFollowers && (
+      {openFollowers && user.id && (
         <FollowersModal
+          userId={user.id}
           isOwner={isOwner}
           onClose={() => setOpenFollowers(false)}
         />
       )}
 
-      {openFollowings && (
+      {openFollowings && user.id && (
         <FollowingsModal
+          userId={user.id}
           isOwner={isOwner}
           onClose={() => setOpenFollowings(false)}
         />

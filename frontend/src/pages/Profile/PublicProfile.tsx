@@ -50,6 +50,7 @@ export function PublicProfile({ isLoggedIn, viewer, onLogout }: PublicProfilePro
   const profileUser = useMemo(() => {
     if (!profile) {
       return {
+        id,
         username: 'Loading...',
         followers: 0,
         following: 0,
@@ -59,9 +60,10 @@ export function PublicProfile({ isLoggedIn, viewer, onLogout }: PublicProfilePro
     }
 
     return {
+      id,
       username: profile.username,
-      followers: 0,
-      following: 0,
+      followers: profile.followers_count || 0,
+      following: profile.following_count || 0,
       bio: profile.bio || '',
       avatarUrl: profile.avatar_url || null,
     };
@@ -78,6 +80,7 @@ export function PublicProfile({ isLoggedIn, viewer, onLogout }: PublicProfilePro
   return (
     <ProfilePage
       viewer={{ username: viewer?.username ?? null }}
+      profileId={id}
       profileUser={profileUser}
       recipes={MOCK_RECIPES}
       collections={MOCK_COLLECTIONS}

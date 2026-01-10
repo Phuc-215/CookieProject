@@ -122,7 +122,6 @@ export function MyProfile({ isLoggedIn, viewer, onLogout }: MyProfileProps) {
       drafts={DRAFT_RECIPES}
       collections={MOCK_COLLECTIONS}
       isLoggedIn={isLoggedIn}
-      onLogout={onLogout}
     />
   );
 }

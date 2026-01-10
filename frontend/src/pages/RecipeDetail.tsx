@@ -3,16 +3,14 @@ import { Heart, Bookmark, Clock, Users, ChefHat, Send, Share2, Link2, Copy, Chec
 
 import { PixelButton } from '../components/PixelButton';
 import { PixelTag } from '../components/PixelTag';
-import { NavBar } from '../components/NavBar';
 import { useNav } from '../hooks/useNav';
 import { AddToCollectionModal } from "@/components/modals/AddToCollectionModal";
 import {RECIPE, COMMENTS} from '@/mocks/mock_recipe_detail'
 interface RecipeDetailProps {
   isLoggedIn?: boolean;
-  onLogout?: () => void;
 }
 
-export function RecipeDetail({ isLoggedIn = false, onLogout }: RecipeDetailProps) {
+export function RecipeDetail({ isLoggedIn = false}: RecipeDetailProps) {
   const [isLiked, setIsLiked] = useState(RECIPE.isLiked);
   const [isSaved, setIsSaved] = useState(RECIPE.isSaved);
   const [likes, setLikes] = useState(RECIPE.likes);
@@ -67,13 +65,6 @@ export function RecipeDetail({ isLoggedIn = false, onLogout }: RecipeDetailProps
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
-      {/* Header */}
-      <NavBar
-        isLoggedIn={isLoggedIn}
-        onLogout={onLogout}
-        notificationCount={1}
-        showBackButton={true}
-      />
 
       <div className="max-w-5xl mx-auto px-4 py-8">
         {/* Hero Image */}

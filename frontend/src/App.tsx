@@ -21,7 +21,7 @@ import { clearTokens, getRefreshToken } from '@/utils/token';
 import { logoutApi } from '@/api/auth.api';
 
 import { useState } from "react";
-import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import type { Viewer } from "@/types/Viewer";
 import AppLayout from "@/components/AppLayout";
 
@@ -59,7 +59,7 @@ export default function App() {
     <Routes>
 
       {/* Layout */}
-      <Route element={<AppLayout />}>
+      <Route element={<AppLayout isLoggedIn={isLoggedIn} onLogout={handleLogout}/>}>
         
         {/* Guest */}
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
@@ -67,10 +67,10 @@ export default function App() {
         <Route path="/verify-email" element={<VerifyEmail />} />
 
         {/* Public */}
-        <Route path="/" element={<HomeFeed isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
+        <Route path="/" element={<HomeFeed isLoggedIn={isLoggedIn} />} />
         <Route path="/search" element={<Search isLoggedIn={isLoggedIn} />} />
         <Route path="/profile/:id" element={<PublicProfile isLoggedIn={isLoggedIn} viewer={viewer} onLogout={handleLogout} />} />
-        <Route path="/recipe/:id" element={<RecipeDetail isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
+        <Route path="/recipe/:id" element={<RecipeDetail isLoggedIn={isLoggedIn} />} />
         <Route path="/collections/:id" element={<CollectionPage isLoggedIn={isLoggedIn} viewer={viewer} />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
@@ -79,15 +79,15 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/me" element={<MyProfile isLoggedIn={isLoggedIn} viewer={viewer} onLogout={handleLogout} />} />
           <Route path="/edit-profile" element={<EditProfile viewer={viewer} onLogout={handleLogout} />} />
-          <Route path="/create" element={<CreateRecipe isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
-          <Route path="/edit/:id" element={<CreateRecipe isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
+          <Route path="/create" element={<CreateRecipe />} />
+          <Route path="/edit/:id" element={<CreateRecipe/>} />
           <Route path="/notifications" element={<Notifications isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
           <Route path="/edit-collection/:id" element={<EditCollection mode="edit" />} />
           <Route path="/collections/new" element={<EditCollection mode="create" />} />
         </Route>
 
         {/* Fallback */}
-        <Route path="*" element={<Error isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
+        <Route path="*" element={<Error />} />
 
       </Route>
     </Routes>

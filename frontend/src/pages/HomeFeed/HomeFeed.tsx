@@ -2,14 +2,12 @@ import { useState } from 'react';
 import { PixelButton } from '../../components/PixelButton';
 import { RecipeCard } from '../../components/RecipeCard';
 import { CollectionCard } from "../../components/CollectionCard";
-import { NavBar } from '../../components/NavBar';
 import { useNav } from '../../hooks/useNav'; 
 import { Headline } from './Headline'; 
 import homefeed from "../../assets/homefeed.svg"; 
 
 interface HomeFeedProps {
   isLoggedIn?: boolean;
-  onLogout?: () => void;
 }
 
 const MOCK_RECIPES = [
@@ -113,7 +111,7 @@ const MOCK_COLLECTIONS = [
   },
 ];
 
-export function HomeFeed({ isLoggedIn = false, onLogout }: HomeFeedProps) {
+export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
   const [recipes] = useState(MOCK_RECIPES);
   const nav = useNav();
 
@@ -122,13 +120,6 @@ export function HomeFeed({ isLoggedIn = false, onLogout }: HomeFeedProps) {
   
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
-      {/* Header */}
-      <NavBar 
-        isLoggedIn={isLoggedIn}
-        onLogout={onLogout}
-        notificationCount={3}
-      />
-
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 py-12">
         <div className="pixel-card bg-white p-8 md:p-12 text-center">

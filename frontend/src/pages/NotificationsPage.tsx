@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Heart, MessageCircle, UserPlus, Bell } from 'lucide-react';
 import { PixelButton } from '../components/PixelButton';
-import { NavBar } from '../components/NavBar';
 
 type NotificationType = 'like' | 'comment' | 'follow' | 'system';
 
@@ -107,13 +106,6 @@ export function Notifications({ isLoggedIn, onLogout }: NotificationsPageProps) 
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
-      {/* Header */}
-      <NavBar
-        isLoggedIn={isLoggedIn}
-        onLogout={onLogout}
-        showBackButton={true}
-        notificationCount={unreadCount}
-      />
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Filter Tabs */}

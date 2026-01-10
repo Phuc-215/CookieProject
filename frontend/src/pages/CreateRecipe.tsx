@@ -4,13 +4,7 @@ import { PixelButton } from '../components/PixelButton';
 import { PixelInput } from '../components/PixelInput';
 import { PixelTextarea } from '../components/PixelTextarea';
 import { PixelTag } from '../components/PixelTag';
-import { NavBar } from '../components/NavBar';
 import { useNav } from '@/hooks/useNav';
-
-interface CreateRecipeProps {
-  isLoggedIn: boolean;
-  onLogout: () => void;
-}
 
 interface RecipeStep {
   id: string;
@@ -24,7 +18,7 @@ interface Ingredient {
   quantity: string;
 }
 
-export function CreateRecipe({isLoggedIn, onLogout} : CreateRecipeProps) {
+export function CreateRecipe() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Medium');
@@ -82,13 +76,6 @@ export function CreateRecipe({isLoggedIn, onLogout} : CreateRecipeProps) {
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
-      {/* Header */}
-      <NavBar 
-        isLoggedIn={isLoggedIn}
-        onLogout={onLogout}
-        showBackButton
-        onBack={() => nav.back()}
-      />
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="pixel-card bg-white p-8">

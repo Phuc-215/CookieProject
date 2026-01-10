@@ -8,7 +8,6 @@ import * as z from 'zod';
 
 import { PixelInput } from '@/components/PixelInput';
 import { PixelButton } from '@/components/PixelButton';
-import { NavBar } from '@/components/NavBar';
 import { ForgotPasswordModal } from '@/components/modals/ForgotPasswordModal';
 import { ResetPasswordModal } from '@/components/modals/ResetPasswordModal';
 import { ResetSuccessModal } from '@/components/modals/ResetSuccessModal';
@@ -87,12 +86,6 @@ export function Login({ onLogin }: LoginProps) {
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
-      {/* NavBar */}
-      <NavBar 
-        isLoggedIn={false}
-        notificationCount={0}
-        onLogout={() => {}}
-      />
 
       {/* Login Form */}
       <div className="max-w-md mx-auto px-4 py-12">

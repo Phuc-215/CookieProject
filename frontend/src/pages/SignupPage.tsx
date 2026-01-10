@@ -8,7 +8,6 @@ import { registerApi } from '../api/auth.api';
 
 import { PixelInput } from '../components/PixelInput';
 import { PixelButton } from '../components/PixelButton';
-import { NavBar } from '../components/NavBar';
 import { useNav } from '../hooks/useNav'; 
 import signup_hamster from "../assets/signup_hamster.svg";
 import { setTokens } from '@/utils/token';
@@ -92,12 +91,6 @@ export function Signup({ onSignup }: SignupProps) {
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
-      {/* NavBar */}
-      <NavBar 
-        isLoggedIn={false}
-        notificationCount={0}
-        onLogout={() => {}}
-      />
 
       {/* Signup Form */}
       <div className="max-w-md mx-auto px-4 py-12">

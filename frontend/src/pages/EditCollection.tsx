@@ -4,7 +4,6 @@ import { Globe, Lock } from "lucide-react";
 import { PixelButton } from "@/components/PixelButton";
 import { PixelInput } from "@/components/PixelInput";
 import { PixelTextarea } from "@/components/PixelTextarea";
-import { NavBar } from "@/components/NavBar";
 import { useNav } from "@/hooks/useNav";
 
 type JarVisibility = "public" | "private";
@@ -62,7 +61,6 @@ export function EditCollection({ mode = "edit" }: { mode?: Mode }) {
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
-      <NavBar isLoggedIn />
 
       <div className="max-w-3xl mx-auto px-4 py-10">
         <div className="pixel-card bg-white p-8">

@@ -1,21 +1,8 @@
-import { NavBar } from '../components/NavBar';
 import error from "../assets/error.svg"; 
 
-interface ErrorProps {
-  isLoggedIn?: boolean;
-  onLogout?: () => void;
-}
-
-export function Error({ isLoggedIn, onLogout }: ErrorProps) {
+export function Error() {
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
-      {/* Header */}
-      <NavBar
-        isLoggedIn={isLoggedIn}
-        onLogout={onLogout}
-        notificationCount={0}
-      />
-
       <section className="max-w-5xl mx-auto px-4 py-16 flex justify-center">
         <div className="pixel-card bg-white p-8 md:p-12 text-center w-full max-w-2xl">
 

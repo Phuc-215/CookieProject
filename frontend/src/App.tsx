@@ -17,80 +17,65 @@ import { EditCollection } from "./pages/EditCollection";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
 
-import { clearTokens, getRefreshToken } from '@/utils/token';
-import { logoutApi } from '@/api/auth.api';
-
-import { useState } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import type { Viewer } from "@/types/Viewer";
 import AppLayout from "@/components/AppLayout";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function App() {
-  const isLoggedIn = Boolean(localStorage.getItem('accessToken'));
-
-  const [viewer, setViewer] = useState<Viewer | null>(() => {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
-  });
-
-  const handleLogin = (user: Viewer) => {
-    setViewer(user);
-  };
-
-  const handleSignup = (user: Viewer) => {
-    setViewer(user);
-  };
-
-  const handleLogout = async () => {
-    try {
-      const refreshToken = getRefreshToken();
-      if (refreshToken) {
-        await logoutApi(refreshToken);
-      }
-    } finally {
-      clearTokens();
-      localStorage.removeItem('user');
-      setViewer(null);
-    }
-  };
+  const { isLoggedIn, viewer, login, signup, logout } = useAuth();
 
   return (
-  <Router>
-    <Routes>
+    <Router>
+      <Routes>
+        <Route element={<AppLayout isLoggedIn={isLoggedIn} onLogout={logout} />}>
+          
+          {/* Guest */}
+          <Route path="/login" element={<Login onLogin={login} />} />
+          <Route path="/signup" element={<Signup onSignup={signup} />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
 
-      {/* Layout */}
-      <Route element={<AppLayout isLoggedIn={isLoggedIn} onLogout={handleLogout}/>}>
-        
-        {/* Guest */}
-        <Route path="/login" element={<Login onLogin={handleLogin} />} />
-        <Route path="/signup" element={<Signup onSignup={handleSignup} />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
+          {/* Public */}
+          <Route path="/" element={<HomeFeed isLoggedIn={isLoggedIn} />} />
+          <Route path="/search" element={<Search isLoggedIn={isLoggedIn} />} />
+          <Route
+            path="/profile/:id"
+            element={
+              <PublicProfile
+                isLoggedIn={isLoggedIn}
+                viewer={viewer}
+                onLogout={logout}
+              />
+            }
+          />
+          <Route path="/recipe/:id" element={<RecipeDetail isLoggedIn={isLoggedIn} />} />
+          <Route
+            path="/collections/:id"
+            element={<CollectionPage isLoggedIn={isLoggedIn} viewer={viewer} />}
+          />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
 
-        {/* Public */}
-        <Route path="/" element={<HomeFeed isLoggedIn={isLoggedIn} />} />
-        <Route path="/search" element={<Search isLoggedIn={isLoggedIn} />} />
-        <Route path="/profile/:id" element={<PublicProfile isLoggedIn={isLoggedIn} viewer={viewer} onLogout={handleLogout} />} />
-        <Route path="/recipe/:id" element={<RecipeDetail isLoggedIn={isLoggedIn} />} />
-        <Route path="/collections/:id" element={<CollectionPage isLoggedIn={isLoggedIn} viewer={viewer} />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="/terms" element={<TermsOfService />} />
+          {/* Protected */}
+          <Route element={<ProtectedRoute />}>
+            <Route
+              path="/me"
+              element={<MyProfile isLoggedIn={isLoggedIn} viewer={viewer} onLogout={logout} />}
+            />
+            <Route path="/edit-profile" element={<EditProfile viewer={viewer} onLogout={logout} />} />
+            <Route path="/create" element={<CreateRecipe />} />
+            <Route path="/edit/:id" element={<CreateRecipe />} />
+            <Route
+              path="/notifications"
+              element={<Notifications isLoggedIn={isLoggedIn} onLogout={logout} />}
+            />
+            <Route path="/edit-collection/:id" element={<EditCollection mode="edit" />} />
+            <Route path="/collections/new" element={<EditCollection mode="create" />} />
+          </Route>
 
-        {/* Protected */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/me" element={<MyProfile isLoggedIn={isLoggedIn} viewer={viewer} onLogout={handleLogout} />} />
-          <Route path="/edit-profile" element={<EditProfile viewer={viewer} onLogout={handleLogout} />} />
-          <Route path="/create" element={<CreateRecipe />} />
-          <Route path="/edit/:id" element={<CreateRecipe/>} />
-          <Route path="/notifications" element={<Notifications isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
-          <Route path="/edit-collection/:id" element={<EditCollection mode="edit" />} />
-          <Route path="/collections/new" element={<EditCollection mode="create" />} />
+          {/* Fallback */}
+          <Route path="*" element={<Error />} />
         </Route>
-
-        {/* Fallback */}
-        <Route path="*" element={<Error />} />
-
-      </Route>
-    </Routes>
-  </Router>
+      </Routes>
+    </Router>
   );
 }

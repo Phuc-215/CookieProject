@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { User, Upload } from 'lucide-react';
+import { User, Upload, Eye, EyeOff } from 'lucide-react';
 import { PixelButton } from '@/components/PixelButton';
 import { PixelInput } from '@/components/PixelInput';
 import { PixelTextarea } from '@/components/PixelTextarea';
 import { SecurityCheckModal } from '@/components/modals/SecurityCheckModal';
 import { DeleteAccountModal } from '@/components/modals/DeleteAccountModal';
 import { useNav } from '@/hooks/useNav';
-import { getUserProfileApi, updateUserProfileApi, uploadAvatarApi, deleteAccountApi } from '@/api/user.api';
+import { getUserProfileApi, updateUserProfileApi, uploadAvatarApi, deleteAccountApi, getMyAccountApi } from '@/api/user.api';
 import { verifyPasswordApi, changePasswordApi } from '@/api/auth.api';
 import type { UserProfile } from '@/types/User';
 import { useRef } from 'react';
@@ -73,15 +73,27 @@ export function EditProfile({ viewer }: EditProfileProps) {
   /* ===== Edit states ===== */
   const [editingEmail, setEditingEmail] = useState(false);
   const [editingPassword, setEditingPassword] = useState(false);
+  const [show, setShow] = useState(false);
 
   /* ===== Security ===== */
   const [isVerified, setIsVerified] = useState(false);
   const [verifiedPassword, setVerifiedPassword] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<SecureAction>(null);
   const [showSecurityModal, setShowSecurityModal] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [accountSaving, setAccountSaving] = useState(false);  
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const isUsernameValid = !usernameError && username.trim().length > 0;
+  const hasChanges =
+    username.trim() !== (profile?.username ?? '') ||
+    bio.trim() !== (profile?.bio ?? '') ||
+    !!avatarFile;
+  const canSave = isUsernameValid && hasChanges && !profileSaving ;
+  const [verifiedAction, setVerifiedAction] = useState<SecureAction>(null);
 
   const userId = (() => {
     if (viewer?.id) {
@@ -144,6 +156,15 @@ export function EditProfile({ viewer }: EditProfileProps) {
   }, [userId]);
 
   /* ===== Handlers ===== */
+  const validateUsername = (value: string): string | null => {
+    const trimmed = value.trim();
+
+    if (!trimmed) return 'Username cannot be empty';
+    if (trimmed.length < 3) return 'Username must be at least 3 characters';
+    if (trimmed.length > 20) return 'Username must be at most 20 characters';
+    return null;
+  };
+
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -175,9 +196,9 @@ export function EditProfile({ viewer }: EditProfileProps) {
     if (username && username !== profile?.username) {
       payload.username = username.trim();
     }
-    if (email && email !== originalEmail) {
-      payload.email = email.trim();
-    }
+    // if (email && email !== originalEmail) {
+    //   payload.email = email.trim();
+    // }
     if (bio !== undefined && bio !== (profile?.bio || '')) {
       payload.bio = bio.trim();
     }
@@ -189,7 +210,7 @@ export function EditProfile({ viewer }: EditProfileProps) {
     }
 
     try {
-      setSaving(true);
+      setProfileSaving(true);
       setFormError(null);
 
       const res = await updateUserProfileApi(userId, payload);
@@ -231,18 +252,14 @@ export function EditProfile({ viewer }: EditProfileProps) {
       });
       setFormError(friendlyError);
     } finally {
-      setSaving(false);
+      setProfileSaving(false);
     }
   };
 
-  const startSecureAction = (action: SecureAction) => {
-    if (!isVerified) {
-      setPendingAction(action);
-      setShowSecurityModal(true);
-      return;
-    }
-    executeAction(action);
-  };
+const startSecureAction = (action: SecureAction) => {
+  setPendingAction(action);
+  setShowSecurityModal(true);
+};
 
   const executeAction = (action: SecureAction, password?: string) => {
     if (password) setVerifiedPassword(password);
@@ -284,11 +301,23 @@ export function EditProfile({ viewer }: EditProfileProps) {
     }
   };
 
+  const validateEmail = (value: string): string | null => {
+    const trimmed = value.trim();
+
+    if (!trimmed) return 'Email cannot be empty';
+    if (trimmed === originalEmail) return 'Email is unchanged';
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmed)) return 'Invalid email format';
+
+    return null;
+  };
+
   const handleSaveEmail = async () => {
     if (!userId || !email) return;
     
     try {
-      setSaving(true);
+      setAccountSaving(true);
       setAccountError(null);
       
       const res = await updateUserProfileApi(userId, { email: email.trim() });
@@ -313,8 +342,18 @@ export function EditProfile({ viewer }: EditProfileProps) {
       const rawMsg = err?.response?.data?.message || 'Failed to update email';
       setAccountError(getError(rawMsg));
     } finally {
-      setSaving(false);
+      setAccountSaving(false);
     }
+  };
+
+  const validatePassword = (pwd: string, confirm?: string): string | null => {
+    if (!pwd) return 'Password cannot be empty';
+    if (pwd.length < 6) return 'Password must be at least 6 characters';
+
+    if (confirm !== undefined && pwd !== confirm)
+      return 'Passwords do not match';
+
+    return null;
   };
 
   const handleSavePassword = async (currentPassword?: string) => {
@@ -334,7 +373,7 @@ export function EditProfile({ viewer }: EditProfileProps) {
     }
     
     try {
-      setSaving(true);
+      setAccountSaving(true);
       setAccountError(null);
       
       await changePasswordApi({
@@ -354,7 +393,7 @@ export function EditProfile({ viewer }: EditProfileProps) {
       const rawMsg = err?.response?.data?.message || 'Failed to change password';
       setAccountError(getError(rawMsg));
     } finally {
-      setSaving(false);
+      setAccountSaving(false);
     }
   };
 
@@ -417,12 +456,20 @@ export function EditProfile({ viewer }: EditProfileProps) {
             <PixelInput
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setUsername(value);
+                setUsernameError(validateUsername(value));
+              }}
               placeholder="Enter your username"
+              error={usernameError}
             />
             <p className="text-xs text-[#5D4037]/50 mt-2">
               This is your public display name
             </p>
+            {usernameError && (
+              <p className="text-xs text-pink-600 mt-2">{usernameError}</p>
+            )}
           </div>
 
           {/* Bio Section */}
@@ -468,8 +515,9 @@ export function EditProfile({ viewer }: EditProfileProps) {
               variant="primary" 
               size="md"
               onClick={handleSaveProfile}
+              disabled={!canSave}
             >
-              Save Changes
+              {profileSaving ? 'Saving...' : 'Save Changes'}
             </PixelButton>
           </div>
         </div>
@@ -485,11 +533,16 @@ export function EditProfile({ viewer }: EditProfileProps) {
 
               <div className="flex items-center gap-4">
                 <div className="flex-1">
-                  <PixelInput
-                    value={email}
-                    disabled={!editingEmail}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
+                <PixelInput
+                  value={email}
+                  disabled={!editingEmail}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setEmail(value);
+                    setEmailError(validateEmail(value));
+                  }}
+                  error={emailError}
+                />
                 </div>
 
                 {!editingEmail ? (
@@ -509,6 +562,7 @@ export function EditProfile({ viewer }: EditProfileProps) {
                         setEmail(originalEmail);
                         setEditingEmail(false);
                         setIsVerified(false);
+                        setEmailError(null);
                       }}
                     >
                       Cancel
@@ -517,15 +571,17 @@ export function EditProfile({ viewer }: EditProfileProps) {
                       size="sm"
                       variant="primary"
                       onClick={handleSaveEmail}
-                      disabled={saving}
+                      disabled={accountSaving || !!emailError}
                     >
-                      {saving ? 'Saving...' : 'Save'}
+                      {accountSaving ? 'Saving...' : 'Save'}
                     </PixelButton>
                   </div>
                 )}
               </div>
+              {emailError && (
+                  <p className="text-xs text-pink-600 mt-2">{emailError}</p>
+                )}
             </div>
-
 
           {/* PASSWORD */}
           <div className="py-4 border-b-2 border-[#5D4037]">
@@ -537,18 +593,47 @@ export function EditProfile({ viewer }: EditProfileProps) {
                   <PixelInput value="••••••••" disabled />
                 ) : (
                   <>
-                    <PixelInput
-                      type="password"
-                      placeholder="New password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                    />
-                    <PixelInput
-                      type="password"
-                      placeholder="Confirm password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                    />
+                  <PixelInput
+                    type={show ? 'text' : 'password'}
+                    placeholder="New password"
+                    value={newPassword}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setNewPassword(value);
+                      setPasswordError(validatePassword(value, confirmPassword));
+                    }}
+                    rightIcon={
+                      <button
+                        type="button"
+                        onClick={() => setShow(!show)}
+                        className="text-[var(--choco)]"
+                      >
+                        {show ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    }
+                    error={passwordError}
+                  />
+
+                  <PixelInput
+                    type={show ? 'text' : 'password'}
+                    placeholder="Confirm password"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setConfirmPassword(value);
+                      setPasswordError(validatePassword(newPassword, value));
+                    }}
+                    rightIcon={
+                      <button
+                        type="button"
+                        onClick={() => setShow(!show)}
+                        className="text-[var(--choco)]"
+                      >
+                        {show ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    }
+                    error={passwordError}
+                  />
                   </>
                 )}
               </div>
@@ -572,6 +657,8 @@ export function EditProfile({ viewer }: EditProfileProps) {
                       setConfirmPassword('');
                       setIsVerified(false);
                       setVerifiedPassword(null);
+                      setPasswordError(null);
+                      setShow(false);
                     }}
                   >
                     Cancel
@@ -580,13 +667,16 @@ export function EditProfile({ viewer }: EditProfileProps) {
                     size="sm"
                     variant="primary"
                     onClick={() => handleSavePassword(verifiedPassword || '')}
-                    disabled={saving}
+                    disabled={accountSaving  || !!passwordError}
                   >
-                    {saving ? 'Saving...' : 'Save'}
+                    {accountSaving ? 'Saving...' : 'Save'}
                   </PixelButton>
                 </div>
               )}
             </div>
+            {passwordError && (
+              <p className="text-xs text-pink-600 mt-2">{passwordError}</p>
+            )}
           </div>
 
 
@@ -650,6 +740,8 @@ export function EditProfile({ viewer }: EditProfileProps) {
               
               setIsVerified(true);
               setShowSecurityModal(false);
+              setVerifiedAction(pendingAction);
+              setVerifiedPassword(password);
               executeAction(pendingAction, password);
               setPendingAction(null);
             } catch (err: any) {

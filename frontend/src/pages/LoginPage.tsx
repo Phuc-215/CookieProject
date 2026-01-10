@@ -54,7 +54,6 @@ export function Login({ onLogin }: LoginProps) {
     register,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors, isValid }
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -62,11 +61,8 @@ export function Login({ onLogin }: LoginProps) {
     defaultValues: {
       email: '',
       password: '',
-      rememberMe: false,
     }
   });
-
-  const rememberMeValue = watch('rememberMe');
 
   const onSubmit = async (data: LoginFormData) => {
     try {
@@ -156,28 +152,14 @@ export function Login({ onLogin }: LoginProps) {
               )}
             </div>
 
-            {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <div
-                  className={`w-5 h-5 pixel-border flex items-center justify-center transition-colors ${
-                    rememberMeValue ? 'bg-[var(--mint)]' : 'bg-white'
-                  }`}
-                  onClick={() => setValue('rememberMe', !rememberMeValue)}
-                >
-                  {rememberMeValue && <span className="text-xs">✓</span>}
-                </div>
-                <input type="checkbox" className="hidden" {...register("rememberMe")} />
-                
-                <span className="text-sm">Remember Me</span>
-              </label>
-              
+            {/*Forgot Password */}
+            <div className="flex justify-end">
               <button
                 type="button"
                 className="text-sm text-[var(--choco)] hover:underline uppercase"
                 onClick={() => setOpenForgot(true)}
               >
-                Forgot?
+                Forgot your password?
               </button>
             </div>
             {submitError && (

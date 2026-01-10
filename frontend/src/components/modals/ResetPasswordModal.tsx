@@ -14,58 +14,105 @@ interface Props {
 
 export function ResetPasswordModal({ onBack, onClose, onSuccess, initialToken }: Props) {
   const [step, setStep] = useState<'code' | 'password'>('code');
+
   const [code, setCode] = useState(initialToken || '');
-  const [show, setShow] = useState(false);
+  const [codeError, setCodeError] = useState<string | null>(null);
+
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setCode(initialToken || '');
   }, [initialToken]);
 
+  /* ================= CODE STEP ================= */
+
+  const handleCodeChange = (value: string) => {
+    setCode(value);
+    setSubmitError(null);
+
+    if (!value.trim()) {
+      setCodeError('Reset code is required');
+    } else if (!/^\d{6}$/.test(value.trim())) {
+      setCodeError('Code must be 6 digits');
+    } else {
+      setCodeError(null);
+    }
+  };
+
   const handleVerifyCode = async () => {
-    if (!code.trim()) {
-      setError('Reset code is required');
-      return;
-    }
-    if (!/^\d{6}$/.test(code.trim())) {
-      setError('Code must be 6 digits');
-      return;
-    }
+    if (codeError || !code.trim()) return;
 
     setLoading(true);
-    setError(null);
+    setSubmitError(null);
+
     try {
       await verifyResetCodeApi(code.trim());
       setStep('password');
     } catch (err: any) {
-      const message = err?.response?.data?.message || 'Invalid or expired code';
-      setError(message);
+      setSubmitError(
+        err?.response?.data?.message || 'Invalid or expired code'
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResetPassword = async () => {
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-    if (password !== confirm) {
-      setError('Passwords do not match');
-      return;
+  /* ================= PASSWORD STEP ================= */
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    setSubmitError(null);
+
+    if (value.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+    } else {
+      setPasswordError(null);
     }
 
+    if (confirm && value !== confirm) {
+      setConfirmError('Passwords do not match');
+    } else {
+      setConfirmError(null);
+    }
+  };
+
+  const handleConfirmChange = (value: string) => {
+    setConfirm(value);
+    setSubmitError(null);
+
+    if (value !== password) {
+      setConfirmError('Passwords do not match');
+    } else {
+      setConfirmError(null);
+    }
+  };
+
+  const hasPasswordError =
+    !!passwordError || !!confirmError || !password || !confirm;
+
+  const handleResetPassword = async () => {
+    if (hasPasswordError) return;
+
     setLoading(true);
-    setError(null);
+    setSubmitError(null);
+
     try {
-      await resetPasswordApi({ code: code.trim(), newPassword: password });
+      await resetPasswordApi({
+        code: code.trim(),
+        newPassword: password,
+      });
       onSuccess();
     } catch (err: any) {
-      const message = err?.response?.data?.message || 'Failed to reset password';
-      setError(message);
+      setSubmitError(
+        err?.response?.data?.message || 'Failed to reset password'
+      );
     } finally {
       setLoading(false);
     }
@@ -76,7 +123,9 @@ export function ResetPasswordModal({ onBack, onClose, onSuccess, initialToken }:
       setStep('code');
       setPassword('');
       setConfirm('');
-      setError(null);
+      setPasswordError(null);
+      setConfirmError(null);
+      setSubmitError(null);
     } else {
       onBack();
     }
@@ -89,6 +138,7 @@ export function ResetPasswordModal({ onBack, onClose, onSuccess, initialToken }:
       showBack
       onBack={handleBack}
     >
+      {/* ================= CODE STEP ================= */}
       {step === 'code' && (
         <>
           <p className="text-sm text-center mb-4 text-[var(--choco)]/70">
@@ -99,20 +149,24 @@ export function ResetPasswordModal({ onBack, onClose, onSuccess, initialToken }:
             label="Reset Code *"
             placeholder="123456"
             value={code}
-            onChange={(e) => setCode(e.target.value)}
             maxLength={6}
-            error={error || undefined}
+            onChange={(e) => handleCodeChange(e.target.value)}
+            error={codeError || undefined}
           />
 
-          {error && (
-            <p className="text-pink-500 text-sm mt-3">{error}</p>
+          {codeError && (
+            <p className="text-pink-500 text-sm mt-1">{codeError}</p>
+          )}
+
+          {submitError && (
+            <p className="text-pink-500 text-sm mt-1">{submitError}</p>
           )}
 
           <PixelButton
             variant="secondary"
             size="lg"
             className="w-full mt-6"
-            disabled={loading}
+            disabled={loading || !!codeError}
             onClick={handleVerifyCode}
           >
             {loading ? 'Verifying...' : 'Verify Code'}
@@ -120,54 +174,66 @@ export function ResetPasswordModal({ onBack, onClose, onSuccess, initialToken }:
         </>
       )}
 
+      {/* ================= PASSWORD STEP ================= */}
       {step === 'password' && (
         <>
-          <label className="block mb-2 uppercase text-sm">
-            New Password *
-          </label>
-
-          <div className="relative mb-2">
-            <input
-              type={show ? 'text' : 'password'}
-              className="pixel-border w-full px-4 py-3 pr-12"
-              placeholder=""
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+        <PixelInput
+          label="New Password *"
+          type={show ? 'text' : 'password'}
+          value={password}
+          onChange={(e) => handlePasswordChange(e.target.value)}
+          error={!!passwordError}
+          rightIcon={
             <button
               type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2"
               onClick={() => setShow(!show)}
+              className="text-[var(--choco)]"
             >
               {show ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
-          </div>
+          }
+        />
 
-          <p className="text-xs mb-4 text-[var(--choco)]/60">
-            Minimum 6 characters
+        {passwordError && (
+          <p className="text-pink-500 text-sm mt-1">
+            {passwordError}
           </p>
+        )}
 
-          <label className="block mb-2 uppercase text-sm">
-            Confirm New Password *
-          </label>
+        <p className="text-xs mb-4 text-[var(--choco)]/60">
+          Minimum 6 characters
+        </p>
 
-          <input
-            type={show ? 'text' : 'password'}
-            className="pixel-border w-full px-4 py-3"
-            placeholder=""
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-          />
+        <PixelInput
+          label="Confirm New Password *"
+          type={show ? 'text' : 'password'}
+          value={confirm}
+          onChange={(e) => handleConfirmChange(e.target.value)}
+            error={!!confirmError}
+          rightIcon={
+              <button
+              type="button"
+              onClick={() => setShow(!show)}
+              className="text-[var(--choco)]"
+            >
+              {show ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          }
+        />
 
-          {error && (
-            <p className="text-pink-500 text-sm mt-3">{error}</p>
+          {confirmError && (
+            <p className="text-pink-500 text-sm mt-1">
+              {confirmError}
+            </p>
           )}
 
           <PixelButton
             variant="secondary"
             size="lg"
-            className="w-full mt-6"
-            disabled={loading}
+            className={`w-full mt-6 ${
+              hasPasswordError ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+            disabled={loading || hasPasswordError}
             onClick={handleResetPassword}
           >
             {loading ? 'Updating...' : 'Reset Password'}

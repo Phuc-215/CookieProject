@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import { HomeFeed } from "./pages/HomeFeed/HomeFeed";
-import { Search } from "./pages/SearchPage";
+import SearchPage from "./pages/SearchPage";
 import { PublicProfile } from "./pages/Profile/PublicProfile";
 import { MyProfile } from "./pages/Profile/MyProfile";
 import { EditProfile } from "./pages/EditProfile";
@@ -54,8 +54,9 @@ export default function App() {
             <Route path="/collections/new" element={<EditCollection mode="create" />} />
           </Route>
 
-          {/* Fallback */}
-          <Route path="*" element={<Error />} />
+
+        {/* Default */}
+        <Route path="*" element={<Error isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
 
         </Route>
       </Routes>

@@ -12,6 +12,7 @@ interface NavBarProps {
   notificationCount?: number;
   showBackButton?: boolean; 
   onBack?: () => void;
+  searchQuery?: string;
 }
 
 export function NavBar({ 

@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useState } from "react";
 
 // Import các trang
+import Search from "./pages/SearchPage";
 import { HomeFeed } from "./pages/HomeFeed/HomeFeed";
 import SearchPage from "./pages/SearchPage";
 import { PublicProfile } from "./pages/Profile/PublicProfile";
@@ -58,7 +59,7 @@ export default function App() {
 
 
         {/* Default */}
-        <Route path="*" element={<Error isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
+        <Route path="*" element={<Error isLoggedIn={isLoggedIn} onLogout={logout} />} />
 
         </Route>
       </Routes>

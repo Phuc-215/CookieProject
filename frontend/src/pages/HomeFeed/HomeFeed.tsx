@@ -12,6 +12,34 @@ interface HomeFeedProps {
   isLoggedIn?: boolean;
 }
 
+const TABS: { id: TabType, label: string, icon: React.ReactNode }[] = [
+  { id: 'trending', label: 'TRENDING', icon: <Star size={20} /> },
+  { id: 'collections', label: 'COOKIE JARS', icon: <Grid size={20} /> },
+  { id: 'latest', label: 'LATEST', icon: <Clock size={20} /> },
+];
+
+const CreatePostBar = () => {
+  const nav = useNav(); 
+  return (
+    <div className="max-w-7xl my-[25px] mx-auto px-4 mb-8">
+      <div className="bg-white border-4 border-[#4A3B32] p-4 flex items-center gap-4 shadow-[4px_4px_0px_rgba(74,59,50,0.2)]">
+        <div className="w-12 h-12 shrink-0 bg-[#FF99AA] border-2 border-[#4A3B32] flex items-center justify-center overflow-hidden">
+           <img src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=Felix`} alt="User Avatar" className="w-full h-full object-cover"/>
+        </div>
+        <div onClick={() => nav.create()} className="flex-1 bg-[#FFF8E7] hover:bg-[#FFE4C4] border-2 border-[#4A3B32] h-12 flex items-center px-4 cursor-pointer transition-colors group">
+          <span className="font-vt323 text-xl text-[#4A3B32]/60 group-hover:text-[#4A3B32]">Wanna share a fantastic recipe of yours?</span>
+        </div>
+        {/* <div className="hidden md:flex items-center gap-4 px-2">
+          <button className="flex items-center gap-2 text-[#4A3B32] hover:bg-gray-100 p-2 rounded transition-colors font-vt323"><Image size={20} className="text-green-600" /><span className="hidden lg:inline">Photo</span></button>
+          <button className="flex items-center gap-2 text-[#4A3B32] hover:bg-gray-100 p-2 rounded transition-colors font-vt323"><Video size={20} className="text-red-500" /><span className="hidden lg:inline">Video</span></button>
+           <button className="flex items-center gap-2 text-[#4A3B32] hover:bg-gray-100 p-2 rounded transition-colors font-vt323"><Smile size={20} className="text-yellow-500" /><span className="hidden lg:inline">Feeling</span></button>
+        </div> */}
+      </div>
+    </div>
+  );
+};
+const FILTER_CATEGORIES = ["All", "Cookies", "Cheesecake", "Cupcakes & Muffins", "Tarts & Pies", "Brownies & Bars"];
+
 // --- MOCK DATA ---
 const MOCK_RECIPES = [
   { id: '1', title: 'Classic Chocolate Chip', image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaG9jb2xhdGUlMjBjaGlwJTIwY29va2llc3xlbnwxfHx8fDE3NjQyMDU4MzN8MA&ixlib=rb-4.1.0&q=80&w=1080', author: 'BakerBob', difficulty: 'Easy' as const, time: '30 min', likes: 245, isLiked: false, isSaved: false, category: "Cookies" },

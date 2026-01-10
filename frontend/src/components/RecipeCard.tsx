@@ -1,4 +1,5 @@
-import { Heart, Bookmark, Trash2, Pencil } from "lucide-react";
+import { useState } from "react";
+import { Heart, Bookmark, Trash2, Clock, Pencil } from "lucide-react";
 
 interface RecipeCardProps {
   id: string;
@@ -8,10 +9,10 @@ interface RecipeCardProps {
   difficulty: "Easy" | "Medium" | "Hard";
   time: string;
   likes: number;
-  isLiked?: boolean;
+  isLiked?: boolean; // Used as initial value
   isSaved?: boolean;
   onClick?: () => void;
-  onLike?: (id: string) => void;
+  onLike?: (id: string) => void; // Optional: just to notify parent
   onSave?: (id: string) => void;
   showDelete?: boolean;
   onDelete?: (id: string) => void;
@@ -30,8 +31,8 @@ export function RecipeCard({
   author,
   difficulty,
   time,
-  likes,
-  isLiked = false,
+  likes, // Initial likes count
+  isLiked = false, // Initial liked status
   isSaved = false,
   onClick,
   onLike,
@@ -45,17 +46,37 @@ export function RecipeCard({
   large,
   small,
 }: RecipeCardProps) {
+  
+  // --- 1. LOCAL STATE ---
+  // We initialize the state with the props passed in.
+  const [localIsLiked, setLocalIsLiked] = useState(isLiked);
+  const [localLikesCount, setLocalLikesCount] = useState(likes);
 
-  const sizeMode = small
-    ? "small"
-    : large
-    ? "large"
-    : "default";
+  const sizeMode = small ? "small" : large ? "large" : "default";
 
   const difficultyColor = {
     Easy: "bg-[var(--secondary)] text-[var(--secondary-foreground)]",
     Medium: "bg-[var(--primary)] text-[var(--primary-foreground)]",
     Hard: "bg-[var(--foreground)] text-white",
+  };
+
+  // --- 2. INTERNAL HANDLER ---
+  const handleLikeClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering the card's onClick
+
+    // Toggle logic
+    if (localIsLiked) {
+      setLocalIsLiked(false);
+      setLocalLikesCount((prev) => prev - 1);
+    } else {
+      setLocalIsLiked(true);
+      setLocalLikesCount((prev) => prev + 1);
+    }
+
+    // Optional: Still call the prop if the parent needs to know (e.g. for analytics)
+    if (onLike) {
+      onLike(id);
+    }
   };
 
   return (
@@ -68,12 +89,11 @@ export function RecipeCard({
       `}
       onClick={onClick}
     >
-
       {/* IMAGE */}
       <div
         className={`
           relative bg-[var(--card)]
-          ${sizeMode === "small" ? "w-36 h-50 flex-shrink-0" : ""}
+          ${sizeMode === "small" ? "w-36 h-full flex-shrink-0" : ""}
           ${sizeMode === "large" ? "aspect-[3/2]" : ""}
           ${sizeMode === "default" ? "aspect-square" : ""}
         `}
@@ -93,24 +113,24 @@ export function RecipeCard({
         >
           <button
             className={`
-              w-8 h-8 pixel-border flex items-center justify-center
-              ${isLiked ? "bg-[var(--primary)]" : "bg-white"}
+              w-8 h-8 pixel-border flex items-center justify-center transition-colors
+              ${localIsLiked ? "bg-[#FF99AA]" : "bg-white"} 
             `}
-            onClick={(e) => {
-              e.stopPropagation();
-              onLike?.(id);
-            }}
+            // Use the internal handler here
+            onClick={handleLikeClick}
           >
             <Heart
               className={`w-4 h-4 ${
-                isLiked ? "fill-[var(--primary-foreground)]" : ""
+                localIsLiked 
+                  ? "fill-[var(--primary-foreground)] text-[var(--primary-foreground)]" 
+                  : "text-black"
               }`}
             />
           </button>
 
           <button
             className={`
-              w-8 h-8 pixel-border flex items-center justify-center
+              w-8 h-8 pixel-border flex items-center justify-center transition-colors
               ${isSaved ? "bg-[var(--secondary)]" : "bg-white"}
             `}
             onClick={(e) => {
@@ -144,20 +164,36 @@ export function RecipeCard({
           by {author}
         </p>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-wrap items-center gap-2 mt-auto">
+          
+          {/* Difficulty Tag */}
           <span
-            className={`px-2 py-1 text-xs pixel-border uppercase ${difficultyColor[difficulty]}`}
+            className={`
+              pixel-border uppercase whitespace-nowrap
+              ${difficultyColor[difficulty]}
+              ${sizeMode === 'small' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-xs'}
+            `}
           >
             {difficulty}
           </span>
 
-          <span className="px-2 py-1 text-xs pixel-border bg-white uppercase">
+          {/* Time Tag */}
+          <span className={`
+            pixel-border bg-white uppercase whitespace-nowrap flex items-center gap-1
+            ${sizeMode === 'small' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-xs'}
+          `}>
+            {/* Hide clock icon on very small cards to save space */}
+            {sizeMode !== 'small' && <Clock size={12} />}
             {time}
           </span>
 
-          <span className="px-2 py-1 text-xs pixel-border bg-white uppercase ml-auto flex items-center gap-1">
-            <Heart className="w-3 h-3 fill-[var(--primary)]" />
-            {likes}
+          {/* Likes Tag - Pushed to right */}
+          <span className={`
+            pixel-border bg-white uppercase ml-auto flex items-center gap-1 whitespace-nowrap
+            ${sizeMode === 'small' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-xs'}
+          `}>
+            <Heart className={`w-3 h-3 ${localIsLiked ? "fill-[var(--primary)] text-[var(--primary)]" : ""}`} />
+            {localLikesCount}
           </span>
         </div>
 

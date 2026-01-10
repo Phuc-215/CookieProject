@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, ChangeEvent } from 'react';
 import { Upload, Camera, X, Plus } from 'lucide-react';
 import { PixelButton } from '../components/PixelButton';
 import { PixelInput } from '../components/PixelInput';
@@ -74,6 +74,28 @@ export function CreateRecipe() {
     setSteps(steps.map(s => s.id === id ? { ...s, instruction } : s));
   };
 
+  //File Upload
+  // 1. Create a ref for the hidden file input
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 2. Handle the click on the pixel box to trigger the hidden input
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // 3. Handle the file selection
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Create a URL for preview immediately
+      const imageUrl = URL.createObjectURL(file);
+      setMainImage(imageUrl);
+      
+      // Note: In a real app, you would typically upload 'file' to a server here 
+      // (e.g., AWS S3, Cloudinary) and get a real URL back.
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
 
@@ -91,12 +113,28 @@ export function CreateRecipe() {
             <label className="block mb-3 uppercase text-sm tracking-wide">
               Main Recipe Image *
             </label>
+            
+            {/* HIDDEN INPUT */}
+            <input 
+              type="file" 
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden" 
+              accept="image/png, image/jpeg, image/jpg"
+            />
+
             <div 
-              className="aspect-video pixel-border bg-[#FFF8E1] flex flex-col items-center justify-center cursor-pointer hover:bg-[#FFF8E1]/70 transition-colors"
-              onClick={() => {/* File upload handler */}}
+              className="aspect-video pixel-border bg-[#FFF8E1] flex flex-col items-center justify-center cursor-pointer hover:bg-[#FFF8E1]/70 transition-colors relative overflow-hidden"
+              onClick={handleImageClick}
             >
               {mainImage ? (
-                <img src={mainImage} alt="Recipe" className="w-full h-full object-cover" />
+                <>
+                  <img src={mainImage} alt="Recipe" className="w-full h-full object-cover" />
+                  {/* Overlay to indicate you can change it */}
+                  <div className="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <span className="bg-white px-2 py-1 font-vt323 text-xs border border-black">Change Image</span>
+                  </div>
+                </>
               ) : (
                 <>
                   <Upload className="w-12 h-12 text-[#5D4037]/30 mb-3" />

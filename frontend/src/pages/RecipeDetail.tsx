@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Heart, Bookmark, Clock, Users, ChefHat, Send, Share2, Link2, Copy, Check } from 'lucide-react';
+import { Heart, Bookmark, Clock, Users, ChefHat, Share2, Link2, Copy, Check } from 'lucide-react';
 
-import { PixelButton } from '../components/PixelButton';
 import { PixelTag } from '../components/PixelTag';
 import { useNav } from '../hooks/useNav';
 import { AddToCollectionModal } from "@/components/modals/AddToCollectionModal";
@@ -17,11 +16,10 @@ export function RecipeDetail({ isLoggedIn = false}: RecipeDetailProps) {
 
   const [showAddToJar, setShowAddToJar] = useState(false);
   const [checkedSteps, setCheckedSteps] = useState<number[]>([]);
-  const [newComment, setNewComment] = useState('');
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  const nav = useNav();
 
+  // Handlers
   const handleLike = () => {
     setIsLiked(!isLiked);
     setLikes(isLiked ? likes - 1 : likes + 1);
@@ -50,33 +48,41 @@ export function RecipeDetail({ isLoggedIn = false}: RecipeDetailProps) {
   };
 
   const handleCopyLink = () => {
-    // In a real app, this would copy the actual URL
-    const recipeUrl = `https://cookie.exe/recipe/${RECIPE.id}`;
+    const recipeUrl = window.location.href; // Lấy URL thật của trang hiện tại
     navigator.clipboard.writeText(recipeUrl);
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
   };
 
   const handleShare = (platform: string) => {
-    // Mock share functionality
     console.log(`Sharing to ${platform}`);
     setShowShareMenu(false);
   };
+  
+  // Hàm chuyển hướng khi user chưa login mà muốn comment
+  const handleLoginRedirect = () => {
+    navigate('/login');
+  };
+
+  // Xác định user hiện tại để truyền vào CommentSection
+  // (Nếu isLoggedIn = false thì currentUser = null)
+  const activeUser = isLoggedIn && currentUserData ? currentUserData : null;
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
 
       <div className="max-w-5xl mx-auto px-4 py-8">
-        {/* Hero Image */}
+        
+        {/* === HERO IMAGE SECTION === */}
         <div className="pixel-card bg-white p-0 mb-8 overflow-hidden">
-          <div className="relative aspect-video">
+          <div className="relative aspect-video md:aspect-[2.5/1]"> {/* Chỉnh lại tỉ lệ ảnh cho đỡ cao */}
             <img 
               src={RECIPE.image} 
               alt={RECIPE.title} 
               className="w-full h-full object-cover"
             />
             {/* Floating Action Buttons */}
-            <div className="absolute top-4 right-4 flex gap-3">
+            <div className="absolute top-4 right-4 flex gap-3 z-10">
               <button
                 className={`w-12 h-12 pixel-border flex items-center justify-center backdrop-blur-sm transition-colors ${
                   isLiked ? 'bg-[#FF8FAB]' : 'bg-white/90 hover:bg-white'
@@ -97,200 +103,169 @@ export function RecipeDetail({ isLoggedIn = false}: RecipeDetailProps) {
                   }`}
                 />
               </button>
-              <button
-                className="w-12 h-12 pixel-border flex items-center justify-center backdrop-blur-sm transition-colors"
-                onClick={() => setShowShareMenu(!showShareMenu)}
-              >
-                <Share2 className="w-6 h-6" />
-              </button>
-              {showShareMenu && (
-                <div className="absolute top-16 right-4 bg-white pixel-border shadow-lg z-10">
-                  <button
-                    className="flex items-center gap-2 px-4 py-2 hover:bg-[#FFF8E1] transition-colors"
-                    onClick={() => handleShare('Facebook')}
-                  >
-                    <Link2 className="w-4 h-4" />
-                    Facebook
-                  </button>
-                  <button
-                    className="flex items-center gap-2 px-4 py-2 hover:bg-[#FFF8E1] transition-colors"
-                    onClick={() => handleShare('Twitter')}
-                  >
-                    <Link2 className="w-4 h-4" />
-                    Twitter
-                  </button>
-                  <button
-                    className="flex items-center gap-2 px-4 py-2 hover:bg-[#FFF8E1] transition-colors"
-                    onClick={() => handleShare('Email')}
-                  >
-                    <Link2 className="w-4 h-4" />
-                    Email
-                  </button>
-                  <button
-                    className="flex items-center gap-2 px-4 py-2 hover:bg-[#FFF8E1] transition-colors"
-                    onClick={handleCopyLink}
-                  >
-                    <Copy className="w-4 h-4" />
-                    {linkCopied ? <Check className="w-4 h-4" /> : 'Copy Link'}
-                  </button>
-                </div>
-              )}
+              
+              <div className="relative">
+                <button
+                  className="w-12 h-12 pixel-border flex items-center justify-center backdrop-blur-sm bg-white/90 hover:bg-white transition-colors"
+                  onClick={() => setShowShareMenu(!showShareMenu)}
+                >
+                  <Share2 className="w-6 h-6" />
+                </button>
+                
+                {showShareMenu && (
+                  <div className="absolute top-14 right-0 bg-white pixel-border shadow-lg w-40 animate-fade-in">
+                    <button className="w-full text-left flex items-center gap-2 px-4 py-3 hover:bg-[#FFF8E1] transition-colors border-b-2 border-dashed border-[#4A3B32]/10" onClick={() => handleShare('Facebook')}>
+                      <Link2 className="w-4 h-4" /> Facebook
+                    </button>
+                    <button className="w-full text-left flex items-center gap-2 px-4 py-3 hover:bg-[#FFF8E1] transition-colors border-b-2 border-dashed border-[#4A3B32]/10" onClick={() => handleShare('Twitter')}>
+                      <Link2 className="w-4 h-4" /> Twitter
+                    </button>
+                    <button className="w-full text-left flex items-center gap-2 px-4 py-3 hover:bg-[#FFF8E1] transition-colors" onClick={handleCopyLink}>
+                      {linkCopied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />} 
+                      {linkCopied ? 'Copied!' : 'Copy Link'}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="p-8 border-t-[3px] border-[#5D4037]">
+          <div className="p-6 md:p-8 border-t-[3px] border-[#5D4037]">
             <h1 
-              className="text-2xl md:text-3xl mb-4" 
+              className="text-2xl md:text-3xl mb-4 leading-tight text-[#4A3B32]" 
               style={{ fontFamily: "'Press Start 2P', cursive" }}
             >
               {RECIPE.title}
             </h1>
 
             {/* Author */}
-            <button 
-              className="inline-flex items-center gap-2 mb-4 hover:opacity-70 transition-opacity"
-                onClick ={() => nav.profile(RECIPE.author.username)}
-            >
-              <div className="w-8 h-8 bg-[#4DB6AC] pixel-border flex items-center justify-center">
-                <span className="text-xs">👤</span>
-              </div>
-              <span className="text-sm uppercase">by {RECIPE.author.username}</span>
-            </button>
+            <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+                <button 
+                  className="inline-flex items-center gap-3 group"
+                  onClick ={() => nav.profile(RECIPE.author.username)}
+                >
+                  <div className="w-10 h-10 bg-[#4DB6AC] border-2 border-[#4A3B32] flex items-center justify-center overflow-hidden">
+                    <img src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${RECIPE.author.username}`} alt="Avatar" className="w-full h-full object-cover" />
+                  </div>
+                  <span className="text-sm font-vt323 text-lg uppercase group-hover:underline decoration-2 underline-offset-4">
+                    by {RECIPE.author.username}
+                  </span>
+                </button>
 
-            <p className="text-sm mb-6 leading-relaxed">{RECIPE.description}</p>
-
-            {/* Meta Info */}
-            <div className="flex flex-wrap gap-4 mb-6">
-              <div className="flex items-center gap-2">
-                <ChefHat className="w-5 h-5" />
-                <span className="text-sm uppercase">{RECIPE.difficulty}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5" />
-                <span className="text-sm uppercase">{RECIPE.prepTime} prep</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5" />
-                <span className="text-sm uppercase">{RECIPE.cookTime} cook</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                <span className="text-sm uppercase">{RECIPE.servings}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Heart className="w-5 h-5 fill-[#FF8FAB]" />
-                <span className="text-sm uppercase">{likes} likes</span>
-              </div>
+                 {/* Tags */}
+                <div className="flex flex-wrap gap-2">
+                  {RECIPE.tags.map((tag) => (
+                    <PixelTag key={tag} label={tag} />
+                  ))}
+                </div>
             </div>
 
-            {/* Tags */}
-            <div className="flex flex-wrap gap-2">
-              {RECIPE.tags.map((tag) => (
-                <PixelTag key={tag} label={tag} />
-              ))}
+            <p className="text-lg font-vt323 mb-8 leading-relaxed text-gray-700 bg-[#FFF8E1] p-4 border-2 border-[#4A3B32]/20 border-dashed">
+                {RECIPE.description}
+            </p>
+
+            {/* Meta Info Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="flex flex-col items-center justify-center p-3 border-2 border-[#4A3B32] bg-[#F5F5F5]">
+                <ChefHat className="w-6 h-6 mb-1 text-[#4A3B32]" />
+                <span className="text-xs uppercase text-gray-500 font-bold">Difficulty</span>
+                <span className="text-sm font-vt323 text-lg">{RECIPE.difficulty}</span>
+              </div>
+              <div className="flex flex-col items-center justify-center p-3 border-2 border-[#4A3B32] bg-[#F5F5F5]">
+                <Clock className="w-6 h-6 mb-1 text-[#4A3B32]" />
+                <span className="text-xs uppercase text-gray-500 font-bold">Prep Time</span>
+                <span className="text-sm font-vt323 text-lg">{RECIPE.prepTime}</span>
+              </div>
+              <div className="flex flex-col items-center justify-center p-3 border-2 border-[#4A3B32] bg-[#F5F5F5]">
+                <Clock className="w-6 h-6 mb-1 text-[#4A3B32]" />
+                <span className="text-xs uppercase text-gray-500 font-bold">Cook Time</span>
+                <span className="text-sm font-vt323 text-lg">{RECIPE.cookTime}</span>
+              </div>
+              <div className="flex flex-col items-center justify-center p-3 border-2 border-[#4A3B32] bg-[#F5F5F5]">
+                <Users className="w-6 h-6 mb-1 text-[#4A3B32]" />
+                <span className="text-xs uppercase text-gray-500 font-bold">Servings</span>
+                <span className="text-sm font-vt323 text-lg">{RECIPE.servings}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Content */}
+        {/* === MAIN CONTENT GRID === */}
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Ingredients */}
+          
+          {/* LEFT COL: Ingredients */}
           <div className="lg:col-span-1">
             <div className="pixel-card bg-white p-6 sticky top-24">
               <h2 
-                className="text-sm mb-6" 
+                className="text-lg mb-6 text-[#4A3B32] border-b-4 border-[#FF99AA] pb-2 inline-block" 
                 style={{ fontFamily: "'Press Start 2P', cursive" }}
               >
                 Ingredients
               </h2>
-              <ul className="space-y-3">
+              <ul className="space-y-4">
                 {RECIPE.ingredients.map((ingredient, index) => (
-                  <li key={index} className="flex items-start gap-3 text-sm">
-                    <span className="w-2 h-2 bg-[#5D4037] mt-2 shrink-0"></span>
-                    <span>{ingredient}</span>
+                  <li key={index} className="flex items-start gap-3 text-base font-vt323 text-lg hover:bg-gray-50 p-1 rounded transition-colors">
+                    <span className="w-2 h-2 bg-[#FF99AA] border border-[#4A3B32] mt-2 shrink-0"></span>
+                    <span className="text-gray-800">{ingredient}</span>
                   </li>
                 ))}
               </ul>
             </div>
           </div>
 
-          {/* Instructions */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="pixel-card bg-white p-6">
+          {/* RIGHT COL: Instructions & Comments */}
+          <div className="lg:col-span-2 space-y-8">
+            
+            {/* INSTRUCTIONS */}
+            <div className="pixel-card bg-white p-6 md:p-8">
               <h2 
-                className="text-sm mb-6" 
+                className="text-lg mb-8 text-[#4A3B32] border-b-4 border-[#4DB6AC] pb-2 inline-block" 
                 style={{ fontFamily: "'Press Start 2P', cursive" }}
               >
                 Instructions
               </h2>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {RECIPE.steps.map((step, index) => (
                   <div 
                     key={index} 
-                    className="flex items-start gap-4 p-4 pixel-border bg-[#FFF8E1] cursor-pointer hover:bg-[#FFF8E1]/70 transition-colors"
+                    className={`
+                        relative flex gap-4 p-5 border-2 transition-all cursor-pointer group
+                        ${checkedSteps.includes(index) 
+                            ? 'bg-[#E0F2F1] border-[#4DB6AC] opacity-70' 
+                            : 'bg-white border-[#4A3B32]/20 hover:border-[#4A3B32] hover:shadow-[4px_4px_0_rgba(74,59,50,0.1)]'
+                        }
+                    `}
                     onClick={() => toggleStep(index)}
                   >
-                    <div className={`w-6 h-6 pixel-border flex items-center justify-center shrink-0 transition-colors ${
-                      checkedSteps.includes(index) ? 'bg-[#4DB6AC]' : 'bg-white'
-                    }`}>
-                      {checkedSteps.includes(index) && <span className="text-xs">✓</span>}
+                    {/* Step Number */}
+                    <div className={`
+                        w-8 h-8 flex items-center justify-center font-vt323 text-xl font-bold shrink-0 border-2 transition-colors
+                        ${checkedSteps.includes(index) 
+                            ? 'bg-[#4DB6AC] border-[#4DB6AC] text-white' 
+                            : 'bg-[#FFF8E1] border-[#4A3B32] text-[#4A3B32]'
+                        }
+                    `}>
+                      {checkedSteps.includes(index) ? '✓' : index + 1}
                     </div>
-                    <div className="flex-1">
-                      <div className={`mb-1 uppercase text-xs ${checkedSteps.includes(index) ? 'text-[#4DB6AC]' : 'text-[#5D4037]/70'}`}>
-                        Step {index + 1}
-                      </div>
-                      <p className={`text-sm ${checkedSteps.includes(index) ? 'line-through text-[#4DB6AC]/70' : ''}`}>
-                        {step}
-                      </p>
-                    </div>
+                    
+                    {/* Step Text */}
+                    <p className={`font-vt323 text-xl leading-relaxed ${checkedSteps.includes(index) ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+                      {step}
+                    </p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Comments Section */}
-            <div className="pixel-card bg-white p-6">
-              <h2 
-                className="text-sm mb-6" 
-                style={{ fontFamily: "'Press Start 2P', cursive" }}
-              >
-                Comments ({COMMENTS.length})
-              </h2>
-
-              {/* Comment Input */}
-              <div className="mb-6">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    className="flex-1 px-4 py-3 pixel-border bg-[#FFF8E1] placeholder:text-[#5D4037]/50"
-                    placeholder="Add a comment..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                  />
-                  <PixelButton variant="primary" size="md">
-                    <Send className="w-4 h-4" />
-                  </PixelButton>
-                </div>
-              </div>
-
-              {/* Comments List */}
-              <div className="space-y-4">
-                {COMMENTS.map((comment) => (
-                  <div key={comment.id} className="pb-4 border-b-2 border-[#5D4037] last:border-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <button 
-                        className="uppercase text-sm hover:underline"
-                        onClick={() => nav.profile(comment.author)}
-                      >
-                        {comment.author}
-                      </button>
-                      <span className="text-xs text-[#5D4037]/50">• {comment.timestamp}</span>
-                    </div>
-                    <p className="text-sm">{comment.text}</p>
-                  </div>
-                ))}
-              </div>
+            {/* COMMENTS SECTION (NEW) */}
+            <div className="pixel-card bg-white p-6 md:p-8">
+               <CommentSection 
+                 recipeId={id || '1'} 
+                 currentUser={activeUser} // Truyền user thực tế hoặc null
+                 onLoginClick={handleLoginRedirect}
+               />
             </div>
+
           </div>
         </div>
         {/* ===== Add To Jar Modal ===== */}

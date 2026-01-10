@@ -1,12 +1,14 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { useState } from "react";
 
+// Import các trang
 import { HomeFeed } from "./pages/HomeFeed/HomeFeed";
 import SearchPage from "./pages/SearchPage";
 import { PublicProfile } from "./pages/Profile/PublicProfile";
 import { MyProfile } from "./pages/Profile/MyProfile";
 import { EditProfile } from "./pages/EditProfile";
 import { CreateRecipe } from "./pages/CreateRecipe";
-import { RecipeDetail } from "./pages/RecipeDetail";
+import { RecipeDetail } from "./pages/RecipeDetail"; // Quan trọng
 import { Login } from "./pages/LoginPage";
 import { Signup } from "./pages/SignupPage";
 import { VerifyEmail } from "./pages/VerifyEmailPage";

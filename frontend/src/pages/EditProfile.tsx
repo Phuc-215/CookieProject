@@ -26,6 +26,25 @@ interface EditProfileProps {
 export function EditProfile({ viewer }: EditProfileProps) {
   const nav = useNav();
 
+  /* ===== Error translation ===== */
+  const getError = (errorCode: string): string => {
+    const errorMap: Record<string, string> = {
+      'USERNAME_EXISTS': 'This username is already taken. Please choose a different one.',
+      'EMAIL_EXISTS': 'This email is already registered. Please use a different email.',
+      'FORBIDDEN': 'You do not have permission to update this profile.',
+      'INVALID_USER_ID': 'Invalid user ID.',
+      'NO_CHANGES_TO_UPDATE': 'No changes to update.',
+      'VALIDATION_ERROR': 'Please check your input and try again.',
+      'INTERNAL_SERVER_ERROR': 'Server error. Please try again later.',
+      'TOKEN_INVALID': 'Your session has expired. Please log in again.',
+      'UNAUTHORIZED': 'You need to be logged in to do this.',
+      'No changes to update': 'No changes to update.',
+      'Missing user id': 'Unable to identify your account. Please log in again.',
+      'Invalid image type. Use JPG/PNG/GIF/WebP': 'Image format not supported. Please use JPG, PNG, GIF, or WebP.'
+    };
+    return errorMap[errorCode] || errorCode;
+  };
+
   /* ===== Profile ===== */
   const [username, setUsername] = useState('YourUsername');
   const [bio, setBio] = useState('');
@@ -192,15 +211,16 @@ export function EditProfile({ viewer }: EditProfileProps) {
       }, 1500);
     } catch (err: any) {
       // Surface API or Supabase errors to help debug
-      const apiMsg = (err?.response?.data && (err.response.data.message || JSON.stringify(err.response.data)))
+      const rawMsg = (err?.response?.data && (err.response.data.message || JSON.stringify(err.response.data)))
         || err?.message
         || 'Failed to update profile';
+      const friendlyError = getError(rawMsg);
       console.error('[EditProfile] Save error details:', {
         status: err?.response?.status,
         message: err?.response?.data?.message,
         fullError: err
       });
-      setFormError(apiMsg);
+      setFormError(friendlyError);
     } finally {
       setSaving(false);
     }
@@ -240,26 +260,12 @@ export function EditProfile({ viewer }: EditProfileProps) {
     <div className="min-h-screen bg-[var(--background-image)]">
       <NavBar isLoggedIn />
 
-      {/* Success Notification  Thảo sửa cái này cho đẹp giúp Mi nheee */}
-      {successMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2">
-          <div className="bg-green-100 border-2 border-green-500 rounded pixel-border px-6 py-3 flex items-center gap-3">
-            <div className="w-5 h-5 bg-green-500 flex items-center justify-center text-white text-sm font-bold">✓</div>
-            <span className="text-green-700 font-bold text-sm">{successMessage}</span>
-          </div>
-        </div>
-      )}
-
       <div className="max-w-3xl mx-auto px-4 py-8">
         {/* ================= PROFILE ================= */}
         <div className="pixel-card bg-white p-8">
           <h2 className="text-sm mb-8" style={{ fontFamily: "'Press Start 2P'" }}>
             Profile Settings
           </h2>
-
-          {formError && (
-            <p className="text-pink-600 text-sm mb-4">{formError}</p>
-          )}
 
           {/* Avatar Section */}
           <div className="mb-8">
@@ -330,6 +336,20 @@ export function EditProfile({ viewer }: EditProfileProps) {
               Brief description for your profile. Max 150 characters.
             </p>
           </div>
+
+          {/* Success Message */}
+          {successMessage && (
+            <div className="mb-6 bg-green-50 border-2 border-green-500 rounded pixel-border px-4 py-3 flex items-center gap-3">
+              <p className="text-green-700 text-sm font-semibold">{successMessage}</p>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {formError && (
+            <div className="mb-6 bg-pink-50 border-2 border-pink-300 rounded pixel-border px-4 py-3">
+              <p className="text-pink-700 text-sm font-semibold">{formError}</p>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-6 border-t-[3px] border-[#5D4037]">

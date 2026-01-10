@@ -64,6 +64,8 @@ export function EditProfile({ viewer }: EditProfileProps) {
   const [loading, setLoading] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const [accountSuccess, setAccountSuccess] = useState<string | null>(null);
 
   /* ===== Account ===== */
   const [newPassword, setNewPassword] = useState('');
@@ -75,6 +77,7 @@ export function EditProfile({ viewer }: EditProfileProps) {
 
   /* ===== Security ===== */
   const [isVerified, setIsVerified] = useState(false);
+  const [verifiedPassword, setVerifiedPassword] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<SecureAction>(null);
   const [showSecurityModal, setShowSecurityModal] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -242,7 +245,8 @@ export function EditProfile({ viewer }: EditProfileProps) {
     executeAction(action);
   };
 
-  const executeAction = (action: SecureAction) => {
+  const executeAction = (action: SecureAction, password?: string) => {
+    if (password) setVerifiedPassword(password);
     if (action === 'email') {
       setEditingEmail(true);
     }
@@ -259,7 +263,7 @@ export function EditProfile({ viewer }: EditProfileProps) {
     
     try {
       setDeleting(true);
-      setFormError(null);
+      setAccountError(null);
       
       await deleteAccountApi(userId);
       
@@ -268,13 +272,13 @@ export function EditProfile({ viewer }: EditProfileProps) {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       
-      setSuccessMessage('Account deleted successfully. Redirecting to login...');
+      setAccountSuccess('Account deleted successfully. Redirecting to login...');
       setTimeout(() => {
         window.location.href = '/login';
       }, 1500);
     } catch (err: any) {
       const rawMsg = err?.response?.data?.message || 'Failed to delete account';
-      setFormError(getError(rawMsg));
+      setAccountError(getError(rawMsg));
       setShowDeleteModal(false);
     } finally {
       setDeleting(false);
@@ -286,7 +290,7 @@ export function EditProfile({ viewer }: EditProfileProps) {
     
     try {
       setSaving(true);
-      setFormError(null);
+      setAccountError(null);
       
       const res = await updateUserProfileApi(userId, { email: email.trim() });
       const updatedUser = res.data.user;
@@ -295,6 +299,8 @@ export function EditProfile({ viewer }: EditProfileProps) {
       setEmail(updatedUser.email || '');
       setOriginalEmail(updatedUser.email || '');
       setEditingEmail(false);
+      setIsVerified(false);
+      setVerifiedPassword(null);
       
       const stored = localStorage.getItem('user');
       if (stored) {
@@ -302,38 +308,35 @@ export function EditProfile({ viewer }: EditProfileProps) {
         localStorage.setItem('user', JSON.stringify({ ...parsed, email: updatedUser.email }));
       }
       
-      setSuccessMessage('Email updated successfully!');
-      setTimeout(() => setSuccessMessage(null), 3000);
+      setAccountSuccess('Email updated successfully!');
+      setTimeout(() => setAccountSuccess(null), 3000);
     } catch (err: any) {
       const rawMsg = err?.response?.data?.message || 'Failed to update email';
-      setFormError(getError(rawMsg));
+      setAccountError(getError(rawMsg));
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSavePassword = async () => {
+  const handleSavePassword = async (currentPassword?: string) => {
+    if (!currentPassword) {
+      setAccountError('Password verification required. Please click Change again.');
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
-      setFormError('Passwords do not match');
+      setAccountError('Passwords do not match');
       return;
     }
     
     if (newPassword.length < 6) {
-      setFormError('Password must be at least 6 characters');
+      setAccountError('Password must be at least 6 characters');
       return;
     }
     
     try {
       setSaving(true);
-      setFormError(null);
-      
-      // Note: currentPassword should be captured from SecurityCheckModal
-      // For now we'll need to prompt again or store it temporarily
-      const currentPassword = prompt('Enter your current password again to confirm:');
-      if (!currentPassword) {
-        setSaving(false);
-        return;
-      }
+      setAccountError(null);
       
       await changePasswordApi({
         currentPassword,
@@ -343,12 +346,14 @@ export function EditProfile({ viewer }: EditProfileProps) {
       setEditingPassword(false);
       setNewPassword('');
       setConfirmPassword('');
+      setVerifiedPassword(null);
+      setIsVerified(false);
       
-      setSuccessMessage('Password changed successfully!');
-      setTimeout(() => setSuccessMessage(null), 3000);
+      setAccountSuccess('Password changed successfully!');
+      setTimeout(() => setAccountSuccess(null), 3000);
     } catch (err: any) {
       const rawMsg = err?.response?.data?.message || 'Failed to change password';
-      setFormError(getError(rawMsg));
+      setAccountError(getError(rawMsg));
     } finally {
       setSaving(false);
     }
@@ -573,6 +578,7 @@ export function EditProfile({ viewer }: EditProfileProps) {
                       setNewPassword('');
                       setConfirmPassword('');
                       setIsVerified(false);
+                      setVerifiedPassword(null);
                     }}
                   >
                     Cancel
@@ -580,7 +586,7 @@ export function EditProfile({ viewer }: EditProfileProps) {
                   <PixelButton
                     size="sm"
                     variant="primary"
-                    onClick={handleSavePassword}
+                    onClick={() => handleSavePassword(verifiedPassword || '')}
                     disabled={saving}
                   >
                     {saving ? 'Saving...' : 'Save'}
@@ -607,6 +613,19 @@ export function EditProfile({ viewer }: EditProfileProps) {
               Delete
             </PixelButton>
           </div>
+
+          {/* Messages */}
+          {accountSuccess && (
+            <div className="mt-6 bg-green-50 border-2 border-green-500 rounded pixel-border px-4 py-3 flex items-center gap-3">
+              <p className="text-green-700 text-sm font-semibold">{accountSuccess}</p>
+            </div>
+          )}
+
+          {accountError && (
+            <div className="mt-6 bg-pink-50 border-2 border-pink-300 rounded pixel-border px-4 py-3">
+              <p className="text-pink-700 text-sm font-semibold">{accountError}</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -631,21 +650,21 @@ export function EditProfile({ viewer }: EditProfileProps) {
           }}
           onConfirm={async (password) => {
             try {
-              setFormError(null);
+              setAccountError(null);
               
               // Verify password with backend
               await verifyPasswordApi(password);
               
               setIsVerified(true);
               setShowSecurityModal(false);
-              executeAction(pendingAction);
+              executeAction(pendingAction, password);
               setPendingAction(null);
             } catch (err: any) {
               const rawMsg = err?.response?.data?.message || 'Invalid password';
               const friendlyMsg = rawMsg === 'INVALID_PASSWORD' 
                 ? 'Incorrect password. Please try again.' 
                 : getError(rawMsg);
-              setFormError(friendlyMsg);
+              setAccountError(friendlyMsg);
               setShowSecurityModal(false);
               setPendingAction(null);
             } finally {

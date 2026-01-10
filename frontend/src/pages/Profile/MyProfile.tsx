@@ -107,9 +107,10 @@ export function MyProfile({ isLoggedIn, viewer, onLogout }: MyProfileProps) {
   }
 
   const profileUser = {
+    id: userId,
     username: profile?.username || viewer?.username || 'Me',
-    followers: 0,
-    following: 0,
+    followers: profile?.followers_count || 0,
+    following: profile?.following_count || 0,
     bio: profile?.bio || '',
     avatarUrl: profile?.avatar_url || viewer?.avatar_url || null,
   };

@@ -23,6 +23,21 @@ export const uploadAvatarApi = (
 export const getUserRecipesApi = (id: string | number) =>
   api.get<{ recipes: Array<{ id: string; title: string; image: string; created_at: string }> }>(`/users/${id}/recipes`);
 
+export const getFollowStatusApi = (id: string | number) =>
+  api.get<{ isFollowing: boolean }>(`/users/${id}/follow-status`);
+
+export const getFollowersApi = (id: string | number) =>
+  api.get<{ users: Array<{ id: number; username: string; avatar_url?: string }> }>(`/users/${id}/followers`);
+
+export const getFollowingsApi = (id: string | number) =>
+  api.get<{ users: Array<{ id: number; username: string; avatar_url?: string }> }>(`/users/${id}/followings`);
+
+export const followUserApi = (id: string | number) =>
+  api.post<{ message: string }>(`/users/${id}/follow`);
+
+export const unfollowUserApi = (id: string | number) =>
+  api.delete<{ message: string }>(`/users/${id}/follow`);
+
 export const deleteAccountApi = (id: string | number) =>
   api.delete<{ message: string }>(`/users/${id}`);
 

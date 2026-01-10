@@ -5,44 +5,29 @@ interface FollowListProps {
   users: UserLite[];
   type: 'followers' | 'followings';
   isOwner: boolean;
-  onDeleteFollower?: (id: string) => void;
   onUnfollow?: (id: string) => void;
+  onUserClick?: (id: string) => void;
+  onFollow?: (id: string) => void;
+  currentUserId?: string | number;
 }
 
 export function FollowList({
   users,
   type,
   isOwner,
-  onDeleteFollower,
   onUnfollow,
+  onUserClick,
+  onFollow,
+  currentUserId,
 }: FollowListProps) {
-  if (!isOwner) {
-    return <FollowListView users={users} />;
-  }
-
-  if (type === 'followers') {
-    return (
-      <FollowListView
-        users={users}
-        actionLabel="DELETE"
-        onAction={(id) => {
-          if (confirm('Remove this follower?')) {
-            onDeleteFollower?.(id);
-          }
-        }}
-      />
-    );
-  }
-
+  // Render both follow/unfollow buttons if handlers exist; FollowListView will show based on isFollowing state
   return (
     <FollowListView
       users={users}
-      actionLabel="UNFOLLOW"
-      onAction={(id) => {
-        if (confirm('Unfollow this user?')) {
-          onUnfollow?.(id);
-        }
-      }}
+      onUserClick={onUserClick}
+      onFollow={onFollow}
+      onUnfollow={onUnfollow}
+      currentUserId={currentUserId}
     />
   );
 }

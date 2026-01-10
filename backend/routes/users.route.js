@@ -2,7 +2,7 @@ var express = require('express');
 var router = express.Router();
 const { requireAuth } = require('../middlewares/auth.middleware');
 const { ensureOwner } = require('../middlewares/owner.middleware');
-const { getPublicProfile, updateProfile, uploadAvatar, getUserRecipes } = require('../controllers/user.controller');
+const { getPublicProfile, updateProfile, uploadAvatar, getUserRecipes, followUser, unfollowUser, deleteAccount, getFollowers, getFollowings } = require('../controllers/user.controller');
 const { upload } = require('../middlewares/upload.middleware');
 const { validate } = require('../middlewares/validate.middleware');
 const { updateProfileSchema } = require('../validations/user.validation');
@@ -19,10 +19,23 @@ router.post('/:id/avatar', requireAuth, ensureOwner('id'), upload.single('avatar
 // Get user's recipe list sorted by date
 router.get('/:id/recipes', getUserRecipes);
 
+// Get followers list
+router.get('/:id/followers', getFollowers);
+
+// Get followings list
+router.get('/:id/followings', getFollowings);
+
+// Check follow status
+router.get('/:id/follow-status', requireAuth, require('../controllers/user.controller').getFollowStatus);
+
+// Follow user (authenticated user follows :id)
+router.post('/:id/follow', requireAuth, followUser);
+
+// Unfollow user
+router.delete('/:id/follow', requireAuth, unfollowUser);
+
 // Delete account (self only)
-router.delete('/:id', requireAuth, ensureOwner('id'), async (req, res) => {
-  const { deleteAccount } = require('../controllers/user.controller');
-  return deleteAccount(req, res);
+router.delete('/:id', requireAuth, ensureOwner('id'), async (req, res) => {  return deleteAccount(req, res);
 });
 
 module.exports = router;

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Search, Bell, User, Plus, LogOut, UserCircle } from 'lucide-react';
 import { PixelButton } from './PixelButton';
 import { useNav } from "@/hooks/useNav";
+import { useAuth } from "@/contexts/AuthContext";
 import logo from "@/assets/logo.svg";
 interface NavBarProps {
   isLoggedIn?: boolean;
@@ -25,6 +26,7 @@ export function NavBar({
   const [localQuery, setLocalQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const nav = useNav();
+  const { logout } = useAuth();
 
   const handleBack = () => {
     if (onBack) {
@@ -164,9 +166,10 @@ export function NavBar({
 
                       <button
                         className="w-full px-4 py-3 text-left hover:bg-[var(--pink)]/30 transition-colors flex items-center gap-3 font-vt"
-                        onClick={() => {
+                        onClick={async () => {
                           setShowDropdown(false);
-                          onLogout?.();
+                          await logout();
+                          nav.login();
                         }}
                       >
                         <LogOut className="w-5 h-5" />

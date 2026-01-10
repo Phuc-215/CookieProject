@@ -7,7 +7,9 @@ import { MOCK_RECIPES } from "@/mocks/mock_recipe";
 import { MOCK_COLLECTIONS } from "@/mocks/mock_collection";
 import { Pencil} from "lucide-react";
 interface Viewer {
+  id: number;
   username: string;
+  email?: string;
 }
 
 interface CollectionPageProps {

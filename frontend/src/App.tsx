@@ -22,7 +22,11 @@ import { useState } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 interface Viewer {
+  id: number;
   username: string;
+  email?: string;
+  avatar_url?: string | null;
+  bio?: string | null;
 }
 
 export default function App() {
@@ -65,14 +69,14 @@ export default function App() {
         {/* Public */}
         <Route path="/" element={<HomeFeed isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
         <Route path="/search" element={<Search isLoggedIn={isLoggedIn} />} />
-        <Route path="/profile/:id" element={<PublicProfile isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
+        <Route path="/profile/:id" element={<PublicProfile isLoggedIn={isLoggedIn} viewer={viewer} onLogout={handleLogout} />} />
         <Route path="/recipe/:id" element={<RecipeDetail isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
         <Route path="/collections/:id" element={<CollectionPage isLoggedIn={isLoggedIn} viewer={viewer} />} />
 
         {/* Protected */}
         <Route element={<ProtectedRoute />}>
           <Route path="/me" element={<MyProfile isLoggedIn={isLoggedIn} viewer={viewer} onLogout={handleLogout} />} />
-          <Route path="/edit-profile" element={<EditProfile />} />
+          <Route path="/edit-profile" element={<EditProfile viewer={viewer} onLogout={handleLogout} />} />
           <Route path="/create" element={<CreateRecipe isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
           <Route path="/edit/:id" element={<CreateRecipe isLoggedIn={isLoggedIn} onLogout={handleLogout} />} /> 
           <Route path="/collections/edit" element={<EditCollection mode="create" />} />

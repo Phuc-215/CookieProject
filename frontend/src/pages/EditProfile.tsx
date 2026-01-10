@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { User, Upload } from 'lucide-react';
 import { PixelButton } from '@/components/PixelButton';
 import { PixelInput } from '@/components/PixelInput';
@@ -6,20 +6,41 @@ import { PixelTextarea } from '@/components/PixelTextarea';
 import { SecurityCheckModal } from '@/components/modals/SecurityCheckModal';
 import { NavBar } from '../components/NavBar';
 import { useNav } from '@/hooks/useNav';
+import { getUserProfileApi, updateUserProfileApi, uploadAvatarApi } from '@/api/user.api';
+import type { UserProfile } from '@/types/User';
+import { useRef } from 'react';
 
 type SecureAction = 'email' | 'password' | 'delete' | null;
 
-export function EditProfile() {
+interface Viewer {
+  id: number;
+  username: string;
+  email?: string;
+}
+
+interface EditProfileProps {
+  viewer?: Viewer | null;
+  onLogout?: () => void;
+}
+
+export function EditProfile({ viewer }: EditProfileProps) {
   const nav = useNav();
 
   /* ===== Profile ===== */
   const [username, setUsername] = useState('YourUsername');
-  const [bio, setBio] = useState('Home baker exploring pixel-perfect recipes!');
+  const [bio, setBio] = useState('');
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  /* ===== Server data ===== */
+  const [email, setEmail] = useState('');
+  const [originalEmail, setOriginalEmail] = useState('');
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [formError, setFormError] = useState<string | null>(null);
 
   /* ===== Account ===== */
-  const [email, setEmail] = useState('your.email@example.com');
-  const [originalEmail, setOriginalEmail] = useState(email);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -31,20 +52,155 @@ export function EditProfile() {
   const [isVerified, setIsVerified] = useState(false);
   const [pendingAction, setPendingAction] = useState<SecureAction>(null);
   const [showSecurityModal, setShowSecurityModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const userId = (() => {
+    if (viewer?.id) {
+      console.log('[EditProfile] userId from viewer:', viewer.id);
+      return viewer.id;
+    }
+    const stored = localStorage.getItem('user');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        console.log('[EditProfile] userId from localStorage:', parsed.id);
+        return parsed.id;
+      } catch {
+        console.error('[EditProfile] Failed to parse localStorage user');
+        return null;
+      }
+    }
+    console.log('[EditProfile] No userId found');
+    return null;
+  })();
+
+  useEffect(() => {
+    if (!userId) {
+      setFormError('Missing user id');
+      setLoading(false);
+      return;
+    }
+
+    let active = true;
+
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await getUserProfileApi(userId);
+        if (!active) return;
+        setProfile(res.data);
+        setUsername(res.data.username);
+        if (res.data.email) {
+          setEmail(res.data.email);
+          setOriginalEmail(res.data.email);
+        }
+        if (res.data.bio !== undefined && res.data.bio !== null) {
+          setBio(res.data.bio || '');
+        }
+        if (res.data.avatar_url) {
+          setAvatarPreview(res.data.avatar_url);
+        }
+      } catch (err: any) {
+        if (!active) return;
+        const msg = err?.response?.data?.message || 'Failed to load profile';
+        setFormError(msg);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [userId]);
 
   /* ===== Handlers ===== */
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Client-side validate type
+    const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      setFormError('Invalid image type. Use JPG/PNG/GIF/WebP');
+      return;
+    }
 
     const reader = new FileReader();
     reader.onloadend = () => setAvatarPreview(reader.result as string);
     reader.readAsDataURL(file);
+
+    // Store the file for upload
+    setAvatarFile(file);
   };
 
-  const handleSaveProfile = () => {
-    alert('Profile updated successfully!');
-    nav.back();
+  const handleSaveProfile = async () => {
+    if (!userId) {
+      setFormError('Missing user id');
+      console.error('[EditProfile] Save failed: userId is null or 0');
+      return;
+    }
+
+    console.log('[EditProfile] Attempting save with userId:', userId);
+
+    const payload: Partial<UserProfile> = {};
+    if (username && username !== profile?.username) {
+      payload.username = username.trim();
+    }
+    if (email && email !== originalEmail) {
+      payload.email = email.trim();
+    }
+    if (bio !== undefined && bio !== (profile?.bio || '')) {
+      payload.bio = bio.trim();
+    }
+
+    const file = avatarFile;
+    if (Object.keys(payload).length === 0 && !file) {
+      setFormError('No changes to update');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setFormError(null);
+
+      const res = await updateUserProfileApi(userId, payload);
+      const updatedUser = res.data.user;
+      setProfile(updatedUser);
+      setUsername(updatedUser.username);
+      if (updatedUser.email) {
+        setEmail(updatedUser.email);
+        setOriginalEmail(updatedUser.email);
+      }
+      if (updatedUser.bio !== undefined) {
+        setBio(updatedUser.bio || '');
+      }
+      if (file) {
+        const up = await uploadAvatarApi(userId, file);
+        const avatarUrl = up.data.avatarUrl;
+        setAvatarPreview(avatarUrl);
+        const merged = { ...updatedUser, avatar_url: avatarUrl } as any;
+        localStorage.setItem('user', JSON.stringify(merged));
+      } else {
+        if (updatedUser.avatar_url) setAvatarPreview(updatedUser.avatar_url);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+
+      alert('Profile updated successfully!');
+      nav.back();
+    } catch (err: any) {
+      // Surface API or Supabase errors to help debug
+      const apiMsg = (err?.response?.data && (err.response.data.message || JSON.stringify(err.response.data)))
+        || err?.message
+        || 'Failed to update profile';
+      console.error('[EditProfile] Save error details:', {
+        status: err?.response?.status,
+        message: err?.response?.data?.message,
+        fullError: err
+      });
+      setFormError(apiMsg);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const startSecureAction = (action: SecureAction) => {
@@ -69,6 +225,14 @@ export function EditProfile() {
     }
   };
 
+  if (formError && !profile) {
+    return <div className="p-8 text-pink-600">{formError}</div>;
+  }
+
+  if (loading) {
+    return <div className="p-8">Loading profile...</div>;
+  }
+
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
       <NavBar isLoggedIn />
@@ -79,6 +243,10 @@ export function EditProfile() {
           <h2 className="text-sm mb-8" style={{ fontFamily: "'Press Start 2P'" }}>
             Profile Settings
           </h2>
+
+          {formError && (
+            <p className="text-pink-600 text-sm mb-4">{formError}</p>
+          )}
 
           {/* Avatar Section */}
           <div className="mb-8">
@@ -99,7 +267,7 @@ export function EditProfile() {
               </div>
               <div>
                 <label className="cursor-pointer">
-                  <PixelButton variant="outline" size="md">
+                  <PixelButton variant="outline" size="md" onClick={() => fileInputRef.current?.click()}>
                     <Upload className="w-4 h-4 inline mr-2" />
                     Upload Photo
                   </PixelButton>
@@ -107,6 +275,7 @@ export function EditProfile() {
                     type="file"
                     accept="image/*"
                     className="hidden"
+                    ref={fileInputRef}
                     onChange={handleAvatarChange}
                   />
                 </label>

@@ -73,13 +73,19 @@ export function ProfileHeader({
           {/* Actions */}
           {isOwner ? (
             <div className="flex gap-4">
-              <PixelButton onClick={onEditProfile} variant="outline">
-                <Settings className="w-4 h-4" /> Edit Profile
-              </PixelButton>
+                <PixelButton onClick={onEditProfile} variant="outline">
+                <span className="flex items-center gap-2">
+                    <Settings className="w-4 h-4" />
+                    Edit Profile
+                </span>
+                </PixelButton>
 
-              <PixelButton onClick={onCreateRecipe}>
-                <Plus className="w-4 h-4" /> Create Recipe
-              </PixelButton>
+                <PixelButton onClick={onCreateRecipe} variant="primary">
+                <span className="flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    Create Recipe
+                </span>
+                </PixelButton>
             </div>
           ) : (
             <PixelButton>+ Follow</PixelButton>

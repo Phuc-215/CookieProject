@@ -1,5 +1,10 @@
-import { User, Settings, Plus } from 'lucide-react';
+import { User as UserIcon, Settings, Plus } from 'lucide-react';
 import { PixelButton } from '@/components/PixelButton';
+import { useState } from 'react';
+import {
+  FollowersModal,
+  FollowingsModal,
+} from '@/components/modals/FollowModal';
 
 interface ProfileHeaderProps {
   user: {
@@ -8,7 +13,7 @@ interface ProfileHeaderProps {
     followers: number;
     following: number;
     bio: string;
-    avatarUrl?: string;
+    avatarUrl?: string | null;
   };
   isOwner: boolean;
   onEditProfile: () => void;
@@ -21,15 +26,22 @@ export function ProfileHeader({
   onEditProfile,
   onCreateRecipe,
 }: ProfileHeaderProps) {
+  const [openFollowers, setOpenFollowers] = useState(false);
+  const [openFollowings, setOpenFollowings] = useState(false);
+
   return (
     <div className="pixel-card bg-white p-8 mb-8">
       <div className="flex gap-8">
         {/* Avatar */}
         <div className="w-32 h-32 pixel-border bg-[var(--primary)] flex items-center justify-center overflow-hidden">
           {user.avatarUrl ? (
-            <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            <img
+              src={user.avatarUrl}
+              alt={user.username}
+              className="w-full h-full object-cover"
+            />
           ) : (
-            <User className="w-16 h-16 text-black" />
+            <UserIcon className="w-16 h-16 text-black" />
           )}
         </div>
 
@@ -43,14 +55,16 @@ export function ProfileHeader({
               <div className="font-bold text-center">{user.recipes}</div>
               <div className="opacity-60">Recipes</div>
             </div>
-            <div>
+
+            <button onClick={() => setOpenFollowers(true)}>
               <div className="font-bold text-center">{user.followers}</div>
               <div className="opacity-60">Followers</div>
-            </div>
-            <div>
+            </button>
+
+            <button onClick={() => setOpenFollowings(true)}>
               <div className="font-bold text-center">{user.following}</div>
               <div className="opacity-60">Following</div>
-            </div>
+            </button>
           </div>
 
           {/* Bio */}
@@ -59,25 +73,33 @@ export function ProfileHeader({
           {/* Actions */}
           {isOwner ? (
             <div className="flex gap-4">
-                <PixelButton onClick={onEditProfile} variant="outline">
-                <span className="flex items-center gap-2">
-                    <Settings className="w-4 h-4" />
-                    Edit Profile
-                </span>
-                </PixelButton>
+              <PixelButton onClick={onEditProfile} variant="outline">
+                <Settings className="w-4 h-4" /> Edit Profile
+              </PixelButton>
 
-                <PixelButton onClick={onCreateRecipe} variant="primary">
-                <span className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    Create Recipe
-                </span>
-                </PixelButton>
+              <PixelButton onClick={onCreateRecipe}>
+                <Plus className="w-4 h-4" /> Create Recipe
+              </PixelButton>
             </div>
           ) : (
-            <PixelButton variant="primary">+ Follow</PixelButton>
+            <PixelButton>+ Follow</PixelButton>
           )}
         </div>
       </div>
+
+      {openFollowers && (
+        <FollowersModal
+          isOwner={isOwner}
+          onClose={() => setOpenFollowers(false)}
+        />
+      )}
+
+      {openFollowings && (
+        <FollowingsModal
+          isOwner={isOwner}
+          onClose={() => setOpenFollowings(false)}
+        />
+      )}
     </div>
   );
 }

@@ -59,7 +59,7 @@ export function ProfilePage({
 
       <div className="max-w-5xl mx-auto px-4 py-8">
         <ProfileHeader
-          user={{ ...profileUser, recipes: recipes.length, avatarUrl: profileUser.avatarUrl ?? (viewer as any)?.avatar_url ?? null }}
+          user={{ ...profileUser, recipes: recipes.length, avatarUrl: profileUser.avatarUrl ?? viewer?.avatar_url ?? null}}
           isOwner={isOwner}
           onEditProfile={() => nav.editProfile()}
           onCreateRecipe={() => nav.create()}

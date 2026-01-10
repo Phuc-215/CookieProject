@@ -15,6 +15,7 @@ import { ResetSuccessModal } from '@/components/modals/ResetSuccessModal';
 import { useNav } from '@/hooks/useNav';
 import login_hamster from "@/assets/login_hamster.svg";
 import { setTokens } from '@/utils/token';
+import type { Viewer } from "@/types/Viewer";
 
 const loginSchema = z.object({
   email: z.string()
@@ -26,11 +27,7 @@ const loginSchema = z.object({
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
-interface Viewer {
-  username: string;
-  email?: string;
-  id?: string;
-}
+
 interface LoginProps {
   onLogin: (user: Viewer) => void;
 }

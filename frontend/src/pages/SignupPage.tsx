@@ -12,6 +12,7 @@ import { NavBar } from '../components/NavBar';
 import { useNav } from '../hooks/useNav'; 
 import signup_hamster from "../assets/signup_hamster.svg";
 import { setTokens } from '@/utils/token';
+import type { Viewer } from "@/types/Viewer";
 
 const signupSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -31,12 +32,6 @@ const signupSchema = z.object({
 });
 
 type SignupFormData = z.infer<typeof signupSchema>;
-
-interface Viewer {
-  username: string;
-  email?: string;
-  id?: string;
-}
 interface SignupProps {
   onSignup: (user: Viewer) => void;
 }

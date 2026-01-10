@@ -20,5 +20,7 @@ export function useNav() {
     collection: (id: string | number) => n(`/collections/${id}`),
     editCollection: (id: string | number) => n(`/edit-collection/${id}`),
     createCollection: () => n("/collections/new"),
+    privacy: () => n("/privacy"),
+    terms: () => n("/terms"),
   };
 }

@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { PixelModal } from '@/components/modals/PixelModal';
 import { PixelInput } from '@/components/PixelInput';
 import { PixelButton } from '@/components/PixelButton';
+import { requestPasswordResetApi } from '@/api/auth.api';
 import forgot_hamster from "@/assets/forgot_hamster.svg";
 
 interface Props {
@@ -10,7 +12,30 @@ interface Props {
 }
 
 export function ForgotPasswordModal({ open, onClose, onNext }: Props) {
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   if (!open) return null;
+
+  const handleSubmit = async () => {
+    if (!email.trim()) {
+      setError('Email is required');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      await requestPasswordResetApi(email.trim());
+      onNext();
+    } catch (err: any) {
+      const message = err?.response?.data?.message || 'Failed to send reset email';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <PixelModal
@@ -30,15 +55,19 @@ export function ForgotPasswordModal({ open, onClose, onNext }: Props) {
       <PixelInput
         label="Email *"
         placeholder="baker@cookie.exe"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        error={error || undefined}
       />
 
       <PixelButton
         variant="secondary"
         size="lg"
         className="w-full mt-6"
-        onClick={onNext}
+        disabled={loading}
+        onClick={handleSubmit}
       >
-        Send Reset Link
+        {loading ? 'Sending...' : 'Send Reset Link'}
       </PixelButton>
     </PixelModal>
   );

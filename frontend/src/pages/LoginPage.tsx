@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -41,7 +41,18 @@ export function Login({ onLogin }: LoginProps) {
   const [openForgot, setOpenForgot] = useState(false);
   const [openReset, setOpenReset] = useState(false);
   const [openSuccess, setOpenSuccess] = useState(false);
+  const [resetToken, setResetToken] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tokenParam = params.get('token');
+    if (tokenParam) {
+      setResetToken(tokenParam);
+      setOpenReset(true);
+      setOpenForgot(false);
+    }
+  }, []);
 
   const {
     register,
@@ -234,6 +245,7 @@ export function Login({ onLogin }: LoginProps) {
       {/* RESET */}
       {openReset && (
         <ResetPasswordModal
+          initialToken={resetToken}
           onBack={() => {
             setOpenReset(false);
             setOpenForgot(true);
@@ -241,6 +253,7 @@ export function Login({ onLogin }: LoginProps) {
           onClose={() => setOpenReset(false)}
           onSuccess={() => {
             setOpenReset(false);
+            setResetToken('');
             setOpenSuccess(true);
           }}
         />

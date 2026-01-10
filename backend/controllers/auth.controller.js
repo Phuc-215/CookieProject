@@ -1,5 +1,5 @@
 const authService = require('../services/auth.service');
-const { registerSchema, loginSchema, refreshTokenSchema } = require('../validations/auth.validation');
+const { registerSchema, loginSchema, refreshTokenSchema, resetPasswordRequestSchema, verifyResetCodeSchema, resetPasswordConfirmSchema } = require('../validations/auth.validation');
 
 exports.register = async (req, res) => {
   try {
@@ -39,7 +39,7 @@ exports.register = async (req, res) => {
   } catch (err) {
     console.error(err);
 
-    // fallback nếu DB unique constraint bắn lỗi
+    // fallback n?u DB unique constraint b?n l?i
     if (err.code === '23505') {
       return res.status(409).json({
         message: 'Username or email already exists'
@@ -132,6 +132,75 @@ exports.refresh = async (req, res) => {
     });
   } catch (err) {
     console.error('REFRESH TOKEN ERROR:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.requestPasswordReset = async (req, res) => {
+  try {
+    // Validate request body
+    const { error, value } = resetPasswordRequestSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        message: 'Validation failed',
+        details: error.details.map(d => d.message)
+      });
+    }
+
+    await authService.requestPasswordReset(value.email);
+
+    // Always return success to avoid revealing if email exists
+    res.json({ message: 'If this email is registered, you will receive a password reset code' });
+  } catch (err) {
+    console.error('REQUEST PASSWORD RESET ERROR:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.verifyResetCode = async (req, res) => {
+  try {
+    // Validate request body
+    const { error, value } = verifyResetCodeSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        message: 'Validation failed',
+        details: error.details.map(d => d.message)
+      });
+    }
+
+    const result = await authService.verifyResetCode(value.code);
+
+    if (result.error) {
+      return res.status(400).json({ message: result.error });
+    }
+
+    res.json({ message: 'Reset code verified', code: result.code });
+  } catch (err) {
+    console.error('VERIFY RESET CODE ERROR:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    // Validate request body
+    const { error, value } = resetPasswordConfirmSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        message: 'Validation failed',
+        details: error.details.map(d => d.message)
+      });
+    }
+
+    const result = await authService.resetPassword(value.code, value.newPassword);
+
+    if (result.error) {
+      return res.status(400).json({ message: result.error });
+    }
+
+    res.json({ message: 'Password reset successfully' });
+  } catch (err) {
+    console.error('RESET PASSWORD ERROR:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };

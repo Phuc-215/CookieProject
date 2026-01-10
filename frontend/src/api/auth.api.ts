@@ -21,3 +21,15 @@ export const refreshApi = (refreshToken: string) =>
 
 export const logoutApi = (refreshToken: string) =>
   api.post('/auth/logout', { refreshToken });
+
+export const requestPasswordResetApi = (email: string) =>
+  api.post('/auth/request-password-reset', { email });
+
+export const verifyResetCodeApi = (code: string) =>
+  api.post('/auth/verify-reset-code', { code });
+
+export const resetPasswordApi = (data: {
+  code: string;
+  newPassword: string;
+}) =>
+  api.post('/auth/reset-password', data);

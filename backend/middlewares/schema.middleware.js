@@ -1,7 +1,7 @@
 module.exports = function(schema) {
   return function(req, res, next) {
     try {
-      const validator = schema.default || schema;
+      const validator = schema;
       validator.parse(req.body);
       next();
     } catch (error) {

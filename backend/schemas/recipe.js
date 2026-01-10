@@ -11,13 +11,12 @@ const StepSchema = z.object({
   description: z.string()
     .min(10, "Step description must be at least 10 characters") // Force detailed steps
     .trim(),
-  imageUrl: z.string()
-    .url("Step image must be a valid URL")
+  imageUrls: z.array(z.string().url("Step image must be a valid URL"))
     .optional()
-    .nullable(),
+    .default([]) 
 });
 
-const RecipeSchema = z.object({
+const CreateRecipeSchema = z.object({
   userId: z.number({
     required_error: "User ID is required",
     invalid_type_error: "User ID must be a number"
@@ -34,7 +33,7 @@ const RecipeSchema = z.object({
 
   difficulty: z.enum(['easy', 'medium', 'hard'])
     .optional()
-    .default('easy'), 
+    .default('easy'),
 
   servings: z.number()
     .int()
@@ -53,7 +52,7 @@ const RecipeSchema = z.object({
     .optional()
     .nullable(),
 
-  status: z.enum(['published', 'draft'])
+  status: z.enum(['published', 'draft', 'deleted'])
     .optional()
     .default('published'),
 
@@ -65,7 +64,50 @@ const RecipeSchema = z.object({
     .min(1, "Recipe must have at least one ingredient"),
 
   steps: z.array(StepSchema)
-    .min(1, "Recipe must have at least one cooking step")
+    .min(0, "Recipe must have at least one cooking step")
 });
 
-export default RecipeSchema;
+const UpdateRecipeSchema = z.object({
+  // userId: z.number({
+  //   required_error: "User ID is required",
+  //   invalid_type_error: "User ID must be a number"
+  // }),
+  
+  title: z.string()
+    .min(3, "Title must be at least 3 characters")
+    .max(300, "Title is too long")
+    .trim(),
+    
+  category: z.string().trim(),
+
+  difficulty: z.enum(['easy', 'medium', 'hard'])
+    .optional()
+    .default('easy'),
+
+  servings: z.number()
+    .int()
+    .positive("Servings must be at least 1")
+    .optional()
+    .nullable(),
+
+  cookTime: z.number()
+    .int()
+    .nonnegative("Cook time cannot be negative")
+    .optional()
+    .nullable(),
+
+  thumbnailUrl: z.string()
+    .url("Thumbnail must be a valid URL")
+    .optional()
+    .nullable(),
+
+  status: z.enum(['published', 'draft', 'deleted'])
+    .optional()
+    .default('published'),
+
+  isTrending: z.boolean()
+    .optional()
+    .default(false),
+});
+
+export { CreateRecipeSchema, UpdateRecipeSchema };

@@ -1,8 +1,36 @@
 const service = require('../services/recipe.service');
-const { uploadToSupabase } = require('../utils/upload');
+const { uploadToSupabase } = require('../utils/storage');
 
-exports.createRecipe = async (req, res) => {
+exports.getDetail = async (req, res) => {
+  try {
+    const currentUserId = req.user ? req.user.id : null;
+    
+    const recipe = await service.getById(req.params.id, currentUserId);
+
+    if (!recipe) {
+      return res.status(404).json({ success: false, message: "Recipe not found" });
+    }
+
+    res.json({ success: true, data: recipe });
+  } catch (error) {
+    if (error.message.includes("Unauthorized")) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.saveRecipe = async (req, res) => {
     try {
+        const userId = parseInt(req.params.id);
+        if (Number.isNaN(userId)) {
+            return res.status(400).json({ message: 'INVALID_USER_ID' });
+        }
+
+        if (!req.user || req.user.id !== userId) {
+            return res.status(403).json({ message: 'FORBIDDEN' });
+        }
+
         let { ingredients, steps, ...others } = req.body;
 
         images = req.files || [];
@@ -34,16 +62,16 @@ exports.createRecipe = async (req, res) => {
             }
         }
 
-        const result = await service.create({
+        const result = await service.saveRecipe({
             ...others,
             ingredients,
             steps,
             thumbnailUrl,
-            userId: parseInt(req.body.userId)
+            userId: parseInt(userId)
         });
 
-        res.status(201).json({
-            message: 'Create recipe success',
+        const statusCode = req.body.id ? 200 : 201;
+        res.status(statusCode).json({
             recipe: result
         });
 
@@ -67,6 +95,41 @@ exports.createRecipe = async (req, res) => {
     }
 };
 
-exports.uploadStepImg = async (req, res) => {
+exports.updateRecipe = async (req, res) => {
+    try {
 
+        const result = await service.saveRecipe({
+            recipeId: req.params.id,
+            userId: req.user.id,
+            ...req.body,
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Recipe updated successfully",
+        });
+
+    } catch (error) {
+        // Handle Zod Validation Errors
+        if (error.name === 'ZodError') {
+        return res.status(400).json({ success: false, errors: error.errors });
+        }
+        
+        // Handle "Recipe not found" or "Unauthorized" from Service
+        if (error.message.includes("Unauthorized") || error.message.includes("permission")) {
+        return res.status(403).json({ success: false, message: error.message });
+        }
+
+        console.error("Update Error:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+}
+
+exports.deleteRecipe = async (req, res) => {
+    try {
+        await service.deleteRecipe(parseInt(req.params.id), parseInt(req.user.id));
+        res.json({ success: true, message: "Recipe deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
 }

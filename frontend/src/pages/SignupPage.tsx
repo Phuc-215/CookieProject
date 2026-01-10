@@ -31,8 +31,11 @@ const signupSchema = z.object({
 
 type SignupFormData = z.infer<typeof signupSchema>;
 
+interface Viewer {
+  username: string;
+}
 interface SignupProps {
-  onSignup?: () => void;
+  onSignup: (user: Viewer) => void;
 }
 
 export function Signup({ onSignup }: SignupProps) {

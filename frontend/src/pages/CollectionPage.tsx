@@ -1,5 +1,4 @@
 import { useParams } from "react-router-dom";
-import { NavBar } from "@/components/NavBar";
 import { RecipeCard } from "@/components/RecipeCard";
 import { Headline } from "@/pages/HomeFeed/Headline";
 import { useNav } from "@/hooks/useNav";
@@ -40,8 +39,6 @@ export function CollectionPage({
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
-    <NavBar isLoggedIn={isLoggedIn} />
-
     <section className="max-w-7xl mx-auto px-4 py-10">
     <div className="pixel-card bg-white p-6 flex gap-6 items-start">
         <img

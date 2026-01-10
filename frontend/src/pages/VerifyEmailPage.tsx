@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import { verifyEmailApi } from '../api/auth.api';
-import { NavBar } from '../components/NavBar';
 import { PixelButton } from '../components/PixelButton';
 import verify_hamster from '../assets/signup_hamster.svg';
 
@@ -53,11 +52,6 @@ export function VerifyEmail() {
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
-      <NavBar
-        isLoggedIn={false}
-        notificationCount={0}
-        onLogout={() => {}}
-      />
 
       <div className="max-w-md mx-auto px-4 py-12">
         <div className="pixel-card bg-white p-8">

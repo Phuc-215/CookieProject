@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { NavBar } from '@/components/NavBar';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ProfileTabs } from '@/components/profile/ProfileTabs';
 import { ProfileRecipes } from '@/components/profile/ProfileRecipes';
@@ -26,7 +25,6 @@ interface ProfilePageProps {
   drafts?: Recipe[];
   collections?: Collection[];
   isLoggedIn: boolean;
-  onLogout?: () => void;
 }
 
 export function ProfilePage({
@@ -36,7 +34,6 @@ export function ProfilePage({
   drafts: initialDrafts = [],
   collections = [],
   isLoggedIn,
-  onLogout,
 }: ProfilePageProps) {
   const nav = useNav();
   const isOwner = !!isLoggedIn && viewer?.username === profileUser.username;
@@ -55,8 +52,6 @@ export function ProfilePage({
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
-      <NavBar isLoggedIn={isLoggedIn} onLogout={onLogout} />
-
       <div className="max-w-5xl mx-auto px-4 py-8">
         <ProfileHeader
           user={{ ...profileUser, recipes: recipes.length, avatarUrl: profileUser.avatarUrl ?? viewer?.avatar_url ?? null}}

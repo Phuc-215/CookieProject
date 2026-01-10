@@ -8,13 +8,13 @@ import * as z from 'zod';
 
 import { PixelInput } from '@/components/PixelInput';
 import { PixelButton } from '@/components/PixelButton';
-import { NavBar } from '@/components/NavBar';
 import { ForgotPasswordModal } from '@/components/modals/ForgotPasswordModal';
 import { ResetPasswordModal } from '@/components/modals/ResetPasswordModal';
 import { ResetSuccessModal } from '@/components/modals/ResetSuccessModal';
 import { useNav } from '@/hooks/useNav';
 import login_hamster from "@/assets/login_hamster.svg";
 import { setTokens } from '@/utils/token';
+import type { Viewer } from "@/types/Viewer";
 
 const loginSchema = z.object({
   email: z.string()
@@ -26,11 +26,7 @@ const loginSchema = z.object({
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
-interface Viewer {
-  username: string;
-  email?: string;
-  id?: string;
-}
+
 interface LoginProps {
   onLogin: (user: Viewer) => void;
 }
@@ -90,12 +86,6 @@ export function Login({ onLogin }: LoginProps) {
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
-      {/* NavBar */}
-      <NavBar 
-        isLoggedIn={false}
-        notificationCount={0}
-        onLogout={() => {}}
-      />
 
       {/* Login Form */}
       <div className="max-w-md mx-auto px-4 py-12">

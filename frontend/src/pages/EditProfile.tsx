@@ -5,7 +5,6 @@ import { PixelInput } from '@/components/PixelInput';
 import { PixelTextarea } from '@/components/PixelTextarea';
 import { SecurityCheckModal } from '@/components/modals/SecurityCheckModal';
 import { DeleteAccountModal } from '@/components/modals/DeleteAccountModal';
-import { NavBar } from '../components/NavBar';
 import { useNav } from '@/hooks/useNav';
 import { getUserProfileApi, updateUserProfileApi, uploadAvatarApi, deleteAccountApi } from '@/api/user.api';
 import { verifyPasswordApi, changePasswordApi } from '@/api/auth.api';
@@ -365,8 +364,6 @@ export function EditProfile({ viewer }: EditProfileProps) {
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
-      <NavBar isLoggedIn />
-
       <div className="max-w-3xl mx-auto px-4 py-8">
         {/* ================= PROFILE ================= */}
         <div className="pixel-card bg-white p-8">

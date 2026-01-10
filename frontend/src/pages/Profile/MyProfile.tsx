@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { ProfilePage } from './ProfilePage';
 import { MOCK_COLLECTIONS } from "@/mocks/mock_collection";
 import { MOCK_RECIPES } from "@/mocks/mock_recipe";
-import { getUserProfileApi } from '@/api/user.api';
+import { getUserProfileApi, getUserRecipesApi } from '@/api/user.api';
 import type { UserProfile } from '@/types/User';
+import type { Recipe } from '@/types/Recipe';
 
 const DRAFT_RECIPES = [
   {
@@ -32,6 +33,7 @@ interface MyProfileProps {
 
 export function MyProfile({ isLoggedIn, viewer, onLogout }: MyProfileProps) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,6 +67,28 @@ export function MyProfile({ isLoggedIn, viewer, onLogout }: MyProfileProps) {
         const res = await getUserProfileApi(userId);
         if (!active) return;
         setProfile(res.data);
+        
+        // Fetch user's recipes
+        try {
+          const recipesRes = await getUserRecipesApi(userId);
+          if (!active) return;
+          // Transform API response to match Recipe type
+          const transformedRecipes: Recipe[] = (recipesRes.data.recipes || []).map((r: any) => ({
+            id: r.id,
+            title: r.title,
+            image: r.image,
+            author: profile?.username || viewer?.username || 'Me',
+            difficulty: 'Medium' as const,
+            time: '30 min',
+            likes: 0,
+            isLiked: false,
+            isSaved: false,
+          }));
+          setRecipes(transformedRecipes);
+        } catch (recipesErr) {
+          console.warn('Failed to load recipes:', recipesErr);
+          setRecipes([]);
+        }
       } catch (err: any) {
         if (!active) return;
         const msg = err?.response?.data?.message || 'Failed to load profile';
@@ -99,7 +123,7 @@ export function MyProfile({ isLoggedIn, viewer, onLogout }: MyProfileProps) {
     <ProfilePage
       viewer={{ username: profileUser.username, avatar_url: profileUser.avatarUrl || null }}
       profileUser={profileUser}
-      recipes={MOCK_RECIPES}
+      recipes={recipes}
       drafts={DRAFT_RECIPES}
       collections={MOCK_COLLECTIONS}
       isLoggedIn={isLoggedIn}

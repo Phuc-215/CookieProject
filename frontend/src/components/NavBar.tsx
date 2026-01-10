@@ -3,6 +3,7 @@ import { ArrowLeft, Search, Bell, User, Plus, LogOut, UserCircle } from 'lucide-
 import { PixelButton } from './PixelButton';
 import { useNav } from "../hooks/useNav";
 import logo from "../assets/logo.svg";
+
 interface NavBarProps {
   isLoggedIn?: boolean;
   onLogout?: () => void;
@@ -10,6 +11,7 @@ interface NavBarProps {
   notificationCount?: number;
   showBackButton?: boolean; 
   onBack?: () => void;
+  searchQuery?: string;
 }
 
 export function NavBar({ 

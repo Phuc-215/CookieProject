@@ -61,7 +61,8 @@ export function Login({ onLogin }: LoginProps) {
       setSubmitError(null);
 
       const res = await loginApi(data);
-
+      console.log('Login successful:', res.data);
+      localStorage.setItem('userId', res.data.user.id);
       setTokens(res.data.accessToken, res.data.refreshToken);
       onLogin?.();
       nav.home();

@@ -1,14 +1,27 @@
 const { pool } = require('../config/db');
 
+
+exports.getUnreadCount = async (userId) => {
+    const res = await pool.query(
+        `SELECT COUNT(*) AS unread_count
+         FROM notifications
+         WHERE user_id = $1 AND is_read = FALSE`,
+        [userId]
+    );
+    return parseInt(res.rows[0].unread_count, 10);
+};
+
+
 /**
  * GET Notifications with Pagination and Data Enrichment
  */
-exports.getNotifications = async (userId, page = 1, limit = 20, type = null) => {
+exports.getNotifications = async (userId, page = 1, limit = 20, type = null, unreadOnly = false) => {
     const offset = (page - 1) * limit;
     const values = [userId, limit, offset];
     
     let query = `
         SELECT 
+            COUNT(*) OVER() AS total_count,
             n.id, 
             n.type, 
             n.is_read, 
@@ -29,39 +42,45 @@ exports.getNotifications = async (userId, page = 1, limit = 20, type = null) => 
         WHERE n.user_id = $1
     `;
 
-    // Optional: Filter by specific type if requested
     if (type) {
         values.push(type);
-        query += ` AND n.type = $4`;
+        query += ` AND n.type = $${values.length} `;
     }
 
-    query += ` ORDER BY n.created_at DESC LIMIT $2 OFFSET $3`;
+    if (unreadOnly) {
+        query += ` AND n.is_read = FALSE `;
+    }
+
+    query += `
+        ORDER BY n.created_at DESC
+        LIMIT $2 OFFSET $3
+    `;
 
     const result = await pool.query(query, values);
-    
-    // Count total unread for UI badges
-    const unreadCountRes = await pool.query(
-        'SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false', 
-        [userId]
-    );
-
+    const totalCount = result.rows.length > 0 ? parseInt(result.rows[0].total_count, 10) : 0;
+    const totalPages = Math.ceil(totalCount / limit);
+    const unreadCount = await exports.getUnreadCount(userId);
     return {
         notifications: result.rows,
-        unreadCount: parseInt(unreadCountRes.rows[0].count, 10),
+        totalPages: totalPages,
+        totalUnreadPages: Math.ceil(unreadCount / limit),
         page,
-        limit
+        limit,
+        totalCount: totalCount,
+        unreadCount: unreadCount
     };
 };
+
 
 /**
  * Mark specific notification as read
  */
-exports.markAsRead = async (userId, notificationId) => {
+exports.markAsRead = async (notificationId) => {
     await pool.query(
         `UPDATE notifications
          SET is_read = TRUE
-         WHERE id = $1 AND user_id = $2`,
-        [notificationId, userId]
+         WHERE id = $1`,
+        [notificationId]
     );
 };
 
@@ -69,12 +88,21 @@ exports.markAsRead = async (userId, notificationId) => {
  * Mark ALL as read
  */
 exports.markAllAsRead = async (userId) => {
-    await pool.query(
-        `UPDATE notifications
-         SET is_read = TRUE
-         WHERE user_id = $1`,
-        [userId]
-    );
+    try {
+        if (!userId || Number.isNaN(parseInt(userId, 10))) {
+            throw new Error('Invalid userId provided to markAllAsRead');
+        }
+        const res = await pool.query(
+            `UPDATE notifications
+             SET is_read = TRUE
+             WHERE user_id = $1`,
+            [userId]
+        );
+        return { updated: res.rowCount };
+    } catch (err) {
+        console.error('markAllAsRead service error:', err);
+        throw err;
+    }
 };
 
 // ==========================================

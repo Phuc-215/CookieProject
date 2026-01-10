@@ -78,10 +78,8 @@ exports.sendVerificationEmail = async (email, code) => {
   }
 };
 
-exports.sendPasswordResetEmail = async (email, resetToken) => {
+exports.sendPasswordResetEmail = async (email, resetCode) => {
   try {
-    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
-
     const mailOptions = {
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: email,
@@ -97,8 +95,8 @@ exports.sendPasswordResetEmail = async (email, resetToken) => {
               .header h1 { color: #8B4513; margin: 0; font-size: 28px; }
               .content { text-align: center; }
               .content p { color: #333; font-size: 16px; line-height: 1.6; }
-              .button { display: inline-block; background: #8B4513; color: white; padding: 12px 30px; border-radius: 5px; text-decoration: none; margin: 20px 0; font-weight: bold; }
-              .button:hover { background: #6b3410; }
+              .code-box { background: #f0f0f0; border: 2px solid #8B4513; border-radius: 8px; padding: 20px; margin: 20px 0; }
+              .code { font-size: 40px; font-weight: bold; color: #8B4513; letter-spacing: 10px; font-family: monospace; }
               .footer { text-align: center; margin-top: 30px; color: #999; font-size: 12px; }
               .warning { color: #d9534f; font-size: 12px; margin-top: 10px; }
             </style>
@@ -106,13 +104,16 @@ exports.sendPasswordResetEmail = async (email, resetToken) => {
           <body>
             <div class="container">
               <div class="header">
-                <h1>🍪 Cookie  </h1>
+                <h1>🍪 Cookie</h1>
               </div>
               <div class="content">
-                <p>Hi there! </p>
-                <p>We received a request to reset your password. Click the button below to set a new password.</p>
-                <a href="${resetLink}" class="button">Reset Password</a>
-                <p style="color: #999; font-size: 12px;">This link will expire in 15 minutes.</p>
+                <p>Hi there!</p>
+                <p>We received a request to reset your password. Use the code below to reset it.</p>
+                <div class="code-box">
+                  <p style="margin: 0 0 10px 0; color: #666;">Your password reset code:</p>
+                  <div class="code">${resetCode}</div>
+                </div>
+                <p>This code will expire in <strong>15 minutes</strong>.</p>
                 <div class="warning">
                   If you did not request a password reset, please ignore this email.
                 </div>

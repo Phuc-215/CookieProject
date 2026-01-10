@@ -2,8 +2,9 @@ const { signAccessToken, signRefreshToken, signVerificationToken, verifyToken, s
 const { comparePassword } = require('../utils/password');
 const { pool } = require('../config/db');
 const { hashPassword } = require('../utils/password');
-const { sendVerificationEmail } = require('./email.service');
+const { sendVerificationEmail, sendPasswordResetEmail } = require('./email.service');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 exports.login = async ({ email, password }) => {
   email = email.trim().toLowerCase();
@@ -47,7 +48,7 @@ exports.register = async ({ username, email, password }) => {
   email = email.trim().toLowerCase();
 
   const usernameCheck = await pool.query(
-    'SELECT id FROM users WHERE username = $1',
+    `SELECT id FROM users WHERE username = $1`,
     [username]
   );
 
@@ -56,7 +57,7 @@ exports.register = async ({ username, email, password }) => {
   }
 
   const emailCheck = await pool.query(
-    'SELECT id FROM users WHERE email = $1',
+    `SELECT id FROM users WHERE email = $1`,
     [email]
   );
 
@@ -124,7 +125,7 @@ exports.logout = async (refreshToken) => {
   }
 
   await pool.query(
-    'DELETE FROM refresh_tokens WHERE token = $1',
+    `DELETE FROM refresh_tokens WHERE token = $1`,
     [refreshToken]
   );
 };
@@ -150,13 +151,13 @@ exports.verifyEmail = async (code) => {
 
   // Update user as verified
   await pool.query(
-    'UPDATE users SET is_verified = true WHERE id = $1',
+    `UPDATE users SET is_verified = true WHERE id = $1`,
     [userId]
   );
 
   // Delete verification code
   await pool.query(
-    'DELETE FROM verification_tokens WHERE token = $1',
+    `DELETE FROM verification_tokens WHERE token = $1`,
     [code.toString()]
   );
 
@@ -191,7 +192,7 @@ exports.refreshToken = async (refreshToken) => {
 
   // Get user info
   const userResult = await pool.query(
-    'SELECT id, email, username FROM users WHERE id = $1',
+    `SELECT id, email, username FROM users WHERE id = $1`,
     [userId]
   );
 
@@ -228,4 +229,100 @@ exports.refreshToken = async (refreshToken) => {
     accessToken: newAccessToken,
     refreshToken: newRefreshToken
   };
+};
+
+exports.requestPasswordReset = async (email) => {
+  email = email.trim().toLowerCase();
+
+  // Check if user exists
+  const userResult = await pool.query(
+    `SELECT id, email, username FROM users WHERE email = $1`,
+    [email]
+  );
+
+  if (userResult.rowCount === 0) {
+    // For security, don't reveal if email exists
+    return { success: true };
+  }
+
+  const user = userResult.rows[0];
+
+  // Generate 6-digit reset code
+  const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // Delete any existing reset codes for this user
+  await pool.query(
+    `DELETE FROM password_reset_tokens WHERE user_id = $1`,
+    [user.id]
+  );
+
+  // Save reset code to DB (valid for 15 minutes)
+  await pool.query(
+    `INSERT INTO password_reset_tokens (user_id, token, expires_at)
+     VALUES ($1, $2, NOW() + INTERVAL '15 minutes')`,
+    [user.id, resetCode]
+  );
+
+  // Send reset email with code
+  await sendPasswordResetEmail(user.email, resetCode);
+
+  return { success: true };
+};
+
+exports.verifyResetCode = async (code) => {
+  // Validate code format (6 digits)
+  if (!code || !/^\d{6}$/.test(code.toString())) {
+    return { error: 'Invalid reset code format' };
+  }
+
+  // Check if code exists in DB and not expired
+  const codeCheck = await pool.query(
+    `SELECT user_id FROM password_reset_tokens 
+     WHERE token = $1 AND expires_at > NOW()`,
+    [code.toString()]
+  );
+
+  if (codeCheck.rowCount === 0) {
+    return { error: 'Reset code expired or invalid' };
+  }
+
+  return { success: true, code: code.toString() };
+};
+
+exports.resetPassword = async (code, newPassword) => {
+  // Validate code exists and not expired
+  const codeResult = await pool.query(
+    `SELECT user_id FROM password_reset_tokens 
+     WHERE token = $1 AND expires_at > NOW()`,
+    [code]
+  );
+
+  if (codeResult.rowCount === 0) {
+    return { error: 'Invalid or expired reset code' };
+  }
+
+  const userId = codeResult.rows[0].user_id;
+
+  // Hash new password
+  const passwordHash = await hashPassword(newPassword);
+
+  // Update user password
+  await pool.query(
+    `UPDATE users SET password_hash = $1 WHERE id = $2`,
+    [passwordHash, userId]
+  );
+
+  // Delete reset code
+  await pool.query(
+    `DELETE FROM password_reset_tokens WHERE token = $1`,
+    [code]
+  );
+
+  // Revoke all refresh tokens for security
+  await pool.query(
+    `DELETE FROM refresh_tokens WHERE user_id = $1`,
+    [userId]
+  );
+
+  return { success: true };
 };

@@ -1,18 +1,8 @@
 const authService = require('../services/auth.service');
-const { registerSchema, loginSchema, refreshTokenSchema, resetPasswordRequestSchema, verifyResetCodeSchema, resetPasswordConfirmSchema } = require('../validations/auth.validation');
 
 exports.register = async (req, res) => {
   try {
-    // Validate request body
-    const { error, value } = registerSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({
-        message: 'Validation failed',
-        details: error.details.map(d => d.message)
-      });
-    }
-
-    const result = await authService.register(value);
+    const result = await authService.register(req.body);
     console.log('REGISTER RESULT FROM SERVICE:', result);
 
     if (result.error === 'USERNAME_EXISTS') {
@@ -109,16 +99,7 @@ exports.verifyEmail = async (req, res) => {
 
 exports.refresh = async (req, res) => {
   try {
-    // Validate request body
-    const { error, value } = refreshTokenSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({
-        message: 'Validation failed',
-        details: error.details.map(d => d.message)
-      });
-    }
-
-    const result = await authService.refreshToken(value.refreshToken);
+    const result = await authService.refreshToken(req.body.refreshToken);
 
     if (result.error) {
       return res.status(401).json({ message: result.error });
@@ -138,16 +119,7 @@ exports.refresh = async (req, res) => {
 
 exports.requestPasswordReset = async (req, res) => {
   try {
-    // Validate request body
-    const { error, value } = resetPasswordRequestSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({
-        message: 'Validation failed',
-        details: error.details.map(d => d.message)
-      });
-    }
-
-    await authService.requestPasswordReset(value.email);
+    await authService.requestPasswordReset(req.body.email);
 
     // Always return success to avoid revealing if email exists
     res.json({ message: 'If this email is registered, you will receive a password reset code' });
@@ -159,16 +131,7 @@ exports.requestPasswordReset = async (req, res) => {
 
 exports.verifyResetCode = async (req, res) => {
   try {
-    // Validate request body
-    const { error, value } = verifyResetCodeSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({
-        message: 'Validation failed',
-        details: error.details.map(d => d.message)
-      });
-    }
-
-    const result = await authService.verifyResetCode(value.code);
+    const result = await authService.verifyResetCode(req.body.code);
 
     if (result.error) {
       return res.status(400).json({ message: result.error });
@@ -183,16 +146,7 @@ exports.verifyResetCode = async (req, res) => {
 
 exports.resetPassword = async (req, res) => {
   try {
-    // Validate request body
-    const { error, value } = resetPasswordConfirmSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({
-        message: 'Validation failed',
-        details: error.details.map(d => d.message)
-      });
-    }
-
-    const result = await authService.resetPassword(value.code, value.newPassword);
+    const result = await authService.resetPassword(req.body.code, req.body.newPassword);
 
     if (result.error) {
       return res.status(400).json({ message: result.error });

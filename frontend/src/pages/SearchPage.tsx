@@ -267,7 +267,6 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
 
   return (
     <div className="min-h-screen bg-[var(--background-image)] pb-10">
-      <NavBar isLoggedIn={isLoggedIn} onLogout={onLogout} notificationCount={1} showBackButton={true} />
       
       <div className="flex flex-col md:flex-row gap-5">
         

@@ -39,6 +39,7 @@ export function EditProfile({ viewer }: EditProfileProps) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   /* ===== Account ===== */
   const [newPassword, setNewPassword] = useState('');
@@ -185,8 +186,10 @@ export function EditProfile({ viewer }: EditProfileProps) {
         localStorage.setItem('user', JSON.stringify(updatedUser));
       }
 
-      alert('Profile updated successfully!');
-      nav.back();
+      setSuccessMessage('Profile updated successfully!');
+      setTimeout(() => {
+        nav.back();
+      }, 1500);
     } catch (err: any) {
       // Surface API or Supabase errors to help debug
       const apiMsg = (err?.response?.data && (err.response.data.message || JSON.stringify(err.response.data)))
@@ -236,6 +239,16 @@ export function EditProfile({ viewer }: EditProfileProps) {
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
       <NavBar isLoggedIn />
+
+      {/* Success Notification  Thảo sửa cái này cho đẹp giúp Mi nheee */}
+      {successMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2">
+          <div className="bg-green-100 border-2 border-green-500 rounded pixel-border px-6 py-3 flex items-center gap-3">
+            <div className="w-5 h-5 bg-green-500 flex items-center justify-center text-white text-sm font-bold">✓</div>
+            <span className="text-green-700 font-bold text-sm">{successMessage}</span>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-3xl mx-auto px-4 py-8">
         {/* ================= PROFILE ================= */}

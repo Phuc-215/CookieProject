@@ -1,5 +1,4 @@
 const { pool } = require('../config/db');
-const { updateProfileSchema } = require('../validations/user.validation');
 const path = require('path');
 const { supabase } = require('../config/supabaseClient');
 
@@ -49,18 +48,7 @@ exports.updateProfile = async (req, res) => {
       return res.status(403).json({ message: 'FORBIDDEN' });
     }
 
-    const { error, value } = updateProfileSchema.validate(req.body, {
-      abortEarly: false,
-      stripUnknown: true,
-    });
-
-    if (error) {
-      return res.status(400).json({
-        message: 'VALIDATION_ERROR',
-        details: error.details.map((d) => d.message),
-      });
-    }
-
+    const value = req.body;
     const updates = [];
     const params = [];
     let idx = 1;

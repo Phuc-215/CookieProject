@@ -363,10 +363,6 @@ export function EditProfile({ viewer }: EditProfileProps) {
     return <div className="p-8 text-pink-600">{formError}</div>;
   }
 
-  if (loading) {
-    return <div className="p-8">Loading profile...</div>;
-  }
-
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
       <NavBar isLoggedIn />

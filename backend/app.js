@@ -9,6 +9,7 @@ require('dotenv').config();
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var authRouter = require('./routes/auth.route');
+var recipesRouter = require('./routes/recipes.route')
 
 
 var { connectDB } = require('./config/db'); 
@@ -38,6 +39,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/auth', authRouter);
+app.use('/recipes', recipesRouter);
 
 connectDB(); 
 

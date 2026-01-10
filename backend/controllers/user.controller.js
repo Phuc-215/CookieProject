@@ -197,3 +197,39 @@ exports.getUserRecipes = async (req, res) => {
     return res.status(500).json({ message: 'INTERNAL_SERVER_ERROR' });
   }
 };
+
+exports.deleteAccount = async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    if (Number.isNaN(userId)) {
+      return res.status(400).json({ message: 'INVALID_USER_ID' });
+    }
+
+    if (!req.user || req.user.id !== userId) {
+      return res.status(403).json({ message: 'FORBIDDEN' });
+    }
+
+    // Delete user and cascade delete related data (refresh tokens, etc.)
+    const result = await pool.query(
+      `DELETE FROM users WHERE id = $1 RETURNING id, username, email`,
+      [userId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'USER_NOT_FOUND' });
+    }
+
+    console.log('[deleteAccount] Account deleted:', result.rows[0]);
+
+    // Clear tokens
+    await pool.query(
+      `DELETE FROM refresh_tokens WHERE user_id = $1`,
+      [userId]
+    );
+
+    res.json({ message: 'Account deleted successfully' });
+  } catch (err) {
+    console.error('deleteAccount error:', err);
+    res.status(500).json({ message: 'INTERNAL_SERVER_ERROR' });
+  }
+};

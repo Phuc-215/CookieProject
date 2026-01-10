@@ -33,3 +33,12 @@ export const resetPasswordApi = (data: {
   newPassword: string;
 }) =>
   api.post('/auth/reset-password', data);
+
+export const verifyPasswordApi = (password: string) =>
+  api.post<{ message: string; valid: boolean }>('/auth/verify-password', { password });
+
+export const changePasswordApi = (data: {
+  currentPassword: string;
+  newPassword: string;
+}) =>
+  api.put<{ message: string }>('/auth/change-password', data);

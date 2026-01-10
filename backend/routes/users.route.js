@@ -16,4 +16,10 @@ router.post('/:id/avatar', requireAuth, upload.single('avatar'), uploadAvatar);
 // Get user's recipe list sorted by date
 router.get('/:id/recipes', getUserRecipes);
 
+// Delete account (self only)
+router.delete('/:id', requireAuth, async (req, res) => {
+  const { deleteAccount } = require('../controllers/user.controller');
+  return deleteAccount(req, res);
+});
+
 module.exports = router;

@@ -22,3 +22,7 @@ export const uploadAvatarApi = (
 
 export const getUserRecipesApi = (id: string | number) =>
   api.get<{ recipes: Array<{ id: string; title: string; image: string; created_at: string }> }>(`/users/${id}/recipes`);
+
+export const deleteAccountApi = (id: string | number) =>
+  api.delete<{ message: string }>(`/users/${id}`);
+

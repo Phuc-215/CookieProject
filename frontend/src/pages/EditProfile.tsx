@@ -4,9 +4,11 @@ import { PixelButton } from '@/components/PixelButton';
 import { PixelInput } from '@/components/PixelInput';
 import { PixelTextarea } from '@/components/PixelTextarea';
 import { SecurityCheckModal } from '@/components/modals/SecurityCheckModal';
+import { DeleteAccountModal } from '@/components/modals/DeleteAccountModal';
 import { NavBar } from '../components/NavBar';
 import { useNav } from '@/hooks/useNav';
-import { getUserProfileApi, updateUserProfileApi, uploadAvatarApi } from '@/api/user.api';
+import { getUserProfileApi, updateUserProfileApi, uploadAvatarApi, deleteAccountApi } from '@/api/user.api';
+import { verifyPasswordApi, changePasswordApi } from '@/api/auth.api';
 import type { UserProfile } from '@/types/User';
 import { useRef } from 'react';
 
@@ -38,6 +40,9 @@ export function EditProfile({ viewer }: EditProfileProps) {
       'INTERNAL_SERVER_ERROR': 'Server error. Please try again later.',
       'TOKEN_INVALID': 'Your session has expired. Please log in again.',
       'UNAUTHORIZED': 'You need to be logged in to do this.',
+      'INVALID_PASSWORD': 'Incorrect password. Please try again.',
+      'PASSWORD_TOO_SHORT': 'Password must be at least 6 characters.',
+      'CURRENT_AND_NEW_PASSWORD_REQUIRED': 'Both current and new password are required.',
       'No changes to update': 'No changes to update.',
       'Missing user id': 'Unable to identify your account. Please log in again.',
       'Invalid image type. Use JPG/PNG/GIF/WebP': 'Image format not supported. Please use JPG, PNG, GIF, or WebP.'
@@ -73,6 +78,9 @@ export function EditProfile({ viewer }: EditProfileProps) {
   const [pendingAction, setPendingAction] = useState<SecureAction>(null);
   const [showSecurityModal, setShowSecurityModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const userId = (() => {
     if (viewer?.id) {
@@ -237,14 +245,113 @@ export function EditProfile({ viewer }: EditProfileProps) {
 
   const executeAction = (action: SecureAction) => {
     if (action === 'email') {
-      setOriginalEmail(email);
       setEditingEmail(true);
     }
-    if (action === 'password') setEditingPassword(true);
+    if (action === 'password') {
+      setEditingPassword(true);
+    }
     if (action === 'delete') {
-      if (confirm('Are you sure you want to delete your account?')) {
-        alert('Account deleted');
+      setShowDeleteModal(true);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!userId) return;
+    
+    try {
+      setDeleting(true);
+      setFormError(null);
+      
+      await deleteAccountApi(userId);
+      
+      // Clear local storage and redirect to login
+      localStorage.removeItem('user');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      
+      setSuccessMessage('Account deleted successfully. Redirecting to login...');
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 1500);
+    } catch (err: any) {
+      const rawMsg = err?.response?.data?.message || 'Failed to delete account';
+      setFormError(getError(rawMsg));
+      setShowDeleteModal(false);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleSaveEmail = async () => {
+    if (!userId || !email) return;
+    
+    try {
+      setSaving(true);
+      setFormError(null);
+      
+      const res = await updateUserProfileApi(userId, { email: email.trim() });
+      const updatedUser = res.data.user;
+      
+      setProfile(updatedUser);
+      setEmail(updatedUser.email || '');
+      setOriginalEmail(updatedUser.email || '');
+      setEditingEmail(false);
+      
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        localStorage.setItem('user', JSON.stringify({ ...parsed, email: updatedUser.email }));
       }
+      
+      setSuccessMessage('Email updated successfully!');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      const rawMsg = err?.response?.data?.message || 'Failed to update email';
+      setFormError(getError(rawMsg));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSavePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      setFormError('Passwords do not match');
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      setFormError('Password must be at least 6 characters');
+      return;
+    }
+    
+    try {
+      setSaving(true);
+      setFormError(null);
+      
+      // Note: currentPassword should be captured from SecurityCheckModal
+      // For now we'll need to prompt again or store it temporarily
+      const currentPassword = prompt('Enter your current password again to confirm:');
+      if (!currentPassword) {
+        setSaving(false);
+        return;
+      }
+      
+      await changePasswordApi({
+        currentPassword,
+        newPassword
+      });
+      
+      setEditingPassword(false);
+      setNewPassword('');
+      setConfirmPassword('');
+      
+      setSuccessMessage('Password changed successfully!');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      const rawMsg = err?.response?.data?.message || 'Failed to change password';
+      setFormError(getError(rawMsg));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -404,6 +511,7 @@ export function EditProfile({ viewer }: EditProfileProps) {
                       onClick={() => {
                         setEmail(originalEmail);
                         setEditingEmail(false);
+                        setIsVerified(false);
                       }}
                     >
                       Cancel
@@ -411,12 +519,10 @@ export function EditProfile({ viewer }: EditProfileProps) {
                     <PixelButton
                       size="sm"
                       variant="primary"
-                      onClick={() => {
-                        alert('Email updated');
-                        setEditingEmail(false);
-                      }}
+                      onClick={handleSaveEmail}
+                      disabled={saving}
                     >
-                      Save
+                      {saving ? 'Saving...' : 'Save'}
                     </PixelButton>
                   </div>
                 )}
@@ -463,23 +569,22 @@ export function EditProfile({ viewer }: EditProfileProps) {
                   <PixelButton
                     size="sm"
                     variant="outline"
-                    onClick={() => setEditingPassword(false)}
+                    onClick={() => {
+                      setEditingPassword(false);
+                      setNewPassword('');
+                      setConfirmPassword('');
+                      setIsVerified(false);
+                    }}
                   >
                     Cancel
                   </PixelButton>
                   <PixelButton
                     size="sm"
                     variant="primary"
-                    onClick={() => {
-                      if (newPassword !== confirmPassword) {
-                        alert('Password mismatch');
-                        return;
-                      }
-                      alert('Password updated');
-                      setEditingPassword(false);
-                    }}
+                    onClick={handleSavePassword}
+                    disabled={saving}
                   >
-                    Save
+                    {saving ? 'Saving...' : 'Save'}
                   </PixelButton>
                 </div>
               )}
@@ -506,6 +611,18 @@ export function EditProfile({ viewer }: EditProfileProps) {
         </div>
       </div>
 
+      {/* ================= DELETE ACCOUNT MODAL ================= */}
+      {showDeleteModal && (
+        <DeleteAccountModal
+          onClose={() => {
+            setShowDeleteModal(false);
+            setFormError(null);
+          }}
+          onConfirm={handleDeleteAccount}
+          isLoading={deleting}
+        />
+      )}
+
       {/* ================= SECURITY MODAL ================= */}
       {showSecurityModal && (
         <SecurityCheckModal
@@ -513,16 +630,29 @@ export function EditProfile({ viewer }: EditProfileProps) {
             setShowSecurityModal(false);
             setPendingAction(null);
           }}
-          onConfirm={(password) => {
-            if (password !== '123456') {
-              alert('Wrong password');
-              return;
+          onConfirm={async (password) => {
+            try {
+              setVerifying(true);
+              setFormError(null);
+              
+              // Verify password with backend
+              await verifyPasswordApi(password);
+              
+              setIsVerified(true);
+              setShowSecurityModal(false);
+              executeAction(pendingAction);
+              setPendingAction(null);
+            } catch (err: any) {
+              const rawMsg = err?.response?.data?.message || 'Invalid password';
+              const friendlyMsg = rawMsg === 'INVALID_PASSWORD' 
+                ? 'Incorrect password. Please try again.' 
+                : getError(rawMsg);
+              setFormError(friendlyMsg);
+              setShowSecurityModal(false);
+              setPendingAction(null);
+            } finally {
+              setVerifying(false);
             }
-
-            setIsVerified(true);
-            setShowSecurityModal(false);
-            executeAction(pendingAction);
-            setPendingAction(null);
           }}
         />
       )}

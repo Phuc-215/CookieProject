@@ -12,10 +12,11 @@ export function PixelButton({
   size = "md",
   className = "",
   children,
+  disabled,
   ...props
 }: PixelButtonProps) {
   const baseClasses =
-    "pixel-btn font-vt font-bold uppercase tracking-wide transition-all duration-100";
+    "pixel-btn font-vt font-bold uppercase tracking-wide transition-all duration-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none";
 
   const variantClasses = {
     primary:"bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[color-mix(in srgb, var(--primary) 85%, black)]",
@@ -32,6 +33,7 @@ export function PixelButton({
 
   return (
     <button
+      disabled={disabled}
       className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       {...props}
     >

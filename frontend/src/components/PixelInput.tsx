@@ -3,7 +3,7 @@ import React from 'react';
 interface PixelInputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
-  error?: boolean | string;
+  error?: boolean | string | null;
   rightIcon?: React.ReactNode;
 }
 

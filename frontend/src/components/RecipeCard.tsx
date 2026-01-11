@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Heart, Bookmark, Trash2, Clock, Pencil } from "lucide-react";
 
 import { unlikeRecipeApi, likeRecipeApi } from "@/api/recipe.api";
@@ -53,8 +53,17 @@ export function RecipeCard({
   // We initialize the state with the props passed in.
   const [localIsLiked, setLocalIsLiked] = useState(isLiked);
   const [localLikesCount, setLocalLikesCount] = useState(likes);
-
+  const [localIsSaved, setLocalSaved] = useState(isSaved);
   const sizeMode = small ? "small" : large ? "large" : "default";
+
+
+  console.log(localIsLiked, localLikesCount);
+
+  useEffect(() => {
+    setLocalIsLiked(isLiked);
+    setLocalLikesCount(likes);
+    setLocalSaved(isSaved);
+  }, [isLiked, isSaved]);
 
   const difficultyColor = {
     Easy: "bg-[var(--secondary)] text-[var(--secondary-foreground)]",
@@ -65,23 +74,31 @@ export function RecipeCard({
   // --- 2. INTERNAL HANDLER ---
   const handleLikeClick = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation(); // Prevent triggering the card's onClick
-    console.log("Toggling like for recipe ID:", id);
-    // Toggle logic
-    if (localIsLiked) {
-      setLocalIsLiked(false);
-      await unlikeRecipeApi(id);
-      setLocalLikesCount((prev) => prev - 1);
-    } else {
-      setLocalIsLiked(true);
-      await likeRecipeApi(id);
-      setLocalLikesCount((prev) => prev + 1);
-    }
-
-    // Optional: Still call the prop if the parent needs to know (e.g. for analytics)
     if (onLike) {
       onLike(id);
     }
+    console.log("Toggling like for recipe ID:", id);
+    // Toggle logic
+    if (!localIsLiked) {
+      try {
+        await likeRecipeApi(id);
+        setLocalIsLiked(true);
+      } catch (error) {
+        console.error("Error liking recipe:", error);
+      }
+    } else {
+      try {
+        await unlikeRecipeApi(id);
+        setLocalIsLiked(false);
+      } catch (error) {
+        console.error("Error unliking recipe:", error);
+      }
+    }
+    // Optimistically update likes count
+    setLocalLikesCount((prev) => (localIsLiked ? prev - 1 : prev + 1));
+
   };
+
 
   return (
     <div

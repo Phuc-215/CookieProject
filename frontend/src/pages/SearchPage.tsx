@@ -185,7 +185,6 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
   const totalItems = isViewRecipes ? totalRecipes : filteredCollections.length;
   
   const currentRecipes = recipes; // Data is already paginated from backend
-  const currentCollections = filteredCollections; // Keep mock for now
 
   // --- HELPERS CẬP NHẬT URL ---
   const updateParams = (updates: Record<string, string | null>) => {
@@ -432,7 +431,7 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
               <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 ${isViewRecipes ? 'gap-6' : 'gap-6'} mb-8`}>
                 
                 {isViewRecipes && currentRecipes.map(recipe => (
-                  <RecipeCard 
+                  <RecipeCard
                     key={recipe.id}
                     id={recipe.id.toString()}
                     title={recipe.title} 
@@ -440,18 +439,11 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
                     image={recipe.thumbnail_url || 'https://via.placeholder.com/600'}
                     time={`${recipe.cook_time_min || 0} min`} 
                     difficulty={recipe.difficulty} 
+                    isSaved={recipe.in_user_collections || false}
                     likes={recipe.likes_count || 0}
+                    isLiked={recipe.user_liked || false}
                     onClick={() => nav.recipe(recipe.id.toString())}
                   />
-                ))}
-
-                {!isViewRecipes && currentCollections.map(col => (
-                   <CollectionCard
-                      key={col.id}
-                      title={col.title}
-                      recipeCount={col.recipeCount}
-                      coverImages={col.coverImages}
-                   />
                 ))}
 
               </div>

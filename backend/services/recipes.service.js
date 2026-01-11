@@ -307,7 +307,7 @@ exports.unlikeRecipe = async (userId, recipeId) => {
 
         // Delete like record
         const deleteLikeText = `
-            DELETE FROM recipe_likes
+            DELETE FROM likes
             WHERE user_id = $1 AND recipe_id = $2
         `;
         await client.query(deleteLikeText, [userId, recipeId]);

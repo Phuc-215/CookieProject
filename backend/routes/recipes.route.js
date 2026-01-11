@@ -23,7 +23,6 @@ router.patch('/:id', upload.any(), validate(RecipeSchema), controller.saveRecipe
 router.delete('/:id', controller.deleteRecipe);
 
 // Like
-router.use(authMiddleware.requireAuth);
 
 router.post('/:id/like', controller.likeRecipe);
 

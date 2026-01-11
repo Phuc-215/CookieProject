@@ -1,7 +1,7 @@
 // services/search.service.js
 const { pool } = require('../config/db');
 
-exports.search = async ({ title, ingredientIds_included, ingredientIds_excluded, difficulty, category, sort, page, limit, userId }) => {    
+exports.search = async ({ title, ingredientNames_included, ingredientNames_excluded, difficulty, category, sort, page, limit, userId }) => {    
     // 1. Build query with conditional parameter handling
     const hasTitle = title && title.trim();
     const values = [];
@@ -62,33 +62,36 @@ exports.search = async ({ title, ingredientIds_included, ingredientIds_excluded,
 
     // 3. Include Ingredients (Relational "AND" Logic)
     // "Find recipes that contain ALL of these ingredient IDs"
-    if (ingredientIds_included && ingredientIds_included.length > 0) {
+    console.log('Included Ingredient Names:', ingredientNames_included);
+    if (ingredientNames_included && ingredientNames_included.length > 0) {
         query += `
             AND r.id IN (
                 SELECT ri.recipe_id
                 FROM recipe_ingredients ri
-                WHERE ri.ingredient_id = ANY($${index}::bigint[])
+                JOIN ingredients i ON ri.ingredient_id = i.id
+                WHERE i.name = ANY($${index}::text[])
                 GROUP BY ri.recipe_id
-                HAVING COUNT(DISTINCT ri.ingredient_id) = $${index + 1}
+                HAVING COUNT(DISTINCT i.name) = $${index + 1}
             )
         `;
-        values.push(ingredientIds_included); // $2
-        values.push(ingredientIds_included.length); // $3
+        values.push(ingredientNames_included); // $2
+        values.push(ingredientNames_included.length); // $3
         index += 2;
     }
 
     // 4. Exclude Ingredients (Relational "NOT IN" Logic)
     // "Find recipes that DO NOT contain ANY of these ingredient IDs"
-    if (ingredientIds_excluded && ingredientIds_excluded.length > 0) {
+    if (ingredientNames_excluded && ingredientNames_excluded.length > 0) {
         query += `
             AND NOT EXISTS (
                 SELECT 1
                 FROM recipe_ingredients ri
+                JOIN ingredients i ON ri.ingredient_id = i.id
                 WHERE ri.recipe_id = r.id
-                AND ri.ingredient_id = ANY($${index}::bigint[])
+                AND i.name = ANY($${index}::text[])
             )
         `;
-        values.push(ingredientIds_excluded); 
+        values.push(ingredientNames_excluded); 
         index++;
     }
 

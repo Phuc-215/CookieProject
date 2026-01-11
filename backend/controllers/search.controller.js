@@ -20,8 +20,8 @@ exports.search = async (req, res) => {
     } = req.body;
     const result = await searchService.search({
         title, 
-        ingredientIds_included: ingredients_included, 
-        ingredientIds_excluded: ingredients_excluded,
+        ingredientNames_included: ingredients_included, 
+        ingredientNames_excluded: ingredients_excluded,
         difficulty,
         category,
         sort,

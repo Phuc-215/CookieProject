@@ -1,19 +1,7 @@
 // services/search.service.js
 const { pool } = require('../config/db');
 
-exports.search = async ({ title, ingredientIds_included, ingredientIds_excluded, difficulty, category, sort, page, limit, userId }) => {
-    console.log('Search Parameters:', {
-        title,
-        ingredientIds_included,
-        ingredientIds_excluded,
-        difficulty,
-        category,
-        sort,
-        page,
-        limit,
-        userId
-    });
-    
+exports.search = async ({ title, ingredientIds_included, ingredientIds_excluded, difficulty, category, sort, page, limit, userId }) => {    
     // 1. Build query with conditional parameter handling
     const hasTitle = title && title.trim();
     const values = [];
@@ -21,16 +9,39 @@ exports.search = async ({ title, ingredientIds_included, ingredientIds_excluded,
 
     // Build SELECT clause - only use ts_rank if title exists
     let selectClause = `
-        SELECT r.id, r.slug, r.title, r.difficulty, r.thumbnail_url, 
-               r.cook_time_min, r.likes_count, r.created_at`;
-    
+        SELECT  r.id, 
+                r.slug, 
+                r.title, 
+                r.difficulty, 
+                r.thumbnail_url,       
+                r.cook_time_min, 
+                r.likes_count, 
+                r.created_at`;
+    if (userId) {
+        selectClause += `,
+            EXISTS (
+                SELECT 1
+                FROM likes l
+                WHERE l.recipe_id = r.id AND l.user_id = $${index}
+            ) AS user_liked`;
+        values.push(userId);
+        index++;
+        selectClause += `
+            , EXISTS (
+                SELECT 1
+                FROM collection_recipes cr
+                JOIN collections c ON cr.collection_id = c.id
+                WHERE cr.recipe_id = r.id AND c.user_id = $${index}
+            ) AS in_user_collections`;
+        values.push(userId);
+        index++;
+    }
     if (hasTitle) {
         selectClause += `, ts_rank(r.search_vector, to_tsquery('english', $${index})) as rank`;
         // Split title into words and add prefix matching with :* for substring search
         const words = title.trim().split(/\s+/).filter(w => w.length > 0);
         const tsqueryString = words.map(w => `${w.toLowerCase()}:*`).join(' & ');
         values.push(tsqueryString);
-        console.log('TsQuery String:', tsqueryString);
         index++;
     } else {
         selectClause += `, 0 as rank`;
@@ -111,13 +122,10 @@ exports.search = async ({ title, ingredientIds_included, ingredientIds_excluded,
 
     // 8. Execute first query to get total count
     const result = await pool.query(query, values);
-    console.log('userId:', userId, 'Search Query Result Count:', result.rowCount);
     
     // 9. Save History (Async, don't await blocking the response)
     if (userId && hasTitle) {
-        console.log('Saving search history for user', userId, 'query:', title);
         this.saveHistory(userId, title).catch(err => console.error('History save error', err));
-        console.log('Search history saved.');
     }
 
     // 10. Add pagination to the query
@@ -145,9 +153,7 @@ exports.getSuggestions = async (partialQuery) => {
         LIMIT 5
     `;
     const values = [`%${partialQuery}%`];
-    console.log('Suggestion Query Values:', values); // Suggestion Query Values: [ '%hello%' ]
     const result = await pool.query(query, values);
-    console.log('Suggestions found:', result.rowCount);
     return result.rows.map(row => row.title);
 };
 
@@ -193,9 +199,7 @@ exports.getHistory = async (userId) => {
 };
 
 exports.clearHistory = async (userId) => {
-    console.log('Clearing search history for user:', userId);
     await pool.query(`DELETE FROM search_history WHERE user_id = $1`, [userId]);
-    console.log('Clear done');
 };
 
 exports.deleteHistoryItem = async (userId, historyId) => {

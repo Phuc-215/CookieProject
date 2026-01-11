@@ -96,8 +96,6 @@ exports.deleteHistoryItem = async (req, res) => {
     try {
         const userId = parseInt(req.user?.id, 10); 
         const historyId = parseInt(req.params.id, 10);
-        console.log('Delete History Item for user:', userId);
-        console.log('History ID to delete:', historyId);
         
         await searchService.deleteHistoryItem(userId, historyId);
         res.status(200).json({

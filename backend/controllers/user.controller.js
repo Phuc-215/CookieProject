@@ -1,6 +1,7 @@
 const { pool } = require('../config/db');
 const path = require('path');
 const { supabase } = require('../config/supabase');
+const notificationService = require('../services/notifications.service');
 
 exports.getPublicProfile = async (req, res) => {
   try {
@@ -344,12 +345,12 @@ exports.followUser = async (req, res) => {
       [followeeId]
     );
 
-    // Create notification
-    await pool.query(
-      `INSERT INTO notifications (user_id, actor_id, type)
-       VALUES ($1, $2, 'follow')`,
-      [followeeId, followerId]
-    );
+    // Trigger notification
+    await notificationService.triggerFollowNotification(followerId, followeeId);
+
+    // OLD: await pool.query(
+    //   `INSERT INTO notifications (user_id, actor_id, type)
+    //    VALUES ($1, $2, 'follow')`,
 
     res.json({ message: 'User followed successfully' });
   } catch (err) {

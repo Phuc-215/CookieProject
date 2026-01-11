@@ -1,16 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PixelButton } from '../../components/PixelButton';
 import { useNavigate } from 'react-router-dom';
 import { RecipeCard } from '../../components/RecipeCard';
 import { CollectionCard } from "../../components/CollectionCard";
 import { useNav } from '../../hooks/useNav'; 
-import { Headline } from './Headline'; 
 import homefeed from "../../assets/homefeed.svg"; 
-import { Image, Video, Smile, Star, Clock, Grid, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { Star, Clock, Grid, ChevronLeft, ChevronRight, ArrowRight, Loader2 } from 'lucide-react';
+import { searchApi } from '../../api/search.api'; // Import your API
 
 interface HomeFeedProps {
   isLoggedIn?: boolean;
 }
+
+type TabType = 'trending' | 'collections' | 'latest';
 
 const TABS: { id: TabType, label: string, icon: React.ReactNode }[] = [
   { id: 'trending', label: 'TRENDING', icon: <Star size={20} /> },
@@ -29,78 +31,94 @@ const CreatePostBar = () => {
         <div onClick={() => nav.create()} className="flex-1 bg-[#FFF8E7] hover:bg-[#FFE4C4] border-2 border-[#4A3B32] h-12 flex items-center px-4 cursor-pointer transition-colors group">
           <span className="font-vt323 text-xl text-[#4A3B32]/60 group-hover:text-[#4A3B32]">Wanna share a fantastic recipe of yours?</span>
         </div>
-        {/* <div className="hidden md:flex items-center gap-4 px-2">
-          <button className="flex items-center gap-2 text-[#4A3B32] hover:bg-gray-100 p-2 rounded transition-colors font-vt323"><Image size={20} className="text-green-600" /><span className="hidden lg:inline">Photo</span></button>
-          <button className="flex items-center gap-2 text-[#4A3B32] hover:bg-gray-100 p-2 rounded transition-colors font-vt323"><Video size={20} className="text-red-500" /><span className="hidden lg:inline">Video</span></button>
-           <button className="flex items-center gap-2 text-[#4A3B32] hover:bg-gray-100 p-2 rounded transition-colors font-vt323"><Smile size={20} className="text-yellow-500" /><span className="hidden lg:inline">Feeling</span></button>
-        </div> */}
       </div>
     </div>
   );
 };
-const FILTER_CATEGORIES = ["All", "Cookies", "Cheesecake", "Cupcakes & Muffins", "Tarts & Pies", "Brownies & Bars"];
 
-// --- MOCK DATA ---
-const MOCK_RECIPES = [
-  { id: '1', title: 'Classic Chocolate Chip', image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaG9jb2xhdGUlMjBjaGlwJTIwY29va2llc3xlbnwxfHx8fDE3NjQyMDU4MzN8MA&ixlib=rb-4.1.0&q=80&w=1080', author: 'BakerBob', difficulty: 'Easy' as const, time: '30 min', likes: 245, isLiked: false, isSaved: false, category: "Cookies" },
-  { id: '2', title: 'Rainbow Macarons', image: 'https://images.unsplash.com/photo-1580421383318-f87fc861a696?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYWNhcm9ucyUyMGRlc3NlcnR8ZW58MXx8fHwxNzY0MjA1NTAzfDA&ixlib=rb-4.1.0&q=80&w=1080', author: 'SweetChef', difficulty: 'Hard' as const, time: '120 min', likes: 523, isLiked: true, isSaved: true, category: "Cookies" },
-  { id: '3', title: 'Vanilla Cupcakes', image: 'https://images.unsplash.com/photo-1555526148-0fa555bb2e78?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjdXBjYWtlcyUyMGNvbG9yZnVsfGVufDF8fHx8MTc2NDE4MTA1MHww&ixlib=rb-4.1.0&q=80&w=1080', author: 'CakeQueen', difficulty: 'Medium' as const, time: '45 min', likes: 387, isLiked: false, isSaved: false, category: "Cupcakes & Muffins" },
-  { id: '4', title: 'Glazed Donuts', image: 'https://images.unsplash.com/photo-1506224772180-d75b3efbe9be?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkb251dHMlMjBzcHJpbmtsZXN8ZW58MXx8fHwxNzY0MjI5NzM5fDA&ixlib=rb-4.1.0&q=80&w=1080', author: 'DonutDave', difficulty: 'Medium' as const, time: '60 min', likes: 412, isLiked: false, isSaved: false, category: "Brownies & Bars" },
-  { id: '5', title: 'Fudgy Brownies', image: 'https://images.unsplash.com/photo-1617996884841-3949eaec3448?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxicm93bmllcyUyMGNob2NvbGF0ZXxlbnwxfHx8fDE3NjQyMjkxNDJ8MA&ixlib=rb-4.1.0&q=80&w=1080', author: 'ChocMaster', difficulty: 'Easy' as const, time: '35 min', likes: 678, isLiked: true, isSaved: false, category: "Brownies & Bars" },
-  { id: '6', title: 'Pixel Perfect Cookie', image: 'https://images.unsplash.com/photo-1703118834585-67fd82bdefdd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaXhlbCUyMGFydCUyMGNvb2tpZXN8ZW58MXx8fHwxNzY0MjI5NzM4fDA&ixlib=rb-4.1.0&q=80&w=1080', author: 'PixelBaker', difficulty: 'Medium' as const, time: '50 min', likes: 891, isLiked: false, isSaved: true, category: "Cookies" },
+// --- CATEGORY CONFIG ---
+// Use this array to map display labels to API slugs
+const CATEGORY_OPTIONS = [
+  { label: "All", value: "All" },
+  { label: "Cookie", value: "cookie" },
+  { label: "Cheesecake", value: "cheesecake" },
+  { label: "Cupcakes & Muffins", value: "cupcakes-muffins" },
+  { label: "Tarts & Pies", value: "tarts-pies" },
+  { label: "Brownies & Bars", value: "brownies-bars" },
 ];
 
+// --- MOCK COLLECTIONS (Replace with API later) ---
 const MOCK_COLLECTIONS = [
   {
     id: "jar-1",
     title: "Chocolate Heaven",
     recipeCount: 14,
-    coverImages: [
-      "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=600",
-      "https://images.unsplash.com/photo-1617996884841-3949eaec3448?w=600",
-      "https://images.unsplash.com/photo-1506224772180-d75b3efbe9be?w=600",
-      "https://images.unsplash.com/photo-1580421383318-f87fc861a696?w=600",
-    ],
+    coverImages: ["https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=600"],
   },
   {
     id: "jar-2",
     title: "Festive & Holiday Treats",
     recipeCount: 2,
-    coverImages: [
-      "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=600",
-      "https://images.unsplash.com/photo-1703118834585-67fd82bdefdd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaXhlbCUyMGFydCUyMGNvb2tpZXN8ZW58MXx8fHwxNzY0MjI5NzM4fDA&ixlib=rb-4.1.0&q=80&w=1080",
-    ],
-  },
-  {
-    id: "jar-3",
-    title: "Soft & Chewy Classics",
-    recipeCount: 2,
-    coverImages: [
-      "https://images.unsplash.com/photo-1509365465985-25d11c17e812?w=600",
-      "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=600",
-    ],
+    coverImages: ["https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=600"],
   },
 ];
 
 export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
-  const [recipes] = useState(MOCK_RECIPES);
   const nav = useNav();
-  const navigate = useNavigate(); // 2. Khởi tạo hook navigate
+  const navigate = useNavigate();
   
-  // State quản lý tab
+  // --- STATE ---
   const [activeTab, setActiveTab] = useState<TabType>('trending');
-  const [selectedCategory, setSelectedCategory] = useState("All");
-
-  const trendingMain = recipes[5];
-  const trendingSide = recipes.slice(0, 3);
-  const filteredRecipes = selectedCategory === "All" ? recipes : recipes.filter(r => r.category === selectedCategory);
   
+  // Save the SLUG value (e.g. "cupcakes-muffins") in state
+  const [selectedCategoryValue, setSelectedCategoryValue] = useState("All"); 
+  
+  // Data States
+  const [recipes, setRecipes] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // --- FETCH DATA EFFECT ---
+  useEffect(() => {
+    // Only fetch recipes if we are NOT in 'collections' tab
+    if (activeTab === 'collections') return;
+
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Determine sort based on active tab
+        const sortType = activeTab === 'trending' ? 'likes' : 'newest';
+        
+        // Prepare params
+        const params = {
+          page: 1,
+          limit: activeTab === 'trending' ? 4 : 6, // Trending needs 4 (1 big + 3 small), Latest needs 6 grid
+          sort: sortType,
+          // Only send category if it's not "All"
+          category: selectedCategoryValue !== "All" ? selectedCategoryValue : undefined,
+        };
+
+        const res = await searchApi(params);
+        setRecipes(res.data.results || []);
+      } catch (error) {
+        console.error("Failed to fetch home feed:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [activeTab, selectedCategoryValue]); // Re-fetch when Tab or Category changes
+
+  // --- PREPARE DATA FOR VIEW ---
+  // For Trending: Split into Main (1st) and Side (Next 3)
+  const trendingMain = recipes[0];
+  const trendingSide = recipes.slice(1, 4);
+
   // --- LOGIC QUAY SỐ (DIAL) ---
-  // Tìm ra thứ tự 3 mục dựa trên tab đang chọn
   const getTabOrder = () => {
     const currentIndex = TABS.findIndex(t => t.id === activeTab);
-    const prevIndex = (currentIndex - 1 + TABS.length) % TABS.length; // Quay lùi
-    const nextIndex = (currentIndex + 1) % TABS.length; // Quay tới
+    const prevIndex = (currentIndex - 1 + TABS.length) % TABS.length;
+    const nextIndex = (currentIndex + 1) % TABS.length;
     
     return {
       prev: TABS[prevIndex],
@@ -111,35 +129,27 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
 
   const { prev, current, next } = getTabOrder();
 
-  // 3. HÀM XỬ LÝ SỰ KIỆN NÚT DISCOVER MORE
+  // --- HANDLE DISCOVER MORE ---
   const handleDiscoverMore = () => {
     const params = new URLSearchParams();
 
-    // A. Xử lý Filter Category (Ưu tiên cao nhất: Luôn thêm nếu đang chọn)
-    if (selectedCategory !== 'All') {
-      params.set('category', selectedCategory);
+    // Use the SLUG value for URL
+    if (selectedCategoryValue !== 'All') {
+      params.set('category', selectedCategoryValue);
     }
 
-    // B. Xử lý theo Tab đang active
     switch (activeTab) {
       case 'trending':
-        // Trending -> Lọc theo lượt thích
         params.set('sort', 'likes'); 
         break;
-
       case 'latest':
-        // Recent/Latest -> Lọc theo thời gian mới nhất
         params.set('sort', 'newest'); 
         break;
-
       case 'collections':
-        // Cookie Jar -> Lọc theo loại Collections
         params.set('type', 'collections'); 
         break;
     }
 
-    // Chuyển hướng sang trang Search kèm params đã tạo
-    // Ví dụ URL tạo ra: /search?category=Cookies&sort=likes
     navigate(`/search?${params.toString()}`);
   };
 
@@ -175,7 +185,6 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
                 >
                     <ChevronLeft size={16} />
                     <span className="hidden md:inline">{prev.label}</span>
-                    <span className="md:hidden">{/* Icon only on mobile if needed */}</span>
                 </button>
 
                 {/* 2. NÚT GIỮA (Active - To nhất) */}
@@ -196,104 +205,150 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
                 </button>
 
             </div>
-            
-            {/* Đường kẻ trang trí nối các nút */}
             <div className="absolute top-1/2 left-0 w-full h-1 bg-[#4A3B32]/60 -z-10 rounded-full"></div>
         </div>
 
-        {/* === KHUNG HIỂN THỊ NỘI DUNG (Dựa trên Active Tab) === */}
+        {/* === CATEGORY FILTER (Use CATEGORY_OPTIONS) === */}
         {activeTab !== "collections" && (
           <div className="flex gap-3 overflow-x-auto scrollbar-hide md:justify-center border-b-2 border-[#4A3B32]/10 pb-6">
-                {FILTER_CATEGORIES.map((cat) => (
+                {CATEGORY_OPTIONS.map((cat) => (
                     <button
-                        key={cat}
-                        onClick={() => setSelectedCategory(cat)}
+                        key={cat.value}
+                        onClick={() => setSelectedCategoryValue(cat.value)} // Set Slug Value
                         className={`
                             px-3 py-1 font-vt323 text-lg border-2 whitespace-nowrap transition-all
-                            ${selectedCategory === cat 
+                            ${selectedCategoryValue === cat.value 
                                 ? 'bg-[#FF99AA] border-[#4A3B32] text-[#4A3B32] shadow-[2px_2px_0px_#4A3B32]' 
                                 : 'bg-white border-[#4A3B32] text-[#4A3B32]/70 hover:bg-gray-50'
                             }
                         `}
                     >
-                        {cat}
+                        {cat.label} {/* Display Label */}
                     </button>
                 ))}
             </div>
-          
         )}
-        <div className="min-h-[600px] relative">
-            {/* Category Filter */}
+
+        {/* === CONTENT DISPLAY === */}
+        <div className="min-h-[600px] relative mt-6">
             
-            {/* VIEW 1: TRENDING */}
-            {activeTab === 'trending' && (
-                <div className="animate-fade-in space-y-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-2">
-                            <RecipeCard {...trendingMain} large onClick={() => nav.recipe(trendingMain.id)} />
-                        </div>
-                        <div className="flex flex-col gap-6 w-full">
-                            {trendingSide.map((r) => (
-                                <RecipeCard key={r.id} small {...r} onClick={() => nav.recipe(r.id)} />
-                            ))}
-                        </div>
-                    </div>
+            {isLoading ? (
+                <div className="flex justify-center items-center h-64">
+                    <Loader2 className="w-10 h-10 animate-spin text-[#4A3B32]" />
                 </div>
-            )}
-
-            {/* VIEW 2: COLLECTIONS */}
-            {activeTab === 'collections' && (
-                <div className="animate-fade-in space-y-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {MOCK_COLLECTIONS.map((col) => (
-                            <CollectionCard
-                                key={col.id}
-                                title={col.title}
-                                recipeCount={col.recipeCount}
-                                coverImages={col.coverImages}
-                            />
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* VIEW 3: LATEST */}
-            {activeTab === 'latest' && (
-                <div className="animate-fade-in space-y-6">
-                    
-
-                    {/* Grid */}
-                    {filteredRecipes.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredRecipes.map((recipe) => (
-                                <RecipeCard key={recipe.id} {...recipe} onClick={() => nav.recipe(recipe.id)} />
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center py-12 border-4 border-[#4A3B32] bg-white border-dashed opacity-70">
-                            <p className="font-vt323 text-2xl text-[#4A3B32]">No recipes found in {selectedCategory} yet!</p>
+            ) : (
+                <>
+                    {/* VIEW 1: TRENDING */}
+                    {activeTab === 'trending' && (
+                        <div className="animate-fade-in space-y-6">
+                            {recipes.length > 0 ? (
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    {/* Main Hero Recipe */}
+                                    {trendingMain && (
+                                        <div className="lg:col-span-2">
+                                            <RecipeCard 
+                                                id={trendingMain.id}
+                                                title={trendingMain.title}
+                                                image={trendingMain.thumbnail_url}
+                                                author={trendingMain.author}
+                                                likes={trendingMain.likes_count}
+                                                time={`${trendingMain.cook_time_min} min`}
+                                                difficulty={trendingMain.difficulty}
+                                                large 
+                                                onClick={() => nav.recipe(trendingMain.id)} 
+                                            />
+                                        </div>
+                                    )}
+                                    {/* Side List */}
+                                    <div className="flex flex-col gap-6 w-full">
+                                        {trendingSide.map((r) => (
+                                            <RecipeCard 
+                                                key={r.id} 
+                                                id={r.id}
+                                                title={r.title}
+                                                image={r.thumbnail_url}
+                                                author={r.author}
+                                                likes={r.likes_count}
+                                                time={`${r.cook_time_min} min`}
+                                                difficulty={r.difficulty}
+                                                small 
+                                                onClick={() => nav.recipe(r.id)} 
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-center py-12 border-4 border-[#4A3B32] bg-white border-dashed opacity-70">
+                                    <p className="font-vt323 text-2xl text-[#4A3B32]">No trending recipes found!</p>
+                                </div>
+                            )}
                         </div>
                     )}
-                </div>
+
+                    {/* VIEW 2: COLLECTIONS */}
+                    {activeTab === 'collections' && (
+                        <div className="animate-fade-in space-y-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {MOCK_COLLECTIONS.map((col) => (
+                                    <CollectionCard
+                                        key={col.id}
+                                        title={col.title}
+                                        recipeCount={col.recipeCount}
+                                        coverImages={col.coverImages}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* VIEW 3: LATEST */}
+                    {activeTab === 'latest' && (
+                        <div className="animate-fade-in space-y-6">
+                            {recipes.length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {recipes.map((r) => (
+                                        <RecipeCard 
+                                            key={r.id} 
+                                            id={r.id}
+                                            title={r.title}
+                                            image={r.thumbnail_url}
+                                            author={r.author}
+                                            likes={r.likes_count}
+                                            time={`${r.cook_time_min} min`}
+                                            difficulty={r.difficulty}
+                                            onClick={() => nav.recipe(r.id)} 
+                                        />
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12 border-4 border-[#4A3B32] bg-white border-dashed opacity-70">
+                                    <p className="font-vt323 text-2xl text-[#4A3B32]">No recipes found!</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </>
             )}
 
-            {/* 4. NÚT DISCOVER MORE (Mới thêm vào đây) */}
-            <div className="relative mt-5 flex justify-center">
+            {/* DISCOVER MORE BUTTON */}
+            {/* Sửa className: dùng py-12 (padding top & bottom đều nhau) và items-center */}
+            <div className="relative py-12 flex justify-center items-center">
+              
+              {/* Line: Giữ nguyên absolute center */}
+              <div className="absolute top-1/2 left-0 w-full h-1 bg-[#4A3B32]/60 -z-10 rounded-full -translate-y-1/2"></div>
+              
               <PixelButton 
                 variant="primary" 
                 className="px-8 py-3 text-lg flex items-center gap-2 group shadow-[6px_6px_0px_rgba(0,0,0,0.2)] hover:shadow-[4px_4px_0px_rgba(0,0,0,0.2)]"
                 onClick={handleDiscoverMore}
               >
-                {/* Text thay đổi linh hoạt */}
                 {activeTab === 'collections' ? 'Discover All Jars' : 'Discover More Recipes'}
-                
                 <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
               </PixelButton>
-              <div className="absolute top-1/2 -translate-y-1/2 left-0 w-full h-1 bg-[#4A3B32]/60 -z-10 rounded-full"></div>
             </div>
             
         </div>
       </section>
     </div>
   );
-}
+};

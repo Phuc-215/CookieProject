@@ -57,9 +57,10 @@ exports.getById = async (recipeId, currentUserId) => {
 };
 
 exports.saveRecipe = async ({
-  recipeId, userId, title, difficulty = 'easy', category, servings, 
+  recipeId, userId, title, difficulty = 'Easy', category, servings, 
   cookTime, thumbnailUrl = null, status = 'published', ingredients, steps
 }) => {
+  console.log('saveRecipe', recipeId, userId, title, difficulty, category, servings, cookTime, thumbnailUrl, status, ingredients, steps);
   // Get a dedicated client from the pool (Required for Transactions)
   const client = await pool.connect();
   let imageToDelete = null;

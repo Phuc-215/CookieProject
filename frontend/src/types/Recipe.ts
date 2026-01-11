@@ -1,5 +1,3 @@
-import { Category } from "./Category";
-
 export type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
 interface RecipeAuthor {
@@ -26,8 +24,9 @@ export interface RecipeDetail extends RecipeCard {
 }
 export interface RecipeStep {
   id: string;
-  instruction: string;
+  description: string;
   images: string[];
+  stepNumber: number;
 }
 
 export interface Ingredient {
@@ -37,12 +36,13 @@ export interface Ingredient {
 }
 
 export interface RecipeFormData {
+  id?: string;
   title: string;
   description: string;
   difficulty: 'Easy' | 'Medium' | 'Hard';
   category: string | null;
-  cookTime: string;
-  servings: string;
+  cookTime: number | null;
+  servings: number | null;
   mainImage: string | null;
   ingredients: Ingredient[];
   steps: RecipeStep[];

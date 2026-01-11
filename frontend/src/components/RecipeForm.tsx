@@ -22,12 +22,11 @@ import {
 import { StepItem } from '@/components/StepItem';
 import { RecipeFormData} from '@/types/Recipe';
 import { Category } from '@/types/Category';
+import { createRecipeApi } from '@/api/recipe.api';
 
 interface Props {
   mode: 'create' | 'edit';
   initialData?: RecipeFormData;
-  onSaveDraft: (data: RecipeFormData) => void;
-  onPublish: (data: RecipeFormData) => void;
   categories: Category[];
   loading?: boolean;
 }
@@ -39,10 +38,7 @@ const MAX_STEP_IMAGES = 5;
 export function RecipeForm({
   mode,
   initialData,
-  onSaveDraft,
-  onPublish,
   categories,
-  loading = false,
 }: Props) {
   /* ===== FORM STATE ===== */
   // Form state management
@@ -58,11 +54,11 @@ export function RecipeForm({
       description: '',
       difficulty: 'Medium',
       category: '',
-      cookTime: '',
-      servings: '',
+      cookTime: null,
+      servings: null,
       mainImage: null,
       ingredients: [],
-      steps: [{ id: '1', instruction: '', images: [] }],
+      steps: [{ id: Date.now().toString(), stepNumber: 1, description: '', images: [] }],
     },
   });
 
@@ -75,6 +71,7 @@ export function RecipeForm({
   const steps = watch('steps');
 
   // Temporary input state for adding new ingredients
+  const [loading, setLoading] = useState(false);
   const [newIngredientName, setNewIngredientName] = useState('');
   const [newIngredientQuantity, setNewIngredientQuantity] = useState('');
 
@@ -126,7 +123,7 @@ export function RecipeForm({
     const currentSteps = getValues('steps');
     setValue('steps', [
       ...currentSteps,
-      { id: Date.now().toString(), instruction: '', images: [] },
+      { id: Date.now().toString(), stepNumber: currentSteps.length + 1, description: '', images: [] },
     ]);
   };
 
@@ -136,12 +133,12 @@ export function RecipeForm({
     setValue('steps', currentSteps.filter(s => s.id !== id));
   };
 
-  const handleUpdateStepInstruction = (id: string, value: string) => {
+  const handleUpdateStepDescription = (id: string, value: string) => {
     markFieldTouched('steps');
     const currentSteps = getValues('steps');
     setValue(
       'steps',
-      currentSteps.map(s => (s.id === id ? { ...s, instruction: value } : s))
+      currentSteps.map(s => (s.id === id ? { ...s, description: value } : s))
     );
   };
 
@@ -152,7 +149,7 @@ export function RecipeForm({
     const step = currentSteps.find(s => s.id === id);
     
     // Don't allow image upload if step has no description
-    if (!step || step.instruction.trim().length === 0) return;
+    if (!step || step.description.trim().length === 0) return;
 
     setValue(
       'steps',
@@ -209,14 +206,12 @@ export function RecipeForm({
     if (!over || active.id === over.id) return;
 
     const currentSteps = getValues('steps');
-    setValue(
-      'steps',
-      arrayMove(
-        currentSteps,
-        currentSteps.findIndex(s => s.id === active.id),
-        currentSteps.findIndex(s => s.id === over.id)
-      )
-    );
+    const newSteps = arrayMove(
+      currentSteps,
+      currentSteps.findIndex(s => s.id === active.id),
+      currentSteps.findIndex(s => s.id === over.id)
+    ).map((step, idx) => ({ ...step, stepNumber: idx + 1 }));
+    setValue('steps', newSteps);
   };
 
   /* ===== MAIN IMAGE ===== */
@@ -259,7 +254,7 @@ export function RecipeForm({
         } else {
           // Each step must have a description
           const stepsWithoutDescription = steps.filter(
-            step => step.instruction.trim().length === 0
+            step => step.description.trim().length === 0
           );
           if (stepsWithoutDescription.length > 0) {
             errors.steps = 'All steps must have a description';
@@ -280,6 +275,23 @@ export function RecipeForm({
   // Helper to mark field as touched
   const markFieldTouched = (fieldName: string) => {
     setTouchedFields(prev => new Set(prev).add(fieldName));
+  };
+
+  const handleSaveDraft = (data: RecipeFormData) => {
+    console.log('Save Draft', data);
+  };
+
+  const handlePublish = async (data: RecipeFormData) => {
+    console.log('Publish', data);
+    try {
+      setLoading(true);
+        const response = await createRecipeApi(data);
+      console.log('response', response);
+    } catch (error) {
+      console.error('Error publishing recipe', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Check actual form validity (always validate all fields, not just touched ones)
@@ -407,7 +419,8 @@ export function RecipeForm({
 
               <PixelInput
                 label="Servings"
-                placeholder="e.g. 2 slices"
+                type="number"
+                placeholder="e.g. 2"
                 {...register('servings')}
               />
 
@@ -434,6 +447,7 @@ export function RecipeForm({
 
               <PixelInput
                 label="Cook Time"
+                type="number"
                 placeholder="e.g. 12 mins"
                 {...register('cookTime')}
               />
@@ -490,7 +504,7 @@ export function RecipeForm({
             {/* STEPS */}
             <div className="mb-8">
               <label className="block mb-3 uppercase text-sm tracking-wide">
-                Instructions *
+                Description *
               </label>
 
               <DndContext
@@ -508,7 +522,7 @@ export function RecipeForm({
                         key={step.id}
                         step={step}
                         index={index}
-                        onUpdateInstruction={handleUpdateStepInstruction}
+                        onUpdateInstruction={handleUpdateStepDescription}
                         onUploadImages={handleUploadStepImages}
                         onRemoveImage={handleRemoveStepImage}
                         onReorderImages={handleReorderStepImages}
@@ -538,7 +552,7 @@ export function RecipeForm({
           <PixelButton
             variant="outline"
             className="flex-1"
-            onClick={() => onSaveDraft(buildData())}
+            onClick={() => handleSaveDraft(buildData())}
             disabled={loading}
           >
             {loading ? 'Saving...' : 'Save Draft'}
@@ -562,7 +576,7 @@ export function RecipeForm({
               const isFormValid = Object.keys(errors).length === 0;
               
               if (isFormValid) {
-                onPublish(buildData());
+                handlePublish(buildData());
               }
             }}
             disabled={!isValid || loading}

@@ -110,7 +110,7 @@ export function StepItem({
           {/* INSTRUCTION */}
           <textarea
             rows={3}
-            value={step.instruction}
+            value={step.description}
             placeholder="Describe this step..."
             onChange={(e) =>
               onUpdateInstruction(step.id, e.target.value)
@@ -133,7 +133,7 @@ export function StepItem({
           <button
             disabled={
               step.images.length >= MAX_STEP_IMAGES ||
-              step.instruction.trim().length === 0
+              step.description.trim().length === 0
             }
             onClick={() =>
               document
@@ -143,13 +143,13 @@ export function StepItem({
             className={`px-3 py-2 pixel-border text-sm uppercase flex items-center gap-2 transition-colors
               ${
                 step.images.length >= MAX_STEP_IMAGES ||
-                step.instruction.trim().length === 0
+                step.description.trim().length === 0
                   ? 'bg-gray-300 cursor-not-allowed'
                   : 'bg-white hover:bg-[#4DB6AC]'
               }
             `}
             title={
-              step.instruction.trim().length === 0
+              step.description.trim().length === 0
                 ? 'Please add a description first'
                 : step.images.length >= MAX_STEP_IMAGES
                 ? 'Maximum images reached'
@@ -159,7 +159,7 @@ export function StepItem({
             <Camera className="w-4 h-4" />
             {step.images.length >= MAX_STEP_IMAGES
               ? 'Max Images'
-              : step.instruction.trim().length === 0
+              : step.description.trim().length === 0
               ? 'Add Description First'
               : 'Add Step Photos'}
           </button>

@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS unaccent;
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'recipe_difficulty') THEN
-    CREATE TYPE recipe_difficulty AS ENUM ('easy','medium','hard');
+    CREATE TYPE recipe_difficulty AS ENUM ('Easy','Medium','Hard');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'notification_type') THEN
     CREATE TYPE notification_type AS ENUM ('like','follow','comment','recipe_trending','system');
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS recipes (
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   slug VARCHAR(255) NOT NULL UNIQUE,
   title VARCHAR(300) NOT NULL,
-  difficulty recipe_difficulty NOT NULL DEFAULT 'easy',
+  difficulty recipe_difficulty NOT NULL DEFAULT 'Easy',
   category VARCHAR(100),
   servings INT,
   cook_time_min INT,  

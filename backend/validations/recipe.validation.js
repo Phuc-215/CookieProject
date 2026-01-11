@@ -51,8 +51,8 @@ const RecipeSchema = Joi.object({
     }),
 
   difficulty: Joi.string()
-    .valid('easy', 'medium', 'hard')
-    .default('easy'),
+    .valid('Easy', 'Medium', 'Hard')
+    .default('Easy'),
 
   servings: Joi.number()
     .integer()
@@ -65,6 +65,7 @@ const RecipeSchema = Joi.object({
   cookTime: Joi.number()
     .integer()
     .min(0)
+    .allow(null)
     .messages({
       'number.min': 'Cook time cannot be negative'
     }),

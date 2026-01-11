@@ -54,7 +54,7 @@ exports.getById = async (recipeId, currentUserId) => {
 };
 
 exports.saveRecipe = async ({
-  recipeId, userId, title, difficulty = 'easy', category, servings, 
+  recipeId, userId, title, difficulty = 'Easy', category, servings, 
   cookTime, thumbnailUrl = null, status = 'published', ingredients, steps
 }) => {
   // Get a dedicated client from the pool (Required for Transactions)

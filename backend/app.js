@@ -29,6 +29,7 @@ app.use(cors({
   origin: [
     'http://localhost:5173', // Cho phép Localhost của bạn (Frontend)
     'http://localhost:3000', // Phòng hờ nếu bạn chạy port khác
+    'https://cookieproject-1.onrender.com'
     // Sau này deploy frontend lên Vercel thì thêm link vào đây, ví dụ:
     // 'https://cookieproject.vercel.app' 
   ],

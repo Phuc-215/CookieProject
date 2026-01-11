@@ -16,6 +16,9 @@ export const registerApi = (data: {
 export const verifyEmailApi = (code: string) =>
   api.post('/auth/verify-email', { code });
 
+export const resendVerificationApi = (email: string) =>
+  api.post('/auth/resend-verification', { email });
+
 export const refreshApi = (refreshToken: string) =>
   api.post('/auth/refresh', { refreshToken });
 

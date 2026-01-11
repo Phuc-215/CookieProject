@@ -49,8 +49,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signup = (user: Viewer) => {
-    setViewer(user);
-    localStorage.setItem("user", JSON.stringify(user));
+    // Don't set viewer or tokens yet - user must verify email first
+    // Verification endpoint will call login() with tokens
+    console.log('Signup completed for:', user.email);
   };
 
   const logout = async () => {

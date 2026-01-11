@@ -1,4 +1,4 @@
-const { supabase } = require('../config/supabaseClient');
+const { supabase } = require('../config/supabase');
 
 /**
  * Helper function to upload file buffer to Supabase Storage

@@ -73,6 +73,8 @@ export function Login({ onLogin }: LoginProps) {
       localStorage.setItem('userId', res.data.user.id);
       setTokens(res.data.accessToken, res.data.refreshToken);
       localStorage.setItem('user', JSON.stringify(res.data.user));
+      // Clear pending verification flag - user is verified
+      localStorage.removeItem('pendingVerification');
       onLogin(res.data.user);
       nav.home();
     } catch (err: unknown) {

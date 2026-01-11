@@ -11,14 +11,15 @@ export default function ProtectedRoute() {
     return <Navigate to="/login" replace />;
   }
 
-  // If user just signed up and hasn't verified, redirect to verify page
-  if (pendingVerification && location.pathname !== '/verify-email') {
-    return <Navigate to="/verify-email" replace />;
-  }
-
-  // Check if user object exists (it should have verification status)
+  // If user has token but no user object, something is wrong
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // If pending verification BUT user still doesn't have token, redirect to verify
+  // (This happens when user just signed up or failed login with EMAIL_NOT_VERIFIED)
+  if (pendingVerification && !token && location.pathname !== '/verify-email') {
+    return <Navigate to="/verify-email" replace />;
   }
 
   return <Outlet />;

@@ -26,8 +26,8 @@ const cors = require('cors');
 
 app.use(cors({
   origin: [
-    'http://localhost:5173',               // Cho phép chạy Local
-    'https://cookieproject-3r3qga4mq-vkb0205s-projects.vercel.app'    // <--- THÊM LINK VERCEL CỦA BẠN VÀO ĐÂY
+    // 'http://localhost:5173',               // Cho phép chạy Local
+    'https://cookieproject.vercel.app/'    // <--- THÊM LINK VERCEL CỦA BẠN VÀO ĐÂY
   ],
   credentials: true 
 }));

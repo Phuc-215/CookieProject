@@ -32,7 +32,8 @@ export interface RecipeStep {
 export interface Ingredient {
   id: string;
   name: string;
-  quantity: string;
+  amount: number;
+  unit: string;
 }
 
 export interface RecipeFormData {

@@ -59,7 +59,7 @@ export function RecipeForm({
       servings: null,
       mainImage: null,
       ingredients: [],
-      steps: [{ id: Date.now().toString(), stepNumber: 1, description: '', images: [] }],
+      steps: [{ id: Date.now().toString(), stepNumber: 1, description: '', image_urls: [] }],
     },
   });
 
@@ -79,7 +79,8 @@ export function RecipeForm({
   // Temporary input state for adding new ingredients
   const [loading, setLoading] = useState(false);
   const [newIngredientName, setNewIngredientName] = useState('');
-  const [newIngredientQuantity, setNewIngredientQuantity] = useState('');
+  const [newIngredientAmount, setNewIngredientAmount] = useState<number | ''>('');
+  const [newIngredientUnit, setNewIngredientUnit] = useState('');
 
   // Track which fields have been touched by the user / ユーザーが触れたフィールドを追跡
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
@@ -97,7 +98,7 @@ export function RecipeForm({
 
   /* ===== INGREDIENT ===== */
   const handleAddIngredient = () => {
-    if (!newIngredientName || !newIngredientQuantity) return;
+    if (!newIngredientName || newIngredientAmount === '' || !newIngredientUnit) return;
 
     markFieldTouched('ingredients');
     const currentIngredients = getValues('ingredients');
@@ -106,12 +107,14 @@ export function RecipeForm({
       {
         id: Date.now().toString(),
         name: newIngredientName,
-        quantity: newIngredientQuantity,
+        amount: typeof newIngredientAmount === 'number' ? newIngredientAmount : parseFloat(newIngredientAmount) || 0,
+        unit: newIngredientUnit,
       },
     ]);
 
     setNewIngredientName('');
-    setNewIngredientQuantity('');
+    setNewIngredientAmount('');
+    setNewIngredientUnit('');
   };
 
   const handleRemoveIngredient = (id: string) => {
@@ -129,7 +132,7 @@ export function RecipeForm({
     const currentSteps = getValues('steps');
     setValue('steps', [
       ...currentSteps,
-      { id: Date.now().toString(), stepNumber: currentSteps.length + 1, description: '', images: [] },
+      { id: Date.now().toString(), stepNumber: currentSteps.length + 1, description: '', image_urls: [] },
     ]);
   };
 
@@ -162,14 +165,14 @@ export function RecipeForm({
       currentSteps.map(s => {
         if (s.id !== id) return s;
 
-        const currentImages = s.images || [];
+        const currentImages = s.image_urls || [];
 
         const remain = MAX_STEP_IMAGES - currentImages.length;
         const newImages = Array.from(files)
           .slice(0, remain)
           .map(f => URL.createObjectURL(f));
 
-        return { ...s, images: [...currentImages, ...newImages] };
+        return { ...s, image_urls: [...currentImages, ...newImages] };
       })
     );
   };
@@ -180,7 +183,7 @@ export function RecipeForm({
       'steps',
       currentSteps.map(s =>
         s.id === stepId
-          ? { ...s, images: s.images.filter(i => i !== image) }
+          ? { ...s, image_urls: s.image_urls.filter(i => i !== image) }
           : s
       )
     );
@@ -198,10 +201,10 @@ export function RecipeForm({
         s.id === stepId
           ? {
               ...s,
-              images: arrayMove(
-                s.images,
-                s.images.indexOf(activeId),
-                s.images.indexOf(overId)
+              image_urls: arrayMove(
+                s.image_urls,
+                s.image_urls.indexOf(activeId),
+                s.image_urls.indexOf(overId)
               ),
             }
           : s
@@ -229,9 +232,6 @@ export function RecipeForm({
     const file = e.target.files?.[0];
     if (file) setValue('mainImage', URL.createObjectURL(file));
   };
-
-  /* ===== SUBMIT ===== */
-  const buildData = (): RecipeFormData => getValues();
 
   /* ===== VALIDATION ===== */
   // Validation function: Compute errors with given touched fields set
@@ -356,19 +356,6 @@ export function RecipeForm({
     } catch (error) {
       console.error(`Error saving ${status}:`, error);
       alert(`Failed to save ${status}.`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePublish = async (data: RecipeFormData) => {
-    console.log('Publish', data);
-    try {
-      setLoading(true);
-      const response = await createRecipeApi(data);
-      console.log('response', response);
-    } catch (error) {
-      console.error('Error publishing recipe', error);
     } finally {
       setLoading(false);
     }
@@ -569,11 +556,25 @@ export function RecipeForm({
                   placeholder="Name: e.g. Flour"
                   value={newIngredientName}
                   onChange={e => setNewIngredientName(e.target.value)}
+                  className="flex-1"
                 />
                 <PixelInput
-                  placeholder="Quantity: e.g. 200g"
-                  value={newIngredientQuantity}
-                  onChange={e => setNewIngredientQuantity(e.target.value)}
+                  placeholder="Amount: e.g. 200"
+                  type="number"
+                  value={newIngredientAmount}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setNewIngredientAmount(val === '' ? '' : parseFloat(val) || '');
+                  }}
+                  min="0"
+                  step="0.01"
+                  className="flex-1"
+                />
+                <PixelInput
+                  placeholder="Unit: e.g. g, ml, cups"
+                  value={newIngredientUnit}
+                  onChange={e => setNewIngredientUnit(e.target.value)}
+                  className="flex-1"
                 />
                 <PixelButton variant="secondary" onClick={handleAddIngredient}>
                   <Plus className="w-4 h-4" />
@@ -591,10 +592,10 @@ export function RecipeForm({
                   {ingredients.map(i => (
                     <PixelTag
                       key={i.id}
-                      label={`${i.name} - ${i.quantity}`}
+                      label={`${i.name} - ${i.amount} ${i.unit}`}
                       removable
                       variant="green"
-                      onRemove={() => handleRemoveIngredient(i.id)}
+                      onRemove={() => handleRemoveIngredient(i.id!)}
                     />
                   ))}
                 </div>
@@ -685,7 +686,6 @@ export function RecipeForm({
               const isFormValid = Object.keys(result.errors).length === 0 && Object.keys(result.stepErrors).length === 0;
               
               if (isFormValid) {
-                // handlePublish(buildData());
                 handleSave('published');
               }
             }}

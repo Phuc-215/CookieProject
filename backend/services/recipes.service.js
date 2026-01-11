@@ -198,9 +198,9 @@ exports.saveRecipe = async ({
             ingredientId = insertIngRes.rows[0].id;
             }
 
-            await client.query(
+            const insertResult = await client.query(
             `INSERT INTO public.recipe_ingredients (recipe_id, ingredient_id, amount, unit) 
-            VALUES ($1, $2, $3, $4)`,
+            VALUES ($1, $2, $3, $4) RETURNING *`,
             [recipeId, ingredientId, item.amount, item.unit]
             );
         }
@@ -236,12 +236,14 @@ exports.saveRecipe = async ({
         deleteFromSupabase(imageToDelete).catch(err => console.error("Cleanup failed:", err));
     }
 
-    // Return success
+    // Return the recipe ID
+    return { id: recipeId };
 
   } catch (error) {
     // --- ROLLBACK on any error ---
     await client.query('ROLLBACK');
     console.error("Transaction Error:", error);
+    throw error; // Re-throw to be handled by controller
   } finally {
     // 3. Release the client back to the pool
     client.release();

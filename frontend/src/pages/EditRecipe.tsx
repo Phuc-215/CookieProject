@@ -57,6 +57,22 @@ export function EditRecipe() {
         setCategories(categoriesRes.data.categories);
         const apiData = recipeRes.data.data;
         
+        // Transform ingredients from backend format (name, amount, unit) to form format
+        const transformedIngredients = (apiData.ingredients || []).map((ing: any, index: number) => ({
+          id: `ing_${index}_${Date.now()}`,
+          name: ing.name,
+          amount: ing.amount,
+          unit: ing.unit,
+        }));
+
+        // Transform steps from backend format
+        const transformedSteps = (apiData.steps || []).map((step: any, index: number) => ({
+          id: `step_${index}_${Date.now()}`,
+          stepNumber: step.step_number,
+          description: step.description,
+          image_urls: step.image_urls || [],
+        }));
+
         const formattedData: RecipeFormData = {
             id: apiData.id,
             title: apiData.title,
@@ -66,8 +82,8 @@ export function EditRecipe() {
             cookTime: apiData.cook_time_min,
             servings: apiData.servings,
             mainImage: apiData.thumbnail_url || apiData.mainImage,
-            ingredients: apiData.ingredients || [],
-            steps: apiData.steps || [],
+            ingredients: transformedIngredients,
+            steps: transformedSteps,
         };
 
         setRecipeData(formattedData);

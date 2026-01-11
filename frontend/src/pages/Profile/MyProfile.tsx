@@ -14,6 +14,7 @@ const DRAFT_RECIPES = [
     author: 'You',
     difficulty: 'Medium' as const,
     time: '45 min',
+    cookTime: '45 min',
     likes: 0,
   },
 ];
@@ -31,7 +32,7 @@ interface MyProfileProps {
   onLogout: () => void;
 }
 
-export function MyProfile({ isLoggedIn, viewer, onLogout }: MyProfileProps) {
+export function MyProfile({ isLoggedIn, viewer, onLogout: _onLogout }: MyProfileProps) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [recipes, setRecipes] = useState<RecipeCard[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -89,17 +90,25 @@ export function MyProfile({ isLoggedIn, viewer, onLogout }: MyProfileProps) {
         // B. Handle Recipes
         if (recipesRes.status === 'fulfilled') {
           const rawRecipes = recipesRes.value.data.recipes || [];
-          const transformed: RecipeCard[] = rawRecipes.map((r: any) => ({
-            id: r.id,
-            title: r.title,
-            image: r.thumbnail_url || r.image, // Check backend field name
-            author: profileRes.status === 'fulfilled' ? profileRes.value.data.username : 'Me',
-            difficulty: 'Medium' as const, // Map from backend if available
-            cookTime: r.cook_time ? `${r.cook_time} min` : '30 min',
-            likes: r.likes_count || 0,
-            isLiked: false,
-            isSaved: false,
-          }));
+          const transformed: RecipeCard[] = rawRecipes.map((r: any) => {
+            const difficulty = r.difficulty
+              ? (r.difficulty.charAt(0).toUpperCase() + r.difficulty.slice(1).toLowerCase()) as RecipeCard['difficulty']
+              : 'Medium';
+            const cookMinutes = r.cook_time_min ?? r.cook_time;
+            const timeStr = cookMinutes ? `${cookMinutes} min` : '30 min';
+            return {
+              id: String(r.id),
+              title: r.title,
+              image: r.thumbnail_url || r.image,
+              author: profileRes.status === 'fulfilled' ? profileRes.value.data.username : 'Me',
+              difficulty,
+              time: timeStr,
+              cookTime: timeStr,
+              likes: r.likes_count || 0,
+              isLiked: Boolean(r.is_liked),
+              isSaved: Boolean(r.is_saved),
+            };
+          });
           safeSet(setRecipes, transformed);
         } else {
           console.warn('Failed to load recipes', recipesRes.reason);
@@ -108,8 +117,17 @@ export function MyProfile({ isLoggedIn, viewer, onLogout }: MyProfileProps) {
         // C. Handle Collections (New)
         if (collectionsRes.status === 'fulfilled') {
           console.log(collectionsRes);
-          // Transform if necessary, or pass raw if it matches interface
-          safeSet(setCollections, collectionsRes.value.data.data);
+          const rawCollections = collectionsRes.value.data.collections || [];
+          const mapped: Collection[] = rawCollections.map((c: any) => ({
+            id: c.id,
+            title: c.title,
+            ownerUsername: profileRes.status === 'fulfilled' ? profileRes.value.data.username : viewer?.username || 'Me',
+            coverImages: Array.isArray(c.image) ? c.image : [],
+            description: c.description || '',
+            recipeIds: [],
+            recipeCount: 0,
+          }));
+          safeSet(setCollections, mapped);
         } else {
           console.warn('Failed to load collections', collectionsRes.reason);
         }
@@ -166,6 +184,7 @@ export function MyProfile({ isLoggedIn, viewer, onLogout }: MyProfileProps) {
     following: profile?.following_count || 0,
     bio: profile?.bio || '',
     avatarUrl: profile?.avatar_url || viewer?.avatar_url || null,
+    recipes: profile?.recipes_count ?? recipes.length,
   };
 
   return (

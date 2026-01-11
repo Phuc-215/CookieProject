@@ -11,7 +11,7 @@ exports.getPublicProfile = async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT id, username, email, is_verified, avatar_url, bio, followers_count, following_count
+      `SELECT id, username, email, is_verified, avatar_url, bio, followers_count, following_count, recipes_count
        FROM users
        WHERE id = $1`,
       [userId]
@@ -31,6 +31,7 @@ exports.getPublicProfile = async (req, res) => {
       bio: user.bio || '',
       followers_count: user.followers_count || 0,
       following_count: user.following_count || 0,
+      recipes_count: user.recipes_count || 0,
     });
   } catch (err) {
     console.error('getPublicProfile error:', err);
@@ -174,12 +175,14 @@ exports.getUserRecipes = async (req, res) => {
       return res.status(400).json({ message: 'INVALID_USER_ID' });
     }
 
-    // Try querying recipes table; if not exists, return []
+    // Show all statuses for now to ensure recipes appear on profile
+    const statusFilter = '';
+
     try {
       const result = await pool.query(
-        `SELECT id, title, thumbnail_url AS image, created_at
+        `SELECT id, title, thumbnail_url AS image, created_at, difficulty, cook_time_min, status, likes_count
          FROM recipes
-         WHERE user_id = $1 AND status = 'published'
+         WHERE user_id = $1 ${statusFilter}
          ORDER BY created_at DESC`,
         [userId]
       );

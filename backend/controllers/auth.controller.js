@@ -17,7 +17,7 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Return user info WITHOUT tokens - must verify email first
+    // Return user info wwithout tokens - must verify email first
     res.status(201).json({
       message: 'Registration successful. Please check your email to verify your account.',
       user: result.user
@@ -26,7 +26,7 @@ exports.register = async (req, res) => {
   } catch (err) {
     console.error(err);
 
-    // fallback n?u DB unique constraint b?n l?i
+    // fallback if DB unique constraint violation
     if (err.code === '23505') {
       return res.status(409).json({
         message: 'Username or email already exists'
@@ -126,7 +126,7 @@ exports.resendVerification = async (req, res) => {
 
 exports.refresh = async (req, res) => {
   try {
-    const result = await authService.refreshToken(req.body.refreshToken);
+    const result = await authService.refreshToken(req.body.refreshToken); // Pass the refreshToken
 
     if (result.error) {
       return res.status(401).json({ message: result.error });
@@ -190,7 +190,7 @@ exports.verifyPassword = async (req, res) => {
   try {
     const { password } = req.body;
     
-    if (!password) {
+    if (!password) { // Ensure password is provided
       return res.status(400).json({ message: 'PASSWORD_REQUIRED' });
     }
 
@@ -210,7 +210,7 @@ exports.verifyPassword = async (req, res) => {
 
 exports.changePassword = async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
+    const { currentPassword, newPassword } = req.body; // Destructure current and new passwords
     
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ message: 'CURRENT_AND_NEW_PASSWORD_REQUIRED' });
@@ -227,6 +227,7 @@ exports.changePassword = async (req, res) => {
       return res.status(400).json({ message: result.error });
     }
 
+    // Success
     res.json({ message: 'Password changed successfully' });
   } catch (err) {
     console.error('CHANGE PASSWORD ERROR:', err);

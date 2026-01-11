@@ -230,7 +230,10 @@ export function Signup() {
                   <button
                     type="button"
                     className="underline hover:text-[var(--mint)] uppercase"
-                    onClick={(e) => e.stopPropagation()} 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      nav.terms();
+                    }} 
                   >
                     Terms of Service
                   </button>{' '}
@@ -238,7 +241,10 @@ export function Signup() {
                   <button
                     type="button"
                     className="underline hover:text-[var(--mint)] uppercase"
-                    onClick={(e) => e.stopPropagation()} 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      nav.privacy();
+                    }} 
                   >
                     Privacy Policy
                   </button>

@@ -1,6 +1,7 @@
 // services/recipes.service.js
 const { pool } = require('../config/db');
 const { deleteFromSupabase } = require('../utils/storage')
+const notificationService = require('./notifications.service');
 
 exports.getById = async (recipeId, currentUserId) => {
   const client = await pool.connect();
@@ -105,11 +106,12 @@ exports.saveRecipe = async ({
         console.log("UPDATE");
         // --- UPDATE DRAFT ---
         const oldRes = await client.query(
-            `SELECT thumbnail_url FROM public.recipes WHERE id = $1`, 
+            `SELECT thumbnail_url, status FROM public.recipes WHERE id = $1`, 
             [recipeId]
         );
 
         const oldThumbnailUrl = oldRes.rows[0]?.thumbnail_url;
+        const oldStatus = oldRes.rows[0]?.status;
 
         const fieldsToUpdate = [];
         const values = [];
@@ -234,6 +236,13 @@ exports.saveRecipe = async ({
     // --- STEP D: Commit Transaction ---
     await client.query('COMMIT');
 
+    // Trigger notification if recipe was just published (status changed to 'published')
+    if (recipeId && status === 'published' && oldStatus && oldStatus !== 'published') {
+        await notificationService.triggerNewRecipeNotification(userId, recipeId).catch(err => 
+            console.error('New recipe notification error:', err)
+        );
+    }
+
     if (imageToDelete) {
         deleteFromSupabase(imageToDelete).catch(err => console.error("Cleanup failed:", err));
     }
@@ -291,7 +300,7 @@ exports.likeRecipe = async (userId, recipeId) => {
             VALUES ($1, $2, NOW())
             ON CONFLICT DO NOTHING
         `;
-        await client.query(insertLikeText, [userId, recipeId]);
+        const result = await client.query(insertLikeText, [userId, recipeId]);
 
         // Update likes count
         const updateLikesCountText = `
@@ -302,6 +311,13 @@ exports.likeRecipe = async (userId, recipeId) => {
         await client.query(updateLikesCountText, [recipeId]);
 
         await client.query('COMMIT');
+        
+        // Trigger notification (only if new like was inserted)
+        if (result.rowCount > 0) {
+            await notificationService.triggerLikeNotification(userId, recipeId).catch(err => 
+                console.error('Like notification error:', err)
+            );
+        }
     } catch (err) {
         await client.query('ROLLBACK');
         throw err;
@@ -346,6 +362,12 @@ exports.addComment = async (userId, recipeId, content) => {
         RETURNING id, user_id, recipe_id, content, created_at
     `;
     const result = await pool.query(insertCommentText, [userId, recipeId, content]);
+    
+    // Trigger notification
+    await notificationService.triggerCommentNotification(userId, recipeId, content).catch(err => 
+        console.error('Comment notification error:', err)
+    );
+    
     return result.rows[0];
 };
 

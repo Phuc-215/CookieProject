@@ -452,7 +452,7 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
             <>
               <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8`}>
                 {recipes.map(recipe => (
-                  <RecipeCard 
+                  <RecipeCard
                     key={recipe.id}
                     id={recipe.id.toString()}
                     title={recipe.title} 
@@ -460,7 +460,9 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
                     image={recipe.thumbnail_url || 'https://via.placeholder.com/600'}
                     time={`${recipe.cook_time_min || 0} min`} 
                     difficulty={recipe.difficulty} 
+                    isSaved={recipe.in_user_collections || false}
                     likes={recipe.likes_count || 0}
+                    isLiked={recipe.user_liked || false}
                     onClick={() => nav.recipe(recipe.id.toString())}
                   />
                 ))}

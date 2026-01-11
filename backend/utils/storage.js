@@ -1,4 +1,5 @@
 const { supabase } = require('../config/supabase');
+const path = require('path');
 
 /**
  * Helper function to upload file buffer to Supabase Storage
@@ -11,7 +12,7 @@ async function uploadToSupabase(file, bucket = 'cookie-media', folder) {
   try {
     const orig = file.originalname.split('.').pop();
     const ext = (path.extname(orig) || '').toLowerCase().replace('.', '') || 'png';
-    const objectPath = `${folder}/${Date.now()}.${ext}`;
+    const objectPath = `${Date.now()}.${ext}`;
 
     const { error } = await supabase
       .storage

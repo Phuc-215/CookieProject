@@ -6,7 +6,7 @@ import { useNav } from '../hooks/useNav';
 import { AddToCollectionModal } from "@/components/modals/AddToCollectionModal";
 import { getDetailApi, likeRecipeApi, unlikeRecipeApi } from '@/api/recipe.api';
 import { CommentSection } from '../components/CommentSection'; 
-
+import {addRecipeToCollectionApi} from '@/api/collection.api';
 // --- Backend Response Interface ---
 interface BackendRecipeData {
   id: number;
@@ -82,9 +82,10 @@ export function RecipeDetail({ isLoggedIn = false }: RecipeDetailProps) {
       try {
         setIsLoading(true);
         // fetch raw data
-        const response = await getDetailApi(id);
+        const user = isLoggedIn ? JSON.parse(localStorage.getItem("user") || '{}') : null;
+        const currentUserId = user ? user.id : null;
+        const response = await getDetailApi(id, currentUserId);
         const raw = response.data.data as unknown as BackendRecipeData; // Access the inner data from controller response
-
         // --- MAPPING LOGIC (Backend -> Frontend Adapter) ---
         const mappedRecipe: RecipeData = {
           id: raw.id.toString(),
@@ -160,7 +161,19 @@ export function RecipeDetail({ isLoggedIn = false }: RecipeDetailProps) {
       setLikes(previousCount);
     }
   };
-  
+
+  const handleAddToJar = (recipeId: string) => async (jarId: string) => {
+    try {
+        await addRecipeToCollectionApi(jarId, recipeId);
+        setIsSaved(true);
+    } catch (error) {
+        console.error("Failed to add to collection", error);
+        alert("Failed to save recipe");
+    }
+    finally {
+        setShowAddToJar(false);
+    }
+  };
   const handleBookmark = () => {
     if (!isLoggedIn) {
       navigate('/login');
@@ -194,13 +207,11 @@ export function RecipeDetail({ isLoggedIn = false }: RecipeDetailProps) {
     navigate('/login');
   };
   const user = JSON.parse(localStorage.getItem("user") || '{}');
-  console.log("User from localStorage:", user);
   const currentUserData = {
     id: user.id || '',
     name: user?.username || 'Guest',
     avatar: user?.avatar_url || '',
   };
-  console.log("Current User Data:", currentUserData);
   const activeUser = isLoggedIn ? currentUserData : null;
 
   // --- RENDER: LOADING STATE ---
@@ -420,11 +431,7 @@ export function RecipeDetail({ isLoggedIn = false }: RecipeDetailProps) {
         {showAddToJar && recipe && (
           <AddToCollectionModal
             onClose={() => setShowAddToJar(false)}
-            onAdd={(jarId) => {
-              console.log('Add recipe', recipe.id, 'to jar', jarId);
-              setIsSaved(true);
-              setShowAddToJar(false);
-            }}
+            onAdd={handleAddToJar(recipe.id)}
           />
         )}
       </div>

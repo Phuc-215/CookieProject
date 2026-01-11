@@ -7,6 +7,7 @@ exports.getById = async (recipeId, currentUserId) => {
   const client = await pool.connect();
   try {
     // 1. Updated Query: Includes is_liked and is_saved checks
+    console.log("Fetching recipe by ID:", recipeId, "for user:", currentUserId);
     const query = `
       SELECT r.*, 
              u.id as author_id,
@@ -23,13 +24,16 @@ exports.getById = async (recipeId, currentUserId) => {
                JOIN public.collections c ON cr.collection_id = c.id 
                WHERE cr.recipe_id = r.id AND c.user_id = $2
              ) as is_saved
+             c.name as category
       FROM public.recipes r
       JOIN public.users u ON r.user_id = u.id
+      LEFT JOIN public.categories c ON r.category_id = c.id
       WHERE r.id = $1
     `;
 
     // Pass currentUserId (can be null for guests)
     const res = await client.query(query, [recipeId, currentUserId]);
+    console.log("Recipe query result:", res.rows);
 
     if (res.rows.length === 0) return null;
     const recipe = res.rows[0];
@@ -59,6 +63,7 @@ exports.getById = async (recipeId, currentUserId) => {
 
     return {
       ...recipe,
+      category: recipe.category,
       ingredients: ingRes.rows,
       steps: stepsRes.rows
     };
@@ -72,6 +77,7 @@ exports.saveRecipe = async ({
   recipeId, userId, title, difficulty = 'easy', category, servings, 
   cookTime, thumbnailUrl = null, status = 'published', ingredients, steps
 }) => {
+  console.log('saveRecipe', recipeId, userId, title, difficulty, category, servings, cookTime, thumbnailUrl, status, ingredients, steps);
   // Get a dedicated client from the pool (Required for Transactions)
   const client = await pool.connect();
   let imageToDelete = null;
@@ -118,9 +124,10 @@ exports.saveRecipe = async ({
         const values = [];
         let paramIndex = 1;
 
-        const addField = (col, val) => {
+        const addField = (col, val, cast = null) => {
             if (val !== undefined) {
-                fieldsToUpdate.push(`${col} = $${paramIndex++}`);
+                const castStr = cast ? `::${cast}` : '';
+                fieldsToUpdate.push(`${col} = $${paramIndex++}${castStr}`);
                 values.push(val);
             }
         };
@@ -147,18 +154,18 @@ exports.saveRecipe = async ({
             if (updateRes.rowCount === 0) {
                 throw new Error("Recipe not found or permission denied.");
             }
-        }
 
-        // CLEAR OLD RELATIONS (Wipe & Rewrite Strategy / Delete & Re-insert)
-        /*
-        Trying to calculate the "Diff" (e.g., "User changed Step 2, deleted Step 3, and added Step 4") is extremely complex and error-prone.
-        "Wipe and Rewrite" is fast, safe, and ensures the database exactly matches what is on the user's screen.
-        */
-        await client.query(`DELETE FROM public.recipe_ingredients WHERE recipe_id = $1`, [recipeId]);
-        await client.query(`DELETE FROM public.steps WHERE recipe_id = $1`, [recipeId]);
+            // CLEAR OLD RELATIONS (Wipe & Rewrite Strategy / Delete & Re-insert)
+            /*
+            Trying to calculate the "Diff" (e.g., "User changed Step 2, deleted Step 3, and added Step 4") is extremely complex and error-prone.
+            "Wipe and Rewrite" is fast, safe, and ensures the database exactly matches what is on the user's screen.
+            */
+            await client.query(`DELETE FROM public.recipe_ingredients WHERE recipe_id = $1`, [recipeId]);
+            await client.query(`DELETE FROM public.steps WHERE recipe_id = $1`, [recipeId]);
 
-        if (oldThumbnailUrl && data.thumbnailUrl && oldThumbnailUrl !== data.thumbnailUrl) {
-            imageToDelete = oldThumbnailUrl;
+            if (oldThumbnailUrl && updateRes.thumbnailUrl && oldThumbnailUrl !== updateRes.thumbnailUrl) {
+                imageToDelete = oldThumbnailUrl;
+            }
         }
 
     } else {
@@ -185,6 +192,7 @@ exports.saveRecipe = async ({
     // --- STEP B: Process Ingredients ---
     if (ingredients && ingredients.length > 0) {
         for (const item of ingredients) {
+            console.log(item);
             let ingredientId;
 
             // Find existing ingredient by name (Case insensitive)
@@ -203,13 +211,15 @@ exports.saveRecipe = async ({
             ingredientId = insertIngRes.rows[0].id;
             }
 
-            await client.query(
+            const insertResult = await client.query(
             `INSERT INTO public.recipe_ingredients (recipe_id, ingredient_id, amount, unit) 
-            VALUES ($1, $2, $3, $4)`,
+            VALUES ($1, $2, $3, $4) RETURNING *`,
             [recipeId, ingredientId, item.amount, item.unit]
             );
         }
     }
+
+    console.log("HELLO");
 
     // --- STEP C: Process Steps & Images ---
     if (steps && steps.length > 0) {
@@ -248,12 +258,14 @@ exports.saveRecipe = async ({
         deleteFromSupabase(imageToDelete).catch(err => console.error("Cleanup failed:", err));
     }
 
-    // Return success
+    // Return the recipe ID
+    return { id: recipeId };
 
   } catch (error) {
     // --- ROLLBACK on any error ---
     await client.query('ROLLBACK');
     console.error("Transaction Error:", error);
+    throw error; // Re-throw to be handled by controller
   } finally {
     // 3. Release the client back to the pool
     client.release();
@@ -294,7 +306,7 @@ exports.likeRecipe = async (userId, recipeId) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-
+        console.log("Liking recipe:", recipeId, "by user:", userId);
         // Insert like record
         const insertLikeText = `
             INSERT INTO likes (user_id, recipe_id, created_at)

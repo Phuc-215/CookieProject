@@ -1,11 +1,9 @@
 import { getCategoriesListApi } from '@/api/category.api';
 import { RecipeForm } from '@/components/RecipeForm';
-import { useNav } from '@/hooks/useNav';
 import { Category } from '@/types/Category';
 import { useEffect, useState } from 'react';
 
 export function CreateRecipe() {
-  const nav = useNav();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
@@ -33,8 +31,6 @@ export function CreateRecipe() {
       ) : (
         <RecipeForm
           mode="create"
-          onSaveDraft={() => nav.home()}
-          onPublish={() => nav.home()}
           categories={categories}
         />
       )}

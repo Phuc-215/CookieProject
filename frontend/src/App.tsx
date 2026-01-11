@@ -9,6 +9,7 @@ import { PublicProfile } from "./pages/Profile/PublicProfile";
 import { MyProfile } from "./pages/Profile/MyProfile";
 import { EditProfile } from "./pages/EditProfile";
 import { CreateRecipe } from "./pages/CreateRecipe";
+import { EditRecipe } from "./pages/EditRecipe";
 import { RecipeDetail } from "./pages/RecipeDetail"; // Quan trọng
 import { Login } from "./pages/LoginPage";
 import { Signup } from "./pages/SignupPage";
@@ -51,7 +52,7 @@ export default function App() {
             <Route path="/me" element={<MyProfile isLoggedIn={isLoggedIn} viewer={viewer} onLogout={logout} />} />
             <Route path="/edit-profile" element={<EditProfile viewer={viewer} onLogout={logout} />} />
             <Route path="/create" element={<CreateRecipe />} />
-            <Route path="/edit/:id" element={<CreateRecipe />} />
+            <Route path="/edit/:id" element={<EditRecipe />} />
             <Route path="/notifications" element={<Notifications isLoggedIn={isLoggedIn} onLogout={logout} />} />
             <Route path="/edit-collection/:id" element={<EditCollection mode="edit" />} />
             <Route path="/collections/new" element={<EditCollection mode="create" />} />
@@ -59,7 +60,7 @@ export default function App() {
 
 
         {/* Default */}
-        <Route path="*" element={<Error isLoggedIn={isLoggedIn} onLogout={logout} />} />
+        <Route path="*" element={<Error />} />
 
         </Route>
       </Routes>

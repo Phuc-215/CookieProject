@@ -3,8 +3,6 @@ import { useParams } from "react-router-dom";
 import { RecipeCard } from "@/components/RecipeCard";
 import { Headline } from "@/pages/HomeFeed/Headline";
 import { useNav } from "@/hooks/useNav";
-import { MOCK_RECIPES } from "@/mocks/mock_recipe";
-import { MOCK_COLLECTIONS } from "@/mocks/mock_collection";
 import { getCollectionDetailApi } from "@/api/collection.api";
 import { Pencil, Loader2} from "lucide-react";
 import type { RecipeCard as RecipeCardType } from '@/types/Recipe'
@@ -29,6 +27,7 @@ interface CollectionDetail {
   is_private: boolean;
   owner_name: string;
   recipes: RecipeCardType[];
+  recipeCount?: number;
 }
 
 export function CollectionPage({
@@ -83,18 +82,6 @@ export function CollectionPage({
     };
   }, [id]);
 
-  // const isOwner = isLoggedIn && viewer?.id === collection?.id;
-
-  // const collection = MOCK_COLLECTIONS.find(c => c.id === id);
-
-  // if (!collection) {
-  //   return <div>Collection not found</div>;
-  // }
-  
-  // const recipesInCollection = MOCK_RECIPES.filter(recipe =>
-  //   collection.recipeIds.includes(recipe.id)
-  // );
-
   const isOwner = isLoggedIn && String(viewer?.id) === String(collection?.user_id);
 
   if (loading) {
@@ -128,7 +115,7 @@ export function CollectionPage({
     <section className="max-w-7xl mx-auto px-4 py-10">
     <div className="pixel-card bg-white p-6 flex gap-6 items-start">
         <img
-        src={collection.cover_images[0]}
+        src={collection.cover_images[0] || 'https://via.placeholder.com/150'}
         className="w-48 h-48 pixel-border object-cover"
         />
 
@@ -168,8 +155,7 @@ export function CollectionPage({
     </div>
     </section>
 
-
-      <section className="max-w-7xl mx-auto px-4 pb-12">
+        <section className="max-w-7xl mx-auto px-4 pb-12">
         <Headline>RECIPES</Headline>
 
         <div className="grid grid-cols-3 gap-6 mt-6">
@@ -177,6 +163,9 @@ export function CollectionPage({
             <RecipeCard
               key={recipe.id}
               {...recipe}
+              // FIX: Explicitly check for isLiked from DB response
+              isLiked={recipe.isLiked || (recipe as any).is_liked || false}
+              isSaved={recipe.isSaved || (recipe as any).is_saved || false}
               canRemove={isOwner}
               onRemove={() => console.log("remove", recipe.id)}
               onClick={() => nav.recipe(recipe.id)}

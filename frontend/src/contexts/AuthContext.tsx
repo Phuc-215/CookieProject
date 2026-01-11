@@ -20,11 +20,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return user ? JSON.parse(user) : null;
   });
 
-  const isLoggedIn = Boolean(localStorage.getItem("accessToken"));
+  const isLoggedIn = Boolean(viewer && localStorage.getItem("accessToken"));
 
   // Fetch full user profile on mount if user is logged in
   useEffect(() => {
-    if (isLoggedIn && viewer?.id) {
+    const accessToken = localStorage.getItem("accessToken");
+    if (accessToken && viewer?.id) {
       getUserProfileApi(viewer.id)
         .then((res) => {
           const updatedUser: Viewer = {
@@ -40,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error('Failed to fetch user profile:', err);
         });
     }
-  }, []);
+  }, [viewer?.id]);
 
   const login = (user: Viewer) => {
     setViewer(user);
@@ -48,8 +49,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signup = (user: Viewer) => {
-    setViewer(user);
-    localStorage.setItem("user", JSON.stringify(user));
+    // Don't set viewer or tokens yet - user must verify email first
+    // Verification endpoint will call login() with tokens
+    console.log('Signup completed for:', user.email);
   };
 
   const logout = async () => {

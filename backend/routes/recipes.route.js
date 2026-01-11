@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/recipes.controller');
-const { requireAuth } = require('../middlewares/auth.middleware');
+const { requireAuth, requireVerifiedEmail } = require('../middlewares/auth.middleware');
 const { upload } = require('../middlewares/upload.middleware');
 const { RecipeSchema } = require('../validations/recipe.validation');
 const { validate } = require('../middlewares/validate.middleware');
 
 router.get('/:id', controller.getDetail);
 
-router.use(requireAuth);
+router.use(requireAuth, requireVerifiedEmail);
 
 // Publish recipe
 router.post('/create', upload.any(), validate(RecipeSchema), controller.saveRecipe);

@@ -1,16 +1,21 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
-import { verifyEmailApi } from '../api/auth.api';
+import { verifyEmailApi, resendVerificationApi } from '../api/auth.api';
 import { PixelButton } from '../components/PixelButton';
 import verify_hamster from '../assets/signup_hamster.svg';
+import { setTokens } from '@/utils/token';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function VerifyEmail() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [code, setCode] = useState<string>('');
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [verifyStatus, setVerifyStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [resendMessage, setResendMessage] = useState<string>('');
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 6);
@@ -28,19 +33,53 @@ export function VerifyEmail() {
       setVerifyStatus('loading');
       setErrorMessage('');
 
-      await verifyEmailApi(code);
+      const res = await verifyEmailApi(code);
+
+      // Save tokens and user info after successful verification
+      setTokens(res.data.accessToken, res.data.refreshToken);
+      login(res.data.user);
+      
+      // Clear pending verification flag
+      localStorage.removeItem('pendingVerification');
 
       setVerifyStatus('success');
-      // Redirect to home after 3 seconds
+      // Redirect to home after 1.5 seconds
       setTimeout(() => {
         navigate('/');
-      }, 3000);
+      }, 1500);
     } catch (err: unknown) {
       const error = err as AxiosError<{ message?: string }>;
       setErrorMessage(error.response?.data?.message || 'Email verification failed');
       setVerifyStatus('error');
     } finally {
       setIsVerifying(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    try {
+      setIsResending(true);
+      setResendMessage('');
+      setErrorMessage('');
+
+      // Get email from pendingVerification
+      const pendingData = localStorage.getItem('pendingVerification');
+      if (!pendingData) {
+        setResendMessage('Email not found. Please sign up again.');
+        return;
+      }
+
+      const { email } = JSON.parse(pendingData);
+      await resendVerificationApi(email);
+
+      setResendMessage('New code sent! Check your email.');
+      // Clear message after 5 seconds
+      setTimeout(() => setResendMessage(''), 5000);
+    } catch (err: unknown) {
+      const error = err as AxiosError<{ message?: string }>;
+      setResendMessage(error.response?.data?.message || 'Failed to resend code');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -99,6 +138,11 @@ export function VerifyEmail() {
                   <p className="text-xs text-gray-500 mt-2">
                     {code.length}/6 digits
                   </p>
+                  {errorMessage && (
+                    <p className="text-sm text-pink-500 mt-2 text-center font-bold">
+                      {errorMessage}
+                    </p>
+                  )}
                 </div>
                 <PixelButton
                   onClick={handleVerifyEmail}
@@ -107,6 +151,26 @@ export function VerifyEmail() {
                 >
                   {isVerifying ? 'Verifying...' : 'Verify Email'}
                 </PixelButton>
+                
+                {/* Resend Code Section */}
+                <div className="text-center space-y-2">
+                  <p className="text-xs text-gray-500">
+                    Didn't receive the code?
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleResendCode}
+                    disabled={isResending}
+                    className="text-sm text-[var(--choco)] hover:text-[var(--choco)]/80 font-bold underline disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isResending ? 'Sending...' : 'Resend Code'}
+                  </button>
+                  {resendMessage && (
+                    <p className={`text-sm font-bold ${resendMessage.includes('New code sent') ? 'text-green-600' : 'text-pink-500'}`}>
+                      {resendMessage}
+                    </p>
+                  )}
+                </div>
               </>
             )}
 

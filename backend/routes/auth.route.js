@@ -20,6 +20,7 @@ router.post('/register', validate(registerSchema), controller.register);
 router.post('/login', loginLimiter, validate(loginSchema), controller.login);
 router.post('/logout', controller.logout);
 router.post('/verify-email', controller.verifyEmail);
+router.post('/resend-verification', controller.resendVerification);
 router.post('/refresh', validate(refreshTokenSchema), controller.refresh);
 router.post('/request-password-reset', validate(resetPasswordRequestSchema), controller.requestPasswordReset);
 router.post('/verify-reset-code', validate(verifyResetCodeSchema), controller.verifyResetCode);

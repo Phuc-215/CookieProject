@@ -35,3 +35,7 @@ export const clearSearchHistoryApi = () =>
 
 export const deleteSearchHistoryItemApi = (item: string) =>
   api.delete('/search/history', { data: { item } });
+
+export const getIngredients = async () => {
+  return await api.get(`/ingredients/list`);
+};

@@ -14,6 +14,7 @@ var recipesRouter = require('./routes/recipes.route');
 var categoryRouter = require('./routes/category.route');
 var notificationsRouter = require('./routes/notifications.route');
 var collectionsRouter = require('./routes/collections.route')
+var ingredientsRouter = require('./routes/ingredients.route')
 
 var { connectDB } = require('./config/db'); 
 
@@ -47,6 +48,7 @@ app.use('/recipes', recipesRouter);
 app.use('/category', categoryRouter);
 app.use('/notifications', notificationsRouter);
 app.use('/collections', collectionsRouter);
+app.use('/ingredients', ingredientsRouter);
 
 connectDB(); 
 

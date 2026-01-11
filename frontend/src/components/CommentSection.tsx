@@ -1,12 +1,11 @@
-import { useState } from 'react';
-import { Send, Trash2, MessageSquare, User, Lock } from 'lucide-react';
-// import { PixelButton } from './PixelButton'; 
-// import { PixelTextarea } from './PixelTextarea'; 
+import { useState, useEffect } from 'react';
+import { Send, Trash2, MessageSquare, Lock, Loader2 } from 'lucide-react';
+import { addCommentApi, getCommentsApi, deleteCommentApi } from '@/api/recipe.api';
 
 // --- DATA TYPE ---
 interface Comment {
   id: string;
-  authorId: string; // Thêm authorId để so sánh quyền sở hữu
+  authorId: string;
   authorName: string;
   avatar: string;
   content: string;
@@ -21,69 +20,118 @@ interface UserData {
 
 interface CommentSectionProps {
   recipeId: string;
-  initialComments?: Comment[];
-  currentUser: UserData | null; // Có thể là null nếu chưa login
-  onLoginClick?: () => void;    // Hàm callback để mở modal login hoặc chuyển trang
+  currentUser: UserData | null; 
+  onLoginClick?: () => void;
 }
 
-// --- MOCK DATA ---
-const MOCK_COMMENTS: Comment[] = [
-  {
-    id: '1',
-    authorId: 'user_99',
-    authorName: 'ChefMario',
-    avatar: 'https://api.dicebear.com/9.x/pixel-art/svg?seed=Mario',
-    content: 'This recipe is amazing! My kids loved it.',
-    createdAt: '2 hours ago',
-  },
-  {
-    id: '2',
-    authorId: 'user_123', // Giả sử đây là ID của user 'BinhBaker'
-    authorName: 'BinhBaker',
-    avatar: 'https://api.dicebear.com/9.x/pixel-art/svg?seed=Binh',
-    content: 'Can I substitute butter with oil?',
-    createdAt: '5 hours ago',
-  },
-];
+// --- HELPER: TIME AGO ---
+function formatTimeAgo(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  let interval = seconds / 31536000;
+  if (interval > 1) return Math.floor(interval) + " years ago";
+  interval = seconds / 2592000;
+  if (interval > 1) return Math.floor(interval) + " months ago";
+  interval = seconds / 86400;
+  if (interval > 1) return Math.floor(interval) + " days ago";
+  interval = seconds / 3600;
+  if (interval > 1) return Math.floor(interval) + " hours ago";
+  interval = seconds / 60;
+  if (interval > 1) return Math.floor(interval) + " minutes ago";
+  return "Just now";
+}
 
 export function CommentSection({ 
   recipeId, 
-  initialComments = MOCK_COMMENTS, 
   currentUser,
   onLoginClick
 }: CommentSectionProps) {
   
-  const [comments, setComments] = useState<Comment[]>(initialComments);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [newCommentText, setNewCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // LOGIC: ADD COMMENT
-  const handleAddComment = () => {
-    // Chặn nếu chưa login hoặc input rỗng
+  // --- FETCH COMMENTS ---
+  useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        setIsLoading(true);
+        // The controller returns an array directly: [ { id, user_id, username, ... }, ... ]
+        const response = await getCommentsApi(recipeId);
+        const data = response.data; // Access axios data
+        console.log("Fetched comments data:", data);
+
+        // Map Backend Data (Snake_case) to Frontend UI (CamelCase)
+        // Note: Backend 'getComments' query currently returns: id, user_id, recipe_id, content, created_at, username
+        // It does NOT return avatar_url, so we generate a placeholder based on username.
+        const mappedComments: Comment[] = Array.isArray(data) ? data.map((item: any) => ({
+          id: item.id.toString(),
+          authorId: item.user_id.toString(),
+          authorName: item.username || 'Unknown',
+          avatar: item.avatar_url,
+          content: item.content,
+          createdAt: formatTimeAgo(item.created_at),
+        })) : [];
+
+        setComments(mappedComments);
+      } catch (error) {
+        console.error("Failed to fetch comments", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (recipeId) fetchComments();
+  }, [recipeId]);
+
+  // --- ADD COMMENT ---
+  const handleAddComment = async () => {
     if (!currentUser || !newCommentText.trim()) return;
 
     setIsSubmitting(true);
+    try {
+      const response = await addCommentApi(recipeId, newCommentText);
+      const backendComment = response.data.comment;
+      console.log("Added comment response:", backendComment);
 
-    setTimeout(() => {
+      // Optimistically add to list (Constructing the UI object)
       const newComment: Comment = {
-        id: Date.now().toString(),
-        authorId: currentUser.id,      // Lấy ID thật
-        authorName: currentUser.name,  // Lấy tên thật
-        avatar: currentUser.avatar,    // Lấy avatar thật
-        content: newCommentText,
+        id: backendComment.id.toString(),
+        authorId: currentUser.id,      
+        authorName: currentUser.name,  
+        avatar: currentUser.avatar,    
+        content: backendComment.content,
         createdAt: 'Just now',
       };
 
       setComments([newComment, ...comments]);
       setNewCommentText('');
+    } catch (error) {
+      console.error("Failed to post comment", error);
+      alert("Failed to post comment. Please try again.");
+    } finally {
       setIsSubmitting(false);
-    }, 500);
+    }
   };
 
-  // LOGIC: DELETE COMMENT
-  const handleDeleteComment = (commentId: string) => {
-    if (confirm('Delete this comment?')) {
-      setComments(comments.filter((c) => c.id !== commentId));
+  // --- DELETE COMMENT ---
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm('Delete this comment?')) return;
+
+    // Optimistic Update: Remove immediately from UI
+    const previousComments = [...comments];
+    setComments(comments.filter((c) => c.id !== commentId));
+
+    try {
+      await deleteCommentApi(recipeId, commentId);
+    } catch (error) {
+      console.error("Failed to delete comment", error);
+      // Revert if failed
+      setComments(previousComments);
+      alert("Could not delete comment.");
     }
   };
 
@@ -95,12 +143,11 @@ export function CommentSection({
         COMMENTS ({comments.length})
       </h3>
 
-      {/* --- CONDITIONAL RENDERING INPUT FORM --- */}
+      {/* --- INPUT FORM --- */}
       {currentUser ? (
-        // TRƯỜNG HỢP 1: ĐÃ ĐĂNG NHẬP -> HIỆN KHUNG NHẬP
         <div className="flex gap-4 mb-8 animate-fade-in">
           <div className="w-10 h-10 shrink-0 border-2 border-[#4A3B32] bg-[#FF99AA] overflow-hidden flex items-center justify-center">
-             <img src={currentUser.avatar} alt="Me" className="w-full h-full object-cover" />
+             <img src={currentUser.avatar} className="w-full h-full object-cover" />
           </div>
           
           <div className="flex-1">
@@ -109,7 +156,8 @@ export function CommentSection({
               onChange={(e) => setNewCommentText(e.target.value)}
               placeholder={`Comment as ${currentUser.name}...`}
               rows={3}
-              className="w-full border-2 border-[#4A3B32] p-3 font-vt323 text-lg focus:outline-none focus:shadow-[4px_4px_0_#4A3B32] transition-shadow resize-none bg-[#FFF8E7]"
+              disabled={isSubmitting}
+              className="w-full border-2 border-[#4A3B32] p-3 font-vt323 text-lg focus:outline-none focus:shadow-[4px_4px_0_#4A3B32] transition-shadow resize-none bg-[#FFF8E7] disabled:opacity-50"
             />
             <div className="flex justify-end mt-2">
               <button
@@ -117,7 +165,7 @@ export function CommentSection({
                 disabled={isSubmitting || !newCommentText.trim()}
                 className={`
                   px-4 py-2 border-2 border-[#4A3B32] font-vt323 text-lg uppercase flex items-center gap-2 transition-all
-                  ${!newCommentText.trim() 
+                  ${!newCommentText.trim() || isSubmitting
                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
                     : 'bg-[#FF99AA] text-[#4A3B32] hover:shadow-[2px_2px_0_#4A3B32] active:translate-y-1 active:shadow-none'
                   }
@@ -129,7 +177,6 @@ export function CommentSection({
           </div>
         </div>
       ) : (
-        // TRƯỜNG HỢP 2: CHƯA ĐĂNG NHẬP -> HIỆN THÔNG BÁO LOGIN
         <div className="mb-8 border-2 border-dashed border-[#4A3B32] bg-[#FFF8E7]/50 p-6 flex flex-col items-center justify-center text-center gap-3">
           <div className="w-12 h-12 rounded-full bg-[#E0E0E0] border-2 border-[#4A3B32] flex items-center justify-center text-[#4A3B32]/50">
             <Lock size={24} />
@@ -148,10 +195,14 @@ export function CommentSection({
 
       {/* COMMENT LIST */}
       <div className="space-y-6">
-        {comments.length > 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-8 h-8 animate-spin text-[#4A3B32]" />
+          </div>
+        ) : comments.length > 0 ? (
           comments.map((comment) => {
-            // Kiểm tra quyền sở hữu: Chỉ khi currentUser tồn tại VÀ ID khớp nhau
-            const isMine = currentUser && currentUser.id === comment.authorId;
+            // Check ownership: Compare strings (API IDs usually string in frontend state)
+            const isMine = currentUser && currentUser.id.toString() === comment.authorId;
 
             return (
               <div key={comment.id} className="flex gap-4 group">
@@ -182,12 +233,12 @@ export function CommentSection({
                   
                   <div className="bg-white border-2 border-[#4A3B32] p-3 relative shadow-[2px_2px_0_#E5E5E5]">
                     <div className="absolute top-3 -left-[7px] w-3 h-3 bg-white border-l-2 border-b-2 border-[#4A3B32] rotate-45"></div>
-                    <p className="font-vt323 text-lg text-gray-700 leading-snug">
+                    <p className="font-vt323 text-lg text-gray-700 leading-snug break-words">
                       {comment.content}
                     </p>
                   </div>
 
-                  {/* Chỉ hiện nút Delete nếu là comment của chính mình */}
+                  {/* Delete Button */}
                   {isMine && (
                     <button 
                       onClick={() => handleDeleteComment(comment.id)}
@@ -202,7 +253,7 @@ export function CommentSection({
           })
         ) : (
           <div className="text-center py-8 opacity-60">
-            <p className="font-vt323 text-xl text-[#4A3B32]">No comments yet.</p>
+            <p className="font-vt323 text-xl text-[#4A3B32]">No comments yet. Be the first!</p>
           </div>
         )}
       </div>

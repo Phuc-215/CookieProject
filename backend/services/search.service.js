@@ -1,34 +1,52 @@
 // services/search.service.js
 const { pool } = require('../config/db');
 
-        // title, 
-        // ingredientIds_included: included_ingredients, 
-        // ingredientIds_excluded: excluded_ingredients,
-        // difficulty,
-        // category,
-        // sort,
-        // page,
-        // limit,
-        // userId 
-
-
 exports.search = async ({ title, ingredientIds_included, ingredientIds_excluded, difficulty, category, sort, page, limit, userId }) => {
-    // 1. Base Query
-    let query = `
+    console.log('Search Parameters:', {
+        title,
+        ingredientIds_included,
+        ingredientIds_excluded,
+        difficulty,
+        category,
+        sort,
+        page,
+        limit,
+        userId
+    });
+    
+    // 1. Build query with conditional parameter handling
+    const hasTitle = title && title.trim();
+    const values = [];
+    let index = 1;
+
+    // Build SELECT clause - only use ts_rank if title exists
+    let selectClause = `
         SELECT r.id, r.slug, r.title, r.difficulty, r.thumbnail_url, 
-               r.cook_time_min, r.likes_count, r.created_at,
-               ts_rank(r.search_vector, plainto_tsquery('english', $1)) as rank
+               r.cook_time_min, r.likes_count, r.created_at`;
+    
+    if (hasTitle) {
+        selectClause += `, ts_rank(r.search_vector, to_tsquery('english', $${index})) as rank`;
+        // Split title into words and add prefix matching with :* for substring search
+        const words = title.trim().split(/\s+/).filter(w => w.length > 0);
+        const tsqueryString = words.map(w => `${w.toLowerCase()}:*`).join(' & ');
+        values.push(tsqueryString);
+        console.log('TsQuery String:', tsqueryString);
+        index++;
+    } else {
+        selectClause += `, 0 as rank`;
+    }
+
+    let query = selectClause + `
         FROM recipes r
         WHERE r.status = 'published'
     `;
-    
-    const values = [title || '']; 
-    let index = 2;
 
     // 2. Full-Text Search (Using your existing search_vector column)
-    if (title) {
-        // Your schema has a GIN index on search_vector, this utilizes it:
-        query += ` AND r.search_vector @@ plainto_tsquery('english', $1)`;
+    if (hasTitle) {
+        // Use prefix matching (:*) to find words starting with the search terms
+        // "test" matches "test", "testing", "contest", etc.
+        // "test auction" matches documents with words starting with both
+        query += ` AND r.search_vector @@ to_tsquery('english', $${index - 1})`;
     }
 
     // 3. Include Ingredients (Relational "AND" Logic)
@@ -91,16 +109,18 @@ exports.search = async ({ title, ingredientIds_included, ingredientIds_excluded,
         query += ` ORDER BY r.created_at DESC`;
     }
 
-    // 8. Execute
+    // 8. Execute first query to get total count
     const result = await pool.query(query, values);
     console.log('userId:', userId, 'Search Query Result Count:', result.rowCount);
+    
     // 9. Save History (Async, don't await blocking the response)
-    if (userId && title) {
+    if (userId && hasTitle) {
         console.log('Saving search history for user', userId, 'query:', title);
         this.saveHistory(userId, title).catch(err => console.error('History save error', err));
         console.log('Search history saved.');
     }
 
+    // 10. Add pagination to the query
     const offset = (page - 1) * limit;
     query += ` LIMIT $${index} OFFSET $${index + 1}`;
     const paginatedResult = await pool.query(query, [...values, limit, offset]);

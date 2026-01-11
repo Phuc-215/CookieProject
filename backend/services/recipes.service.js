@@ -23,14 +23,14 @@ exports.getById = async (recipeId, currentUserId) => {
                FROM public.collection_recipes cr 
                JOIN public.collections c ON cr.collection_id = c.id 
                WHERE cr.recipe_id = r.id AND c.user_id = $2
-             ) as is_saved
+             ) as is_saved,
              c.name as category
       FROM public.recipes r
       JOIN public.users u ON r.user_id = u.id
       LEFT JOIN public.categories c ON r.category_id = c.id
       WHERE r.id = $1
     `;
-
+    
     // Pass currentUserId (can be null for guests)
     const res = await client.query(query, [recipeId, currentUserId]);
     console.log("Recipe query result:", res.rows);

@@ -35,14 +35,15 @@ export function ProfileTabs({
         Collections
       </button>
 
-      {isOwner && (
+      {/* DRAFTS TAB - COMMENTED OUT */}
+      {/* {isOwner && (
         <button
           className={tabClass('drafts')}
           onClick={() => onChange('drafts')}
         >
           Drafts
         </button>
-      )}
+      )} */}
     </div>
   );
 }

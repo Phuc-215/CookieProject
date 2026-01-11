@@ -23,6 +23,7 @@ import { StepItem } from '@/components/StepItem';
 import { RecipeFormData} from '@/types/Recipe';
 import { Category } from '@/types/Category';
 import { createRecipeApi, saveRecipeApi } from '@/api/recipe.api';
+import { useToastContext } from '@/contexts/ToastContext';
 
 interface Props {
   mode: 'create' | 'edit';
@@ -41,6 +42,7 @@ export function RecipeForm({
   categories,
 }: Props) {
   console.log("INIT: ", initialData);
+  const { success, error: showError } = useToastContext();
   /* ===== FORM STATE ===== */
   // Form state management
   const {
@@ -368,17 +370,16 @@ export function RecipeForm({
       const formData = getValues();
       const payload = { ...formData, status };
 
-      if (status === 'draft') {
-
-        await saveRecipeApi(currentRecipeId, payload, mainImageFile);
-        alert('Draft saved!');
-
-      } else {
+      // DRAFT FUNCTIONALITY - COMMENTED OUT
+      // if (status === 'draft') {
+      //   await saveRecipeApi(currentRecipeId, payload, mainImageFile);
+      //   alert('Draft saved!');
+      // } else {
 
         if (currentRecipeId) {
           // Update existing
           await saveRecipeApi(currentRecipeId, payload, mainImageFile);
-          alert('Recipe published successfully!');
+          success('Recipe published successfully!');
         } else {
           // Create new
           const response = await createRecipeApi(payload, mainImageFile);
@@ -387,14 +388,14 @@ export function RecipeForm({
           if (newId) {
             setCurrentRecipeId(newId);
           }
-          alert('Recipe created and published!');
+          success('Recipe created and published!');
         }
         
-      }
+      // } // End of draft else block
 
     } catch (error) {
       console.error(`Error saving ${status}:`, error);
-      alert(`Failed to save ${status}.`);
+      showError(`Failed to save ${status}.`);
     } finally {
       setLoading(false);
     }
@@ -698,14 +699,15 @@ export function RecipeForm({
 
         {/* ==== ACTIONS ==== */}
         <div className="flex gap-4 pt-6 border-t-[3px] border-[#5D4037]">
-          <PixelButton
+          {/* SAVE DRAFT BUTTON - COMMENTED OUT */}
+          {/* <PixelButton
             variant="outline"
             className="flex-1"
             onClick={() => handleSave('draft')}
             disabled={loading}
           >
             {loading ? 'Saving...' : 'Save Draft'}
-          </PixelButton>
+          </PixelButton> */}
           <PixelButton
             variant="secondary"
             className="flex-1"

@@ -13,6 +13,7 @@ import {
   deleteCollectionApi, 
   getCollectionDetailApi 
 } from "@/api/collection.api";
+import { useToastContext } from "@/contexts/ToastContext";
 
 type JarVisibility = "public" | "private";
 
@@ -21,6 +22,7 @@ type Mode = "edit" | "create";
 export function EditCollection({ mode = "edit" }: { mode?: Mode }) {
   const nav = useNav();
   const { id } = useParams<{ id: string }>();
+  const { success, error: showError } = useToastContext();
 
   /* ===== State ===== */
   const [jarName, setJarName] = useState("");
@@ -102,16 +104,16 @@ export function EditCollection({ mode = "edit" }: { mode?: Mode }) {
 
       if (mode === "edit" && id) {
         await updateCollectionApi(id, payload);
-        alert("Cookie Jar updated!");
+        success("Cookie Jar updated!");
       } else {
         await createCollectionApi(payload);
-        alert("Cookie Jar created!");
+        success("Cookie Jar created!");
       }
       
       nav.back();
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || "Failed to save collection");
+      showError(err.response?.data?.message || "Failed to save collection");
     } finally {
       setIsSubmitting(false);
     }
@@ -126,11 +128,11 @@ export function EditCollection({ mode = "edit" }: { mode?: Mode }) {
     setIsSubmitting(true);
     try {
       await deleteCollectionApi(id);
-      alert("Cookie Jar deleted");
+      success("Cookie Jar deleted");
       nav.back();
     } catch (err: any) {
       console.error(err);
-      alert("Failed to delete collection");
+      showError("Failed to delete collection");
       setIsSubmitting(false);
     }
   };

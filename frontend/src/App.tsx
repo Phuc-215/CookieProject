@@ -24,11 +24,13 @@ import TermsOfService from "@/pages/TermsOfService";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
+import { ToastProvider } from "@/contexts/ToastContext";
 
 export default function App() {
   const { isLoggedIn, viewer, login, logout } = useAuth();
 
   return (
+    <ToastProvider>
     <Router>
       <Routes>
         <Route element={<AppLayout isLoggedIn={isLoggedIn} onLogout={logout} />}>
@@ -65,5 +67,6 @@ export default function App() {
         </Route>
       </Routes>
     </Router>
+    </ToastProvider>
   );
 }

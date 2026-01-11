@@ -7,6 +7,7 @@ import { AddToCollectionModal } from "@/components/modals/AddToCollectionModal";
 import { getDetailApi, likeRecipeApi, unlikeRecipeApi } from '@/api/recipe.api';
 import { CommentSection } from '../components/CommentSection'; 
 import {addRecipeToCollectionApi} from '@/api/collection.api';
+import { useToastContext } from '@/contexts/ToastContext';
 // --- Backend Response Interface ---
 interface BackendRecipeData {
   id: number;
@@ -54,6 +55,7 @@ interface RecipeDetailProps {
 }
 
 export function RecipeDetail({ isLoggedIn = false }: RecipeDetailProps) {
+  const { error: showError } = useToastContext();
   
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -168,7 +170,7 @@ export function RecipeDetail({ isLoggedIn = false }: RecipeDetailProps) {
         setIsSaved(true);
     } catch (error) {
         console.error("Failed to add to collection", error);
-        alert("Failed to save recipe");
+        showError("Failed to save recipe");
     }
     finally {
         setShowAddToJar(false);

@@ -14,6 +14,7 @@ import { searchApi } from '../api/search.api';
 import { getIngredients } from '../api/search.api';
 import { getCategoriesListApi } from '../api/category.api';
 import { Category } from '../types/Category';
+import { useToastContext } from '@/contexts/ToastContext';
 
 interface SearchPageProps {
   isLoggedIn?: boolean;
@@ -28,6 +29,7 @@ interface Ingredient {
 }
 
 export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
+  const { warning: showWarning } = useToastContext();
   
   // --- STATE ---
   const [recipes, setRecipes] = useState<any[]>([]);
@@ -228,8 +230,7 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
     if (match) {
       addInclude(match);
     } else {
-      // Có thể thay bằng Toast notification
-      alert("Please select an ingredient from the list!"); 
+      showWarning("Please select an ingredient from the list!");
     }
   };
 
@@ -244,7 +245,7 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
   const handleManualAddExclude = () => {
     const match = availableIngredients.find(i => i.name.toLowerCase() === excludeInput.trim().toLowerCase());
     if (match) addExclude(match);
-    else alert("Please select an ingredient from the list!");
+    else showWarning("Please select an ingredient from the list!");
   };
 
   const handleApplyFilter = () => {
@@ -395,7 +396,7 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
                       onClick={() => {
                         const match = availableIngredients.find(ai => ai.name.toLowerCase() === item.toLowerCase());
                         if(match) addInclude(match);
-                        else alert(`"${item}" not found in database!`);
+                        else showWarning(`"${item}" not found in database!`);
                       }} 
                       className="font-vt323 text-xs border border-[#4A3B32] px-2 py-1 bg-white hover:bg-gray-100 transition-transform active:translate-y-1"
                     >

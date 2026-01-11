@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Send, Trash2, MessageSquare, Lock, Loader2 } from 'lucide-react';
 import { addCommentApi, getCommentsApi, deleteCommentApi } from '@/api/recipe.api';
+import { useToastContext } from '@/contexts/ToastContext';
 
 // --- DATA TYPE ---
 interface Comment {
@@ -48,6 +49,7 @@ export function CommentSection({
   currentUser,
   onLoginClick
 }: CommentSectionProps) {
+  const { error: showError } = useToastContext();
   
   const [comments, setComments] = useState<Comment[]>([]);
   const [newCommentText, setNewCommentText] = useState('');
@@ -111,7 +113,7 @@ export function CommentSection({
       setNewCommentText('');
     } catch (error) {
       console.error("Failed to post comment", error);
-      alert("Failed to post comment. Please try again.");
+      showError("Failed to post comment. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -131,7 +133,7 @@ export function CommentSection({
       console.error("Failed to delete comment", error);
       // Revert if failed
       setComments(previousComments);
-      alert("Could not delete comment.");
+      showError("Could not delete comment.");
     }
   };
 

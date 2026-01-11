@@ -3,7 +3,7 @@ import { Heart, Bookmark, Trash2, Clock, Pencil, Cookie } from "lucide-react";
 
 import { unlikeRecipeApi, likeRecipeApi } from "@/api/recipe.api";
 import { addRecipeToCollectionApi } from "@/api/collection.api"; 
-
+import { useToastContext } from "@/contexts/ToastContext";
 import { AddToCollectionModal } from "./modals/AddToCollectionModal";
 
 interface RecipeCardProps {
@@ -119,7 +119,7 @@ export function RecipeCard({
         setLocalIsSaved(true);
     } catch (error) {
         console.error("Failed to add to collection", error);
-        alert("Failed to save recipe");
+        showError("Failed to save recipe");
     } finally {
         setShowCollectionModal(false);
     }
@@ -354,4 +354,8 @@ export function RecipeCard({
       )}
     </>
   );
+}
+
+function showError(arg0: string) {
+  throw new Error("Function not implemented.");
 }

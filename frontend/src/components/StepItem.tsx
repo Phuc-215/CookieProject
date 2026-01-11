@@ -129,8 +129,8 @@ export function StepItem({
             </p>
           )}
 
-          {/* IMAGE UPLOAD */}
-          <input
+          {/* STEP IMAGE UPLOAD - COMMENTED OUT */}
+          {/* <input
             type="file"
             multiple
             accept="image/*"
@@ -185,7 +185,6 @@ export function StepItem({
             {step.image_urls?.length} / {MAX_STEP_IMAGES} images
           </div>
 
-          {/* IMAGE PREVIEW + SORT */}
           {step.image_urls?.length > 0 && (
             <DndContext
               sensors={sensors}
@@ -219,7 +218,7 @@ export function StepItem({
                 </div>
               </SortableContext>
             </DndContext>
-          )}
+          )} */}
         </div>
 
         {/* REMOVE STEP */}

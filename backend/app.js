@@ -18,8 +18,6 @@ var ingredientsRouter = require('./routes/ingredients.route')
 
 var { connectDB } = require('./config/db'); 
 
-var cors = require('cors');
-
 
 
 var app = express();

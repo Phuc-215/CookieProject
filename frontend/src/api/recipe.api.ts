@@ -1,5 +1,4 @@
 import api from './axios';
-import Recipe from '@/types/Recipe';
 
 export const unlikeRecipeApi = (id: string | number) =>
   api.delete<{ message: string }>(`/recipes/${id}/like`);

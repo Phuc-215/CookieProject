@@ -29,6 +29,7 @@ interface Props {
   onSaveDraft: (data: RecipeFormData) => void;
   onPublish: (data: RecipeFormData) => void;
   categories: Category[];
+  loading?: boolean;
 }
 
 const MAX_STEP_IMAGES = 5;
@@ -41,6 +42,7 @@ export function RecipeForm({
   onSaveDraft,
   onPublish,
   categories,
+  loading = false,
 }: Props) {
   /* ===== FORM STATE ===== */
   // Form state management
@@ -537,8 +539,9 @@ export function RecipeForm({
             variant="outline"
             className="flex-1"
             onClick={() => onSaveDraft(buildData())}
+            disabled={loading}
           >
-            Save Draft
+            {loading ? 'Saving...' : 'Save Draft'}
           </PixelButton>
           <PixelButton
             variant="secondary"
@@ -562,9 +565,13 @@ export function RecipeForm({
                 onPublish(buildData());
               }
             }}
-            disabled={!isValid}
+            disabled={!isValid || loading}
           >
-            {mode === 'create' ? 'Publish Recipe' : 'Update Recipe'}
+            {loading
+              ? 'Publishing...'
+              : mode === 'create'
+              ? 'Publish Recipe'
+              : 'Update Recipe'}
           </PixelButton>
         </div>
       </div>

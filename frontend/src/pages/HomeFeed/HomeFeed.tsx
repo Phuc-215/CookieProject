@@ -6,7 +6,9 @@ import { CollectionCard } from "../../components/CollectionCard";
 import { useNav } from '../../hooks/useNav'; 
 import homefeed from "../../assets/homefeed.svg"; 
 import { Star, Clock, Grid, ChevronLeft, ChevronRight, ArrowRight, Loader2 } from 'lucide-react';
-import { searchApi } from '../../api/search.api'; // Import your API
+import { searchApi } from '../../api/search.api';
+import { getCategoriesListApi } from '../../api/category.api';
+import { Category } from '../../types/Category';
 
 interface HomeFeedProps {
   isLoggedIn?: boolean;
@@ -36,16 +38,6 @@ const CreatePostBar = () => {
   );
 };
 
-// --- CATEGORY CONFIG ---
-// Use this array to map display labels to API slugs
-const CATEGORY_OPTIONS = [
-  { label: "All", value: "All" },
-  { label: "Cookie", value: "cookie" },
-  { label: "Cheesecake", value: "cheesecake" },
-  { label: "Cupcakes & Muffins", value: "cupcakes-muffins" },
-  { label: "Tarts & Pies", value: "tarts-pies" },
-  { label: "Brownies & Bars", value: "brownies-bars" },
-];
 
 // --- MOCK COLLECTIONS (Replace with API later) ---
 const MOCK_COLLECTIONS = [
@@ -70,12 +62,27 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
   // --- STATE ---
   const [activeTab, setActiveTab] = useState<TabType>('trending');
   
-  // Save the SLUG value (e.g. "cupcakes-muffins") in state
+  // Category state - use category name as value
   const [selectedCategoryValue, setSelectedCategoryValue] = useState("All"); 
+  const [categories, setCategories] = useState<Category[]>([]);
   
   // Data States
   const [recipes, setRecipes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // --- FETCH CATEGORIES EFFECT ---
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await getCategoriesListApi();
+        setCategories(response.data.categories || []);
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   // --- FETCH DATA EFFECT ---
   useEffect(() => {
@@ -93,7 +100,7 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
           page: 1,
           limit: activeTab === 'trending' ? 4 : 6, // Trending needs 4 (1 big + 3 small), Latest needs 6 grid
           sort: sortType,
-          // Only send category if it's not "All"
+          // Only send category if it's not "All" - use category name
           category: selectedCategoryValue !== "All" ? selectedCategoryValue : undefined,
         };
 
@@ -208,25 +215,47 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
             <div className="absolute top-1/2 left-0 w-full h-1 bg-[#4A3B32]/60 -z-10 rounded-full"></div>
         </div>
 
-        {/* === CATEGORY FILTER (Use CATEGORY_OPTIONS) === */}
+        {/* === CATEGORY FILTER (Dynamic from API) === */}
         {activeTab !== "collections" && (
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide md:justify-center border-b-2 border-[#4A3B32]/10 pb-6">
-                {CATEGORY_OPTIONS.map((cat) => (
+          <div className="relative border-b-2 border-[#4A3B32]/10 pb-6">
+            {/* Gradient fade indicators for scroll hint */}
+            <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-[#FFF8E1] to-transparent pointer-events-none z-10"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#FFF8E1] to-transparent pointer-events-none z-10"></div>
+            
+            {/* Scrollable category container */}
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth px-4 md:px-0 md:justify-center">
+                {/* "All" option */}
+                <button
+                    key="All"
+                    onClick={() => setSelectedCategoryValue("All")}
+                    className={`
+                        px-3 py-1 font-vt323 text-lg border-2 whitespace-nowrap transition-all shrink-0
+                        ${selectedCategoryValue === "All" 
+                            ? 'bg-[#FF99AA] border-[#4A3B32] text-[#4A3B32] shadow-[2px_2px_0px_#4A3B32]' 
+                            : 'bg-white border-[#4A3B32] text-[#4A3B32]/70 hover:bg-gray-50'
+                        }
+                    `}
+                >
+                    All
+                </button>
+                {/* Categories from API */}
+                {categories.map((cat) => (
                     <button
-                        key={cat.value}
-                        onClick={() => setSelectedCategoryValue(cat.value)} // Set Slug Value
+                        key={cat.id}
+                        onClick={() => setSelectedCategoryValue(cat.name)}
                         className={`
-                            px-3 py-1 font-vt323 text-lg border-2 whitespace-nowrap transition-all
-                            ${selectedCategoryValue === cat.value 
+                            px-3 py-1 font-vt323 text-lg border-2 whitespace-nowrap transition-all shrink-0
+                            ${selectedCategoryValue === cat.name 
                                 ? 'bg-[#FF99AA] border-[#4A3B32] text-[#4A3B32] shadow-[2px_2px_0px_#4A3B32]' 
                                 : 'bg-white border-[#4A3B32] text-[#4A3B32]/70 hover:bg-gray-50'
                             }
                         `}
                     >
-                        {cat.label} {/* Display Label */}
+                        {cat.name}
                     </button>
                 ))}
             </div>
+          </div>
         )}
 
         {/* === CONTENT DISPLAY === */}

@@ -24,7 +24,16 @@ var app = express();
 
 const cors = require('cors');
 
-app.use(cors())
+// 👇 SỬA ĐOẠN NÀY
+app.use(cors({
+  origin: [
+    'http://localhost:5173', // Cho phép Localhost của bạn (Frontend)
+    'http://localhost:3000', // Phòng hờ nếu bạn chạy port khác
+    // Sau này deploy frontend lên Vercel thì thêm link vào đây, ví dụ:
+    // 'https://cookieproject.vercel.app' 
+  ],
+  credentials: true // 👈 BẮT BUỘC: Cho phép nhận cookies/token từ Frontend
+}));
 
 
 // view engine setup

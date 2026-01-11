@@ -5,29 +5,39 @@ const { deleteFromSupabase } = require('../utils/storage')
 exports.getById = async (recipeId, currentUserId) => {
   const client = await pool.connect();
   try {
+    // 1. Updated Query: Includes is_liked and is_saved checks
     const query = `
       SELECT r.*, 
              u.username as author_name,
-             u.avatar_url as author_avatar
+             u.avatar_url as author_avatar,
+             (
+               SELECT COUNT(*) > 0 
+               FROM public.likes l 
+               WHERE l.recipe_id = r.id AND l.user_id = $2
+             ) as is_liked,
+             (
+               SELECT COUNT(*) > 0 
+               FROM public.collection_recipes cr 
+               JOIN public.collections c ON cr.collection_id = c.id 
+               WHERE cr.recipe_id = r.id AND c.user_id = $2
+             ) as is_saved
       FROM public.recipes r
       JOIN public.users u ON r.user_id = u.id
       WHERE r.id = $1
     `;
 
-    const res = await client.query(query, [recipeId]);
-
-    console.log("Res: ",res.rows[0]);
+    // Pass currentUserId (can be null for guests)
+    const res = await client.query(query, [recipeId, currentUserId]);
 
     if (res.rows.length === 0) return null;
     const recipe = res.rows[0];
 
-    // Security Check (Private Protection)
-    // If it's not published, ONLY the author can see it
-    if (recipe.status !== 'published' && recipe.user_id !== currentUserId) {
+    // Security Check
+    if (recipe.status !== 'published' && (!currentUserId || recipe.user_id !== currentUserId)) {
       throw new Error("Unauthorized: This recipe is private.");
     }
 
-    // Fetch Children (Ingredients & Steps)
+    // Fetch Children
     const ingRes = await client.query(
       `SELECT i.name, ri.amount, ri.unit
        FROM public.recipe_ingredients ri
@@ -342,7 +352,7 @@ exports.addComment = async (userId, recipeId, content) => {
 exports.getComments = async (recipeId) => {
     const getCommentsText = `
         SELECT rc.id, rc.user_id, rc.recipe_id, rc.content, rc.created_at, u.username
-        FROM recipe_comments rc
+        FROM comments rc
         JOIN users u ON rc.user_id = u.id
         WHERE rc.recipe_id = $1
         ORDER BY rc.created_at DESC
@@ -353,7 +363,7 @@ exports.getComments = async (recipeId) => {
 
 exports.deleteComment = async (userId, recipeId, commentId) => {
     const deleteCommentText = `
-        DELETE FROM recipe_comments
+        DELETE FROM comments
         WHERE id = $1 AND recipe_id = $2 AND user_id = $3
     `;
     await pool.query(deleteCommentText, [commentId, recipeId, userId]);

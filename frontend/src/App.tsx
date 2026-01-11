@@ -25,7 +25,7 @@ import AppLayout from "@/components/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function App() {
-  const { isLoggedIn, viewer, login, signup, logout } = useAuth();
+  const { isLoggedIn, viewer, login, logout } = useAuth();
 
   return (
     <Router>
@@ -34,7 +34,7 @@ export default function App() {
 
           {/* Guest */}
           <Route path="/login" element={<Login onLogin={login} />} />
-          <Route path="/signup" element={<Signup onSignup={signup} />} />
+          <Route path="/signup" element={<Signup />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
 
           {/* Public */}

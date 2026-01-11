@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Heart, Bookmark, Trash2, Clock, Pencil } from "lucide-react";
 
+import { unlikeRecipeApi, likeRecipeApi } from "@/api/recipe.api";
+
 interface RecipeCardProps {
   id: string;
   title: string;
@@ -61,15 +63,17 @@ export function RecipeCard({
   };
 
   // --- 2. INTERNAL HANDLER ---
-  const handleLikeClick = (e: React.MouseEvent) => {
+  const handleLikeClick = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation(); // Prevent triggering the card's onClick
-
+    console.log("Toggling like for recipe ID:", id);
     // Toggle logic
     if (localIsLiked) {
       setLocalIsLiked(false);
+      await unlikeRecipeApi(id);
       setLocalLikesCount((prev) => prev - 1);
     } else {
       setLocalIsLiked(true);
+      await likeRecipeApi(id);
       setLocalLikesCount((prev) => prev + 1);
     }
 
@@ -117,7 +121,7 @@ export function RecipeCard({
               ${localIsLiked ? "bg-[#FF99AA]" : "bg-white"} 
             `}
             // Use the internal handler here
-            onClick={handleLikeClick}
+            onClick={(e) => handleLikeClick(e, id)}
           >
             <Heart
               className={`w-4 h-4 ${

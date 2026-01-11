@@ -3,17 +3,32 @@ import api from './axios';
 import type { RecipeDetail } from '@/types/Recipe';
 
 export const getDetailApi = (recipeId: string | number) =>
-  api.get<{ recipes: RecipeDetail }>(`/recipes/${recipeId}`);
+  api.get<{ success: boolean; data: RecipeDetail }>(`/recipes/${recipeId}`);
 
-export const createRecipeApi = (
-  data: Omit<RecipeDetail, 'id' | 'author' | 'likes' | 'isLiked' | 'isSaved'>
-) => api.post<{ recipe: RecipeDetail }>('/recipes/create', data);
+export const createRecipeApi = (data: FormData) => 
+  api.post('/recipes/create', data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
 
 export const saveRecipeApi = (data: FormData, recipeId?: string | number) => {
-  return api.put(`/recipes/${recipeId}`, data, {
+  const url = recipeId ? `/recipes/save?recipeId=${recipeId}` : '/recipes/save';
+  return api.put(url, data, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
+
+// export const getDetailApi = (recipeId: string | number) =>
+//   api.get<{ recipes: RecipeDetail }>(`/recipes/${recipeId}`);
+
+// export const createRecipeApi = (
+//   data: Omit<RecipeDetail, 'id' | 'author' | 'likes' | 'isLiked' | 'isSaved'>
+// ) => api.post<{ recipe: RecipeDetail }>('/recipes/create', data);
+
+// export const saveRecipeApi = (data: FormData, recipeId?: string | number) => {
+//   return api.put(`/recipes/${recipeId}`, data, {
+//     headers: { 'Content-Type': 'multipart/form-data' },
+//   });
+// };
 
 export const unlikeRecipeApi = (id: string | number) =>
   api.delete<{ message: string }>(`/recipes/${id}/like`);

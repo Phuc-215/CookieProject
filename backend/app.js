@@ -11,6 +11,7 @@ var usersRouter = require('./routes/users.route');
 var authRouter = require('./routes/auth.route');
 var searchRouter = require('./routes/search.route');
 var recipesRouter = require('./routes/recipes.route');
+var categoryRouter = require('./routes/category.route');
 var notificationsRouter = require('./routes/notifications.route');
 var collectionsRouter = require('./routes/collections.route')
 
@@ -43,6 +44,7 @@ app.use('/users', usersRouter);
 app.use('/auth', authRouter);
 app.use('/search', searchRouter);
 app.use('/recipes', recipesRouter);
+app.use('/category', categoryRouter);
 app.use('/notifications', notificationsRouter);
 app.use('/collections', collectionsRouter);
 

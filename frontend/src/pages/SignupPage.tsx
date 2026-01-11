@@ -31,11 +31,8 @@ const signupSchema = z.object({
 });
 
 type SignupFormData = z.infer<typeof signupSchema>;
-interface SignupProps {
-  onSignup: (user: Viewer) => void;
-}
 
-export function Signup({ onSignup }: SignupProps) {
+export function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -72,15 +69,14 @@ export function Signup({ onSignup }: SignupProps) {
         password: data.password,
       });
 
-      setTokens(res.data.accessToken, res.data.refreshToken);
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-
-      onSignup(res.data.user);
+      // Backend no longer returns tokens - user must verify email first
+      // Store user email for verification screen
+      localStorage.setItem('pendingVerification', JSON.stringify({
+        email: data.email,
+        username: data.username
+      }));
       
-      // Store verification code and redirect to verify email page
-      if (res.data.verificationCode) {
-        localStorage.setItem('verificationCode', res.data.verificationCode);
-      }
+      // Redirect to verify email page
       nav.go('/verify-email');
     } catch (err: unknown) {
       const error = err as AxiosError<{ message?: string }>;

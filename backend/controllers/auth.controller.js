@@ -17,13 +17,10 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Return user info + tokens on successful registration
+    // Return user info WITHOUT tokens - must verify email first
     res.status(201).json({
-      message: 'Register success. Please verify your email.',
-      user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-      verificationToken: result.verificationToken
+      message: 'Registration successful. Please check your email to verify your account.',
+      user: result.user
     });
 
   } catch (err) {
@@ -46,7 +43,10 @@ exports.login = async (req, res) => {
     console.log('LOGIN RESULT FROM SERVICE:', result);
 
     if (result.error) {
-      return res.status(401).json({ message: 'INVALID USER OR PASSWORD' });
+      if (result.error === 'EMAIL_NOT_VERIFIED') {
+        return res.status(403).json({ message: 'Please verify your email before logging in' });
+      }
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     res.json({
@@ -90,7 +90,34 @@ exports.verifyEmail = async (req, res) => {
       return res.status(400).json({ message: result.error });
     }
 
-    res.json({ message: 'Email verified successfully' });
+    // Return tokens after successful verification
+    res.json({ 
+      message: 'Email verified successfully',
+      user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.resendVerification = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email required' });
+    }
+
+    const result = await authService.resendVerificationCode(email);
+
+    if (result.error) {
+      return res.status(400).json({ message: result.error });
+    }
+
+    res.json({ message: 'Verification code sent to your email' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });

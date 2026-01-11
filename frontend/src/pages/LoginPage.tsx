@@ -76,8 +76,25 @@ export function Login({ onLogin }: LoginProps) {
       onLogin(res.data.user);
       nav.home();
     } catch (err: unknown) {
-      const error = err as AxiosError<{ message?: string }>;
-      setSubmitError(error.response?.data?.message || 'Login failed');
+      const error = err as AxiosError<{ message?: string }>;      
+      const errorMessage = error.response?.data?.message || 'Login failed';
+      
+      // Check if email is not verified - more flexible check
+      if (errorMessage.toLowerCase().includes('verify')) {
+        // Store email for resend functionality
+        localStorage.setItem('pendingVerification', JSON.stringify({
+          email: data.email
+        }));
+        // Show message first
+        setSubmitError(errorMessage);
+        // Wait 1.5s then redirect to verify page
+        setTimeout(() => {
+          nav.go('/verify-email');
+        }, 1500);
+        return;
+      }
+      
+      setSubmitError(errorMessage);
     }
   };
 

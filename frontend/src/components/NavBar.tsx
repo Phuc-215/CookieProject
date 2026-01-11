@@ -9,8 +9,6 @@ import logo from "@/assets/logo.svg";
 import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 
 interface NavBarProps {
-  isLoggedIn?: boolean;
-  onLogout?: () => void;
   title?: string;
   notificationCount?: number;
   showBackButton?: boolean; 
@@ -24,7 +22,6 @@ interface SearchHistoryItem {
 }
 
 export function NavBar({ 
-  isLoggedIn = false, 
   title = 'Cookie',
   notificationCount = 0,
   showBackButton = false,
@@ -51,7 +48,7 @@ export function NavBar({
   const [searchParams, setSearchParams] = useSearchParams();
   
   const nav = useNav();
-  const { logout, viewer } = useAuth();
+  const { logout, viewer, isLoggedIn } = useAuth();
 
   const handleBack = () => {
     if (onBack) onBack();

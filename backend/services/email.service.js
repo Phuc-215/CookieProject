@@ -25,47 +25,89 @@ exports.sendVerificationEmail = async (email, code) => {
     const mailOptions = {
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: email,
-      subject: 'Email Verification - Cookie App',
+      subject: 'Verify Your Cookie Account',
       html: `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <style>
-              body { font-family: Arial, sans-serif; background-color: #f5f5f5; }
-              .container { max-width: 600px; margin: 20px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-              .header { text-align: center; margin-bottom: 30px; }
-              .header h1 { color: #8B4513; margin: 0; font-size: 28px; }
-              .content { text-align: center; }
-              .content p { color: #333; font-size: 16px; line-height: 1.6; }
-              .code-box { background: #f0f0f0; border: 2px solid #8B4513; border-radius: 8px; padding: 20px; margin: 20px 0; }
-              .code { font-size: 40px; font-weight: bold; color: #8B4513; letter-spacing: 10px; font-family: monospace; }
-              .footer { text-align: center; margin-top: 30px; color: #999; font-size: 12px; }
-              .warning { color: #d9534f; font-size: 12px; margin-top: 10px; }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div class="header">
-                <h1>🍪 Cookie</h1>
-              </div>
-              <div class="content">
-                <p>Welcome to Cookie!</p>
-                <p>Please verify your email address to complete your registration.</p>
-                <div class="code-box">
-                  <p style="margin: 0 0 10px 0; color: #666;">Your verification code:</p>
-                  <div class="code">${code}</div>
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Cookie Account</title>
+  </head>
+  <body style="margin: 0; padding: 0; background-color: #FFF8E1; font-family: 'Courier New', Courier, monospace;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFF8E1; padding: 40px 10px;">
+      <tr>
+        <td align="center">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 550px; background-color: #FFFFFF; border: 4px solid #2C1810; box-shadow: 12px 12px 0px #2C1810;">
+            
+            <tr>
+              <td style="background-color: #FFC4DD; padding: 40px 20px; text-align: center; border-bottom: 4px solid #2C1810;">
+                <h1 style="margin: 0; font-size: 32px; font-weight: bold; color: #2C1810; letter-spacing: 6px; text-transform: uppercase;">
+                  COOKIE
+                </h1>
+              </td>
+            </tr>
+            
+            <tr>
+              <td style="padding: 50px 40px; text-align: center;">
+                
+                <h2 style="margin: 0 0 20px 0; font-size: 24px; color: #2C1810; font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">
+                  Welcome to Cookie!
+                </h2>
+                
+                <p style="margin: 0 0 15px 0; font-size: 16px; color: #2C1810; line-height: 1.6; font-family: Arial, sans-serif;">
+                  Let's get your account verified and ready to
+                </p>
+                
+                <p style="margin: 0 0 35px 0; font-size: 16px; color: #2C1810; line-height: 1.6; font-family: Arial, sans-serif;">
+                  share delicious recipes!
+                </p>
+                
+                <div style="background-color: #FFF8E1; border: 3px solid #2C1810; padding: 40px 20px; margin-bottom: 30px; position: relative;">
+                  <p style="margin: 0 0 15px 0; font-size: 13px; color: #2C1810; font-weight: bold; letter-spacing: 2px; text-transform: uppercase;">
+                    YOUR VERIFICATION CODE
+                  </p>
+                    <div style="font-size: 42px; font-weight: bold; color: #FF1493; letter-spacing: 12px;">
+                      ${code}
+                    </div>
                 </div>
-                <p>This code will expire in <strong>24 hours</strong>.</p>
-                <div class="warning">
-                  If you did not create this account, please ignore this email.
-                </div>
-              </div>
-              <div class="footer">
-                <p>© 2026 Cookie App. All rights reserved.</p>
-              </div>
-            </div>
-          </body>
-        </html>
+                
+                <table align="center" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 35px;">
+                  <tr>
+                    <td style="background-color: #2C1810; padding: 10px 25px; border: 2px solid #2C1810;">
+                      <p style="margin: 0; font-size: 14px; color: #FFFFFF; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
+                        Expires in 24 hours
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+
+                <div style="margin: 40px 0 20px 0; border-top: 4px solid #2C1810;"></div>
+
+                <p style="margin: 0; font-size: 13px; color: #666666; font-family: Arial, sans-serif;">
+                  Didn't create this account? You can safely ignore this email.
+                </p>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td style="background-color: #2C1810; padding: 25px 20px; text-align: center;">
+                <p style="margin: 0 0 5px 0; font-size: 14px; color: #FFF8E1; font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">
+                  © 2026 Cookie
+                </p>
+                <p style="margin: 0; font-size: 12px; color: #FFB4C8;">
+                  Made with ❤️
+                </p>
+              </td>
+            </tr>
+            
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
       `
     };
 
@@ -83,47 +125,99 @@ exports.sendPasswordResetEmail = async (email, resetCode) => {
     const mailOptions = {
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: email,
-      subject: 'Password Reset - Cookie App',
+      subject: 'Reset Your Cookie Password',
       html: `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <style>
-              body { font-family: Arial, sans-serif; background-color: #f5f5f5; }
-              .container { max-width: 600px; margin: 20px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-              .header { text-align: center; margin-bottom: 30px; }
-              .header h1 { color: #8B4513; margin: 0; font-size: 28px; }
-              .content { text-align: center; }
-              .content p { color: #333; font-size: 16px; line-height: 1.6; }
-              .code-box { background: #f0f0f0; border: 2px solid #8B4513; border-radius: 8px; padding: 20px; margin: 20px 0; }
-              .code { font-size: 40px; font-weight: bold; color: #8B4513; letter-spacing: 10px; font-family: monospace; }
-              .footer { text-align: center; margin-top: 30px; color: #999; font-size: 12px; }
-              .warning { color: #d9534f; font-size: 12px; margin-top: 10px; }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div class="header">
-                <h1>🍪 Cookie</h1>
-              </div>
-              <div class="content">
-                <p>Hi there!</p>
-                <p>We received a request to reset your password. Use the code below to reset it.</p>
-                <div class="code-box">
-                  <p style="margin: 0 0 10px 0; color: #666;">Your password reset code:</p>
-                  <div class="code">${resetCode}</div>
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset Your Cookie Password</title>
+  </head>
+  <body style="margin: 0; padding: 0; background-color: #FFF8E1; font-family: 'Courier New', Courier, monospace;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFF8E1; padding: 40px 10px;">
+      <tr>
+        <td align="center">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 550px; background-color: #FFFFFF; border: 4px solid #2C1810; box-shadow: 12px 12px 0px #2C1810;">
+            
+            <tr>
+              <td style="background-color: #FFB4C8; padding: 40px 20px; text-align: center; border-bottom: 4px solid #2C1810;">
+                
+                <h1 style="margin: 0; font-size: 32px; font-weight: bold; color: #2C1810; letter-spacing: 6px; text-transform: uppercase;">
+                  COOKIE
+                </h1>
+              </td>
+            </tr>
+            
+            <tr>
+              <td style="padding: 50px 40px; text-align: center;">
+                
+                <h2 style="margin: 0 0 20px 0; font-size: 24px; color: #2C1810; font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">
+                  Password Reset Request
+                </h2>
+                
+                <p style="margin: 0 0 15px 0; font-size: 16px; color: #2C1810; line-height: 1.6; font-family: Arial, sans-serif;">
+                  Someone (hopefully you!) requested to reset your password.
+                </p>
+                
+                <p style="margin: 0 0 35px 0; font-size: 16px; color: #2C1810; line-height: 1.6; font-family: Arial, sans-serif;">
+                  Use the code below to create a new password:
+                </p>
+                
+                <div style="background-color: #FFF8E1; border: 3px solid #2C1810; padding: 40px 20px; margin-bottom: 30px; position: relative;">
+                  <p style="margin: 0 0 15px 0; font-size: 13px; color: #2C1810; font-weight: bold; letter-spacing: 2px; text-transform: uppercase;">
+                    YOUR RESET CODE
+                  </p>
+                    <div style="font-size: 42px; font-weight: bold; color: #FF1493; letter-spacing: 12px;">
+                      ${resetCode}
+                    </div>
                 </div>
-                <p>This code will expire in <strong>15 minutes</strong>.</p>
-                <div class="warning">
-                  If you did not request a password reset, please ignore this email.
+                
+                <table align="center" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 35px;">
+                  <tr>
+                    <td style="background-color: #2C1810; padding: 10px 25px; border: 2px solid #2C1810;">
+                      <p style="margin: 0; font-size: 14px; color: #FFFFFF; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
+                        Expires in 15 minutes
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+
+                <div style="background-color: #FFF3CD; border: 3px solid #F59E0B; padding: 20px; text-align: left;">
+                  <p style="margin: 0 0 5px 0; font-size: 14px; color: #78350F; font-weight: bold; text-transform: uppercase;">
+                    ⚠ Security Alert
+                  </p>
+                  <p style="margin: 0; font-size: 13px; color: #92400E; line-height: 1.5; font-family: Arial, sans-serif;">
+                    If you didn't request this, please ignore this email and secure your account immediately.
+                  </p>
                 </div>
-              </div>
-              <div class="footer">
-                <p>© 2026 Cookie App. All rights reserved.</p>
-              </div>
-            </div>
-          </body>
-        </html>
+
+                <div style="margin: 40px 0 20px 0; border-top: 4px solid #2C1810;"></div>
+
+                <p style="margin: 0; font-size: 13px; color: #666666; font-family: Arial, sans-serif;">
+                  Need help? Contact our support team.
+                </p>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td style="background-color: #2C1810; padding: 25px 20px; text-align: center;">
+                <p style="margin: 0 0 5px 0; font-size: 14px; color: #FFF8E1; font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">
+                  © 2026 Cookie
+                </p>
+                <p style="margin: 0; font-size: 12px; color: #FFB4C8;">
+                  Made with ❤️
+                </p>
+              </td>
+            </tr>
+            
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
       `
     };
 

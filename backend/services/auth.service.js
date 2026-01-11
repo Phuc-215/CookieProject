@@ -10,13 +10,18 @@ exports.login = async ({ email, password }) => {
   email = email.trim().toLowerCase();
 
   const result = await pool.query(
-    `SELECT id, email, username, avatar_url, password_hash
+    `SELECT id, email, username, avatar_url, password_hash, is_verified
      FROM users WHERE email = $1`,
     [email]
   );
 
   const user = result.rows[0];
   if (!user) return { error: 'USER_NOT_FOUND' };
+
+  // Check if email is verified
+  if (!user.is_verified) {
+    return { error: 'EMAIL_NOT_VERIFIED' };
+  }
 
   const isMatch = await comparePassword(password, user.password_hash);
   if (!isMatch) return { error: 'INVALID_PASSWORD' };
@@ -90,29 +95,15 @@ exports.register = async ({ username, email, password }) => {
   // Send verification code to email
   await sendVerificationEmail(newUser.email, verificationCode);
 
-  // Generate JWT tokens for immediate login
-  const payload = {
-    id: newUser.id,
-    email: newUser.email,
-    username: newUser.username,
-    avatar_url: newUser.avatar_url
-  };
-
-  const accessToken = signAccessToken(payload);
-  const refreshToken = signRefreshToken({ id: newUser.id });
-
-  // Save refresh token to DB
-  await pool.query(
-    `INSERT INTO refresh_tokens (user_id, token, expires_at)
-     VALUES ($1, $2, NOW() + INTERVAL '7 days')`,
-    [newUser.id, refreshToken]
-  );
-
+  // Return user info WITHOUT tokens - user must verify email first
   return {
-    user: payload,
-    accessToken,
-    refreshToken,
-    verificationCode // Return code for testing (remove in production)
+    user: {
+      id: newUser.id,
+      username: newUser.username,
+      email: newUser.email,
+      avatar_url: newUser.avatar_url
+    },
+    message: 'Registration successful. Please verify your email to login.'
   };
 };
 
@@ -163,7 +154,80 @@ exports.verifyEmail = async (code) => {
     [code.toString()]
   );
 
-  return { success: true };
+  // Get user info to generate tokens
+  const userResult = await pool.query(
+    `SELECT id, email, username, avatar_url FROM users WHERE id = $1`,
+    [userId]
+  );
+
+  const user = userResult.rows[0];
+  const payload = {
+    id: user.id,
+    email: user.email,
+    username: user.username,
+    avatar_url: user.avatar_url
+  };
+
+  // Generate tokens for the user
+  const accessToken = signAccessToken(payload);
+  const refreshToken = signRefreshToken({ id: user.id });
+
+  // Save refresh token to DB
+  await pool.query(
+    `INSERT INTO refresh_tokens (user_id, token, expires_at)
+     VALUES ($1, $2, NOW() + INTERVAL '7 days')`,
+    [user.id, refreshToken]
+  );
+
+  return { 
+    success: true,
+    user: payload,
+    accessToken,
+    refreshToken
+  };
+};
+
+exports.resendVerificationCode = async (email) => {
+  if (!email) {
+    return { error: 'Email is required' };
+  }
+
+  // Check if user exists
+  const userCheck = await pool.query(
+    'SELECT id, is_verified FROM users WHERE email = $1',
+    [email]
+  );
+
+  if (userCheck.rowCount === 0) {
+    return { error: 'User not found' };
+  }
+
+  const user = userCheck.rows[0];
+
+  if (user.is_verified) {
+    return { error: 'Email already verified' };
+  }
+
+  // Generate new verification code
+  const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // Delete old verification codes for this user
+  await pool.query(
+    'DELETE FROM verification_tokens WHERE user_id = $1',
+    [user.id]
+  );
+
+  // Insert new verification code (expires in 15 minutes)
+  await pool.query(
+    `INSERT INTO verification_tokens (user_id, token, expires_at)
+     VALUES ($1, $2, NOW() + INTERVAL '15 minutes')`,
+    [user.id, verificationCode]
+  );
+
+  // Send verification email
+  await sendVerificationEmail(email, verificationCode);
+
+  return { success: true, message: 'Verification code sent' };
 };
 
 exports.refreshToken = async (refreshToken) => {

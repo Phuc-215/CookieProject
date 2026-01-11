@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { pool } = require('../config/db');
 
 exports.requireAuth = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -20,5 +21,30 @@ exports.requireAuth = (req, res, next) => {
     next();
   } catch (err) {
     return res.status(401).json({ message: 'TOKEN_INVALID' });
+  }
+};
+
+exports.requireVerifiedEmail = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    
+    const result = await pool.query(
+      'SELECT is_verified FROM users WHERE id = $1',
+      [userId]
+    );
+    
+    if (result.rowCount === 0) {
+      return res.status(401).json({ message: 'USER_NOT_FOUND' });
+    }
+    
+    const user = result.rows[0];
+    if (!user.is_verified) {
+      return res.status(403).json({ message: 'EMAIL_NOT_VERIFIED' });
+    }
+    
+    next();
+  } catch (err) {
+    console.error('VERIFY EMAIL MIDDLEWARE ERROR:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 };

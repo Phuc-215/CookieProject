@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/notifications.controller');
-// Middleware to ensure user is logged in
+const { requireAuth, requireVerifiedEmail } = require('../middlewares/auth.middleware');
+
+// All notification routes require verified email
+router.use(requireAuth, requireVerifiedEmail);
 
 // Get Notifications 
 router.get('/', controller.getNotifications);

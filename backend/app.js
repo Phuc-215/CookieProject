@@ -12,6 +12,7 @@ var authRouter = require('./routes/auth.route');
 var searchRouter = require('./routes/search.route');
 var recipesRouter = require('./routes/recipes.route');
 var notificationsRouter = require('./routes/notifications.route');
+var collectionsRouter = require('./routes/collections.route')
 
 var { connectDB } = require('./config/db'); 
 
@@ -43,6 +44,8 @@ app.use('/auth', authRouter);
 app.use('/search', searchRouter);
 app.use('/recipes', recipesRouter);
 app.use('/notifications', notificationsRouter);
+app.use('/collections', collectionsRouter);
+
 connectDB(); 
 
 // catch 404 and forward to error handler

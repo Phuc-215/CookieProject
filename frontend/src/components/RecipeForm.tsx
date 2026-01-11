@@ -52,7 +52,7 @@ export function RecipeForm({
     defaultValues: {
       title: '',
       description: '',
-      difficulty: 'Medium',
+      difficulty: 'medium',
       category: '',
       cookTime: null,
       servings: null,
@@ -279,6 +279,7 @@ export function RecipeForm({
 
   const handleSaveDraft = (data: RecipeFormData) => {
     console.log('Save Draft', data);
+  
   };
 
   const handlePublish = async (data: RecipeFormData) => {
@@ -400,7 +401,7 @@ export function RecipeForm({
                   Difficulty *
                 </label>
                 <div className="flex gap-2">
-                  {(['Easy', 'Medium', 'Hard'] as const).map(level => (
+                  {(['easy', 'medium', 'hard'] as const).map(level => (
                     <button
                       key={level}
                       type="button"

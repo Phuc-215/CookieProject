@@ -1,4 +1,4 @@
-export type Difficulty = 'Easy' | 'Medium' | 'Hard';
+export type Difficulty = 'easy' | 'medium' | 'hard';
 
 interface RecipeAuthor {
   username: string;
@@ -39,7 +39,7 @@ export interface RecipeFormData {
   id?: string;
   title: string;
   description: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  difficulty: 'easy' | 'medium' | 'hard';
   category: string | null;
   cookTime: number | null;
   servings: number | null;

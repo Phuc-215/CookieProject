@@ -106,9 +106,10 @@ exports.saveRecipe = async ({
         const values = [];
         let paramIndex = 1;
 
-        const addField = (col, val) => {
+        const addField = (col, val, cast = null) => {
             if (val !== undefined) {
-                fieldsToUpdate.push(`${col} = $${paramIndex++}`);
+                const castStr = cast ? `::${cast}` : '';
+                fieldsToUpdate.push(`${col} = $${paramIndex++}${castStr}`);
                 values.push(val);
             }
         };

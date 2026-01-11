@@ -51,8 +51,8 @@ const RecipeSchema = Joi.object({
     }),
 
   difficulty: Joi.string()
-    .valid('Easy', 'Medium', 'Hard')
-    .default('Easy'),
+    .valid('easy', 'medium', 'hard')
+    .default('easy'),
 
   servings: Joi.number()
     .integer()

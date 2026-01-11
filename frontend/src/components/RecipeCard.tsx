@@ -6,7 +6,7 @@ interface RecipeCardProps {
   title: string;
   image: string;
   author: string;
-  difficulty: "Easy" | "Medium" | "Hard";
+  difficulty: "easy" | "medium" | "hard";
   time: string;
   likes: number;
   isLiked?: boolean; // Used as initial value

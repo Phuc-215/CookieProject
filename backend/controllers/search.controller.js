@@ -5,45 +5,29 @@ const searchService = require('../services/search.service');
 
 exports.search = async (req, res) => {
   try {
-    const userId = req.userId; 
-
     const {
         title = '',
-        // Expecting arrays of IDs (integers) - [1, 4, 12]
-        included_ingredients = [], 
-        excluded_ingredients = [],
+        // Expecting arrays of strings (ingredient names) - ['flour', 'sugar']
+        ingredients_included = [], 
+        ingredients_excluded = [],
         difficulty = '',
         category = '',
         sort = '',
         page = 1,
         limit = 10,
-        type = 'recipes'
-    } = req.query;
-    console.log('Search Params:', {
-        title,
-        included_ingredients,
-        excluded_ingredients,
-        difficulty,
-        category,
-        sort,
-        page,
-        limit,
-        type
-    });
-
-    // if (type === 'collections') {
-    //     // Handle collection search separately if needed
-    // }
+        type = 'recipes',
+        userId = ''
+    } = req.body;
     const result = await searchService.search({
         title, 
-        ingredientIds_included: included_ingredients, 
-        ingredientIds_excluded: excluded_ingredients,
+        ingredientIds_included: ingredients_included, 
+        ingredientIds_excluded: ingredients_excluded,
         difficulty,
         category,
         sort,
         page,
         limit,
-        userId 
+        userId: Number(userId),
     });
 
     res.status(200).json({
@@ -79,7 +63,9 @@ exports.getSuggestions = async (req, res) => {
 
 exports.getHistory = async (req, res) => {
     try {
-        const userId = req.userId;
+        const userId = parseInt(req.user?.id, 10); 
+        console.log('Get History for user:', userId);
+
         const history = await searchService.getHistory(userId);
         res.status(200).json({
             message: 'Search history fetched',
@@ -93,13 +79,32 @@ exports.getHistory = async (req, res) => {
 
 exports.clearHistory = async (req, res) => {
     try {
-        const userId = req.userId;
+        const userId = parseInt(req.user?.id, 10); 
+        console.log('Clear History for user:', userId);
+
         await searchService.clearHistory(userId);
         res.status(200).json({
             message: 'Search history cleared'
         });
     } catch (err) {
         console.error('Clear History Error:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+exports.deleteHistoryItem = async (req, res) => {
+    try {
+        const userId = parseInt(req.user?.id, 10); 
+        const historyId = parseInt(req.params.id, 10);
+        console.log('Delete History Item for user:', userId);
+        console.log('History ID to delete:', historyId);
+        
+        await searchService.deleteHistoryItem(userId, historyId);
+        res.status(200).json({
+            message: 'Search history item deleted'
+        });
+    } catch (err) {
+        console.error('Delete History Item Error:', err);
         res.status(500).json({ message: 'Server error' });
     }
 };

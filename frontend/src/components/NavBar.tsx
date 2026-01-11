@@ -4,6 +4,7 @@ import { PixelButton } from './PixelButton';
 import { Avatar } from './Avatar';
 import { useNav } from "@/hooks/useNav";
 import { useAuth } from "@/contexts/AuthContext";
+import { getSearchSuggestionsApi, getSearchHistoryApi, clearSearchHistoryApi, deleteSearchHistoryItemApi } from '@/api/search.api';
 import logo from "@/assets/logo.svg";
 
 interface NavBarProps {
@@ -13,14 +14,13 @@ interface NavBarProps {
   notificationCount?: number;
   showBackButton?: boolean; 
   onBack?: () => void;
-  searchQuery?: string;
 }
 
-// --- MOCK DATA CHO GỢI Ý (Bạn có thể thay bằng API thật) ---
-const MOCK_SUGGESTIONS = [
-  "Chocolate Chip", "Oatmeal Raisin", "Macarons", "Cupcakes", "Brownies", "Vegan", "Keto", "Sugar Free", "Christmas Cookies"
-];
-const MOCK_HISTORY_INIT = ["Vegan Cookies", "Gluten Free", "Donuts"];
+// Interface for History Items from DB
+interface SearchHistoryItem {
+  id: number;
+  query_text: string;
+}
 
 export function NavBar({ 
   isLoggedIn = false, 
@@ -30,15 +30,22 @@ export function NavBar({
   onBack
 }: NavBarProps) {
   
-  const [showDropdown, setShowDropdown] = useState(false); // User dropdown
+  const [showDropdown, setShowDropdown] = useState(false);
   
   // --- SEARCH STATES ---
   const [localQuery, setLocalQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [searchHistory, setSearchHistory] = useState<string[]>(MOCK_HISTORY_INIT);
   
-  const dropdownRef = useRef<HTMLDivElement>(null);     // Ref cho User menu
-  const searchContainerRef = useRef<HTMLDivElement>(null); // Ref cho Search bar
+  // Store History (Objects with ID)
+  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
+  // Store Suggestions (Strings) - MUST be state to trigger re-render
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+
+  // Ref for Debouncing
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const dropdownRef = useRef<HTMLDivElement>(null);     
+  const searchContainerRef = useRef<HTMLDivElement>(null); 
   
   const nav = useNav();
   const { logout, viewer } = useAuth();
@@ -48,14 +55,58 @@ export function NavBar({
     else nav.back();
   }
 
-  // Handle click outside (Đóng cả 2 loại dropdown)
+  // --- FETCH HISTORY ---
+  const fetchHistory = async () => {
+    if (!isLoggedIn) return;
+    try {
+      const res = await getSearchHistoryApi();
+      setSearchHistory(res.data.data);
+    } catch (err) {
+      console.error("Failed to fetch search history", err);
+    }
+  };
+
+  // --- INPUT HANDLER (DEBOUNCED) ---
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setLocalQuery(val);
+    setIsSearchFocused(true);
+
+    // 1. Clear previous timer
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    // 2. If empty, clear suggestions and show history (if logged in)
+    if (!val.trim()) {
+      setSuggestions([]);
+      if (isLoggedIn) fetchHistory();
+      return;
+    }
+
+    // 3. Set new timer (300ms)
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await getSearchSuggestionsApi(val);
+        console.log('Suggestions fetched:', res.data.data);
+        setSuggestions(res.data.data); 
+      } catch (err) {
+        console.error("Failed to fetch suggestions", err);
+      }
+    }, 300);
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    fetchHistory();
+  }, [isLoggedIn]);
+
+  // Handle click outside
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      // Đóng User Dropdown
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setShowDropdown(false);
       }
-      // Đóng Search Suggestions
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
         setIsSearchFocused(false);
       }
@@ -64,31 +115,34 @@ export function NavBar({
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // --- SEARCH LOGIC ---
+  // --- ACTIONS ---
   const executeSearch = (term: string) => {
     if (!term.trim()) return;
-
-    // 1. Lưu vào lịch sử (nếu chưa có)
-    if (!searchHistory.includes(term)) {
-      setSearchHistory([term, ...searchHistory].slice(0, 5)); // Giữ 5 cái mới nhất
-    }
+    if (debounceRef.current) clearTimeout(debounceRef.current); // Cancel pending suggest
     
-    // 2. Cập nhật UI
     setLocalQuery(term);
     setIsSearchFocused(false);
-    
-    // 3. Chuyển trang
     nav.search(term);
   };
 
-  const removeHistoryItem = (e: React.MouseEvent, item: string) => {
-    e.stopPropagation(); // Ngăn việc click xóa làm đóng dropdown
-    setSearchHistory(prev => prev.filter(h => h !== item));
+  const handleClearAllHistory = async () => {
+    try {
+      await clearSearchHistoryApi();
+      setSearchHistory([]);
+    } catch (err) {
+      console.error("Failed to clear search history", err);
+    }
   };
 
-  const filteredSuggestions = MOCK_SUGGESTIONS.filter(s => 
-    s.toLowerCase().includes(localQuery.toLowerCase())
-  ).slice(0, 5);
+  const removeHistoryItem = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation(); 
+    try {
+      setSearchHistory(prev => prev.filter(h => h.id !== id));
+      await deleteSearchHistoryItemApi(id);
+    } catch (err) {
+      console.error("Failed to delete item", err);
+    }
+  };
 
   return (
     <header className="border-b-[3px] border-[var(--border)] bg-[white] sticky top-0 z-50">
@@ -103,7 +157,6 @@ export function NavBar({
             </button>)
           }
 
-          {/* Logo */}
           <div 
             className="flex items-center cursor-pointer shrink-0"
             onClick={nav.home}
@@ -114,7 +167,7 @@ export function NavBar({
             </h1>
           </div>
 
-          {/* --- DESKTOP SEARCH BAR (CENTER) --- */}
+          {/* --- SEARCH BAR --- */}
           <div className="flex-1 max-w-xl mx-4 hidden md:block z-50" ref={searchContainerRef}>
             <div className="relative">
               <input
@@ -122,75 +175,79 @@ export function NavBar({
                 className="w-full px-4 py-2 pl-10 bg-[var(--cream)] pixel-border placeholder:text-[var(--foreground)]/50 font-vt outline-none focus:ring-2 ring-[var(--pink)]/50 transition-all"
                 placeholder="Search recipes..."
                 value={localQuery}
-                onFocus={() => setIsSearchFocused(true)}
-                onChange={(e) => {
-                  setLocalQuery(e.target.value);
+                onFocus={() => {
                   setIsSearchFocused(true);
+                  if (!localQuery) fetchHistory();
                 }}
+                onChange={handleInputChange}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") executeSearch(localQuery);
                 }}
               />
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--foreground)]/50" />
               
-              {/* Nút X xóa text */}
               {localQuery && (
                 <button 
-                  onClick={() => { setLocalQuery(''); setIsSearchFocused(true); }}
+                  onClick={() => { setLocalQuery(''); setSuggestions([]); fetchHistory(); setIsSearchFocused(true); }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
                 >
                   <X size={16} />
                 </button>
               )}
 
-              {/* --- DROPDOWN GỢI Ý --- */}
+              {/* --- DROPDOWN --- */}
               {isSearchFocused && (
                 <div className="absolute top-full left-0 w-full bg-white pixel-border border-t-0 shadow-lg mt-1 overflow-hidden animate-fade-in">
                   
-                  {/* CASE 1: INPUT RỖNG -> HIỆN LỊCH SỬ */}
+                  {/* CASE 1: INPUT EMPTY -> HISTORY */}
                   {!localQuery.trim() ? (
                     <div>
-                      {searchHistory.length > 0 && (
-                        <div className="bg-gray-50 px-4 py-2 border-b-2 border-dashed border-gray-200 flex justify-between items-center">
-                          <span className="text-xs font-bold text-gray-400 uppercase font-pixel flex items-center gap-2">
-                            <History size={12}/> Recent
-                          </span>
-                          <button onClick={() => setSearchHistory([])} className="text-xs text-red-400 hover:text-red-600 font-pixel">
-                            Clear all
-                          </button>
+                      {searchHistory.length > 0 ? (
+                        <>
+                          <div className="bg-gray-50 px-4 py-2 border-b-2 border-dashed border-gray-200 flex justify-between items-center">
+                            <span className="text-xs font-bold text-gray-400 uppercase font-pixel flex items-center gap-2">
+                              <History size={12}/> Recent
+                            </span>
+                            <button onClick={handleClearAllHistory} className="text-xs text-red-400 hover:text-red-600 font-pixel">
+                              Clear all
+                            </button>
+                          </div>
+                          
+                          {searchHistory.map((item) => (
+                            <div 
+                              key={item.id}
+                              className="px-4 py-2 hover:bg-[#FFF8E1] cursor-pointer flex items-center justify-between group border-b border-gray-100 last:border-0"
+                              onClick={() => executeSearch(item.query_text)}
+                            >
+                              <div className="flex items-center gap-3 text-[var(--foreground)] font-vt text-lg">
+                                <Clock size={14} className="text-gray-400" />
+                                {item.query_text}
+                              </div>
+                              <button 
+                                onClick={(e) => removeHistoryItem(e, item.id)}
+                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 text-red-400 rounded transition-all"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          ))}
+                        </>
+                      ) : (
+                        <div className="p-3 text-center text-gray-400 font-vt italic">
+                           {isLoggedIn ? 'No recent searches' : 'Login to see history'}
                         </div>
                       )}
-                      
-                      {searchHistory.map((item, idx) => (
-                        <div 
-                          key={idx}
-                          className="px-4 py-2 hover:bg-[#FFF8E1] cursor-pointer flex items-center justify-between group border-b border-gray-100 last:border-0"
-                          onClick={() => executeSearch(item)}
-                        >
-                          <div className="flex items-center gap-3 text-[var(--foreground)] font-vt text-lg">
-                            <Clock size={14} className="text-gray-400" />
-                            {item}
-                          </div>
-                          <button 
-                            onClick={(e) => removeHistoryItem(e, item)}
-                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 text-red-400 rounded transition-all"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      ))}
                     </div>
                   ) : (
-                    /* CASE 2: CÓ TEXT -> HIỆN GỢI Ý */
+                    /* CASE 2: HAS INPUT -> SUGGESTIONS */
                     <div>
-                      {filteredSuggestions.length > 0 ? filteredSuggestions.map((item, idx) => (
+                      {suggestions.length > 0 ? suggestions.map((item, idx) => (
                         <div 
                           key={idx}
                           className="px-4 py-2 hover:bg-[#FFF8E1] cursor-pointer flex items-center gap-3 text-[var(--foreground)] font-vt text-lg border-b border-gray-100 last:border-0"
                           onClick={() => executeSearch(item)}
                         >
                           <Search size={14} className="text-gray-400" />
-                          {/* Highlight phần text khớp (Optional simple highlight) */}
                           <span>{item}</span>
                         </div>
                       )) : (
@@ -207,68 +264,25 @@ export function NavBar({
 
           {/* Right controls */}
           <div className="flex items-center gap-2 sm:gap-3">
-             {/* ... (Giữ nguyên phần nút Login/Notification/Profile cũ) ... */}
-            <button 
-              className="md:hidden p-2 hover:bg-[var(--cream)] transition-colors"
-              onClick={() => nav.search(localQuery)}
-              title="Search"
-            >
-              <Search className="w-5 h-5 text-[var(--foreground)]" />
-            </button>
-
-            {isLoggedIn ? (
+             {/* ... (Keep existing User/Login buttons same as before) ... */}
+             {isLoggedIn ? (
               <>
-                <button 
-                  className="p-2 hover:bg-[var(--cream)] transition-colors"
-                  onClick={nav.create}
-                  title="Create Recipe"
-                >
-                  <Plus className="w-5 h-5 text-[var(--foreground)]" />
+                <button className="p-2 hover:bg-[var(--cream)]" onClick={nav.create}><Plus className="w-5 h-5"/></button>
+                <button className="p-2 hover:bg-[var(--cream)] relative" onClick={nav.notifications}>
+                  <Bell className="w-5 h-5" />
+                  {notificationCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--pink)] rounded-full"></span>}
                 </button>
-
-                <button 
-                  className="p-2 hover:bg-[var(--cream)] transition-colors relative"
-                  onClick={nav.notifications}
-                  title="Notifications"
-                >
-                  <Bell className="w-5 h-5 text-[var(--foreground)]" />
-                  {notificationCount > 0 && (
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--pink)] rounded-full"></span>
-                  )}
-                </button>
-
                 <div className="relative" ref={dropdownRef}>
-                  <button 
-                    className="hover:bg-[var(--cream)] transition-colors"
-                    onClick={() => setShowDropdown(!showDropdown)}
-                  >
-                    <Avatar 
-                      src={viewer?.avatar_url ?? undefined} 
-                      alt={viewer?.username || 'User'} 
-                      size={32}
-                    />
+                  <button onClick={() => setShowDropdown(!showDropdown)}>
+                    <Avatar src={viewer?.avatar_url ?? undefined} alt={viewer?.username || 'User'} size={32} />
                   </button>
-
                   {showDropdown && (
                     <div className="absolute right-0 top-full mt-2 w-48 bg-white pixel-border shadow-pixel z-50">
-                      <button
-                        className="w-full px-4 py-3 text-left hover:bg-[var(--pink)]/30 transition-colors flex items-center gap-3 border-b-2 border-[var(--border)] font-vt"
-                        onClick={() => { setShowDropdown(false); nav.me(); }}
-                      >
-                        <UserCircle className="w-5 h-5" />
-                        <span>View Profile</span>
+                      <button className="w-full px-4 py-3 text-left hover:bg-[var(--pink)]/30 flex items-center gap-3 font-vt" onClick={() => { setShowDropdown(false); nav.me(); }}>
+                        <UserCircle className="w-5 h-5" /> Profile
                       </button>
-
-                      <button
-                        className="w-full px-4 py-3 text-left hover:bg-[var(--pink)]/30 transition-colors flex items-center gap-3 font-vt"
-                        onClick={async () => {
-                          setShowDropdown(false);
-                          await logout();
-                          nav.login();
-                        }}
-                      >
-                        <LogOut className="w-5 h-5" />
-                        <span>Logout</span>
+                      <button className="w-full px-4 py-3 text-left hover:bg-[var(--pink)]/30 flex items-center gap-3 font-vt" onClick={async () => { setShowDropdown(false); await logout(); nav.login(); }}>
+                        <LogOut className="w-5 h-5" /> Logout
                       </button>
                     </div>
                   )}

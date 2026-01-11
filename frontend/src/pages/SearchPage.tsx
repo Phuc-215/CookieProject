@@ -5,10 +5,11 @@ import { CollectionCard } from '../components/CollectionCard';
 import { PixelButton } from '../components/PixelButton';
 import { PixelInput } from '../components/PixelInput';
 import { PixelTag } from '../components/PixelTag';
-import { NavBar } from '../components/NavBar';
 import { useNav } from '../hooks/useNav';
 import { useSearchParams } from 'react-router-dom';
 import { Pagination } from '../components/Pagination';
+
+import { searchApi } from '../api/search.api';
 
 interface SearchPageProps {
   isLoggedIn?: boolean;
@@ -77,10 +78,15 @@ const ITEMS_PER_PAGE = 6;
 
 export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
   
+  // --- REAL DATA STATE ---
+  const [recipes, setRecipes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [totalRecipes, setTotalRecipes] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
   // --- LOCAL STATE (Cho UI nhập liệu) ---
   const [filterIngredient, setFilterIngredient] = useState<Ingredient[]>([]);
   const [ingredientInput, setIngredientInput] = useState("");
-  
   // State cho phần EXCLUDE (Loại trừ)
   const [excludeIngredient, setExcludeIngredient] = useState<Ingredient[]>([]);
   const [excludeInput, setExcludeInput] = useState("");
@@ -103,6 +109,46 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
   const pageParam = parseInt(searchParams.get('page') || '1');
 
   const nav = useNav();
+
+  // --- FETCH DATA FROM API ---
+  useEffect(() => {
+    const fetchSearchResults = async () => {
+      setLoading(true);
+      try {
+        const apiParams = {
+          title: searchQuery || '',
+          ingredients_included: ingredientsParam ? ingredientsParam.split(',').map(i => i.trim()) : [],
+          ingredients_excluded: excludedParam ? excludedParam.split(',').map(i => i.trim()) : [],
+          difficulty: difficultyParam ? difficultyParam.toLowerCase() : '',
+          category: categoryParam || '',
+          sort: sortParam || 'newest',
+          page: pageParam,
+          limit: ITEMS_PER_PAGE,
+          userId: localStorage.getItem('userId') || null,
+        };
+
+        console.log('Fetching search results with params:', apiParams);
+        
+        const response = await searchApi(apiParams);
+
+        console.log('Search results:', response.data);
+        
+        // Update state with real data
+        setRecipes(response.data.results || []);
+        setTotalRecipes(response.data.meta?.totalRecipes || 0);
+        setTotalPages(response.data.meta?.totalPages || 0);
+        
+      } catch (error) {
+        console.error('Error fetching search results:', error);
+        setRecipes([]);
+        setTotalRecipes(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSearchResults();
+  }, [searchQuery, ingredientsParam, excludedParam, difficultyParam, categoryParam, sortParam, pageParam]);
 
   // --- 1. SYNC URL -> LOCAL UI STATE (Khi reload trang) ---
   useEffect(() => {
@@ -129,49 +175,6 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
 
   }, [difficultyParam, ingredientsParam, excludedParam, pageParam]); 
 
-  // --- 2. LOGIC LỌC (Dựa hoàn toàn vào URL Params) ---
-  let filteredRecipes = MOCK_RECIPES.filter(recipe => {
-    // A. Category
-    if (categoryParam && recipe.category !== categoryParam && categoryParam !== "All") return false;
-    
-    // B. Search Query
-    if (searchQuery && !recipe.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    
-    // C. Difficulty
-    if (difficultyParam && recipe.difficulty !== difficultyParam) return false;
-
-    // D. Include Ingredients (Phải có TẤT CẢ các nguyên liệu này)
-    if (ingredientsParam) {
-        const required = ingredientsParam.toLowerCase().split(',');
-        const recipeIngs = recipe.ingredients.map(i => i.toLowerCase());
-        const hasAll = required.every(req => recipeIngs.some(ri => ri.includes(req)));
-        if (!hasAll) return false;
-    }
-
-    // E. Exclude Ingredients (KHÔNG ĐƯỢC CÓ bất kỳ nguyên liệu nào trong này)
-    if (excludedParam) {
-        const forbidden = excludedParam.toLowerCase().split(',');
-        const recipeIngs = recipe.ingredients.map(i => i.toLowerCase());
-        
-        // Kiểm tra xem recipe có chứa bất kỳ nguyên liệu cấm nào không
-        const hasForbidden = forbidden.some(forb => recipeIngs.some(ri => ri.includes(forb)));
-        
-        // Nếu có chứa đồ cấm -> Loại bỏ (return false)
-        if (hasForbidden) return false;
-    }
-    
-    return true; 
-  });
-
-  // F. Sorting
-  if (sortParam === 'newest') {
-    filteredRecipes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  } else if (sortParam === 'oldest') {
-    filteredRecipes.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  } else if (sortParam === 'likes') {
-    filteredRecipes.sort((a, b) => b.likes - a.likes);
-  }
-
   // --- PAGINATION & VIEW TYPE ---
   const filteredCollections = MOCK_COLLECTIONS.filter(col => {
      if (searchQuery && !col.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
@@ -179,13 +182,10 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
   });
 
   const isViewRecipes = typeParam === 'recipes';
-  const totalItems = isViewRecipes ? filteredRecipes.length : filteredCollections.length;
+  const totalItems = isViewRecipes ? totalRecipes : filteredCollections.length;
   
-  const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
-  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
-  
-  const currentRecipes = filteredRecipes.slice(indexOfFirstItem, indexOfLastItem);
-  const currentCollections = filteredCollections.slice(indexOfFirstItem, indexOfLastItem);
+  const currentRecipes = recipes; // Data is already paginated from backend
+  const currentCollections = filteredCollections; // Keep mock for now
 
   // --- HELPERS CẬP NHẬT URL ---
   const updateParams = (updates: Record<string, string | null>) => {
@@ -266,9 +266,7 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
   else if (categoryParam && isViewRecipes) displayTitle = categoryParam;
 
   return (
-    <div className="min-h-screen bg-[var(--background-image)] pb-10">
-      {/* <NavBar isLoggedIn={isLoggedIn} onLogout={onLogout} notificationCount={1} showBackButton={true} /> */}
-      
+    <div className="min-h-screen bg-[var(--background-image)] pb-10">      
       <div className="flex flex-col md:flex-row gap-5">
         
         {/* --- LEFT SIDEBAR (FILTERS) --- */}
@@ -424,16 +422,24 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
           </div>
 
           {/* CONTENT GRID */}
-          {totalItems > 0 ? (
+          {loading ? (
+            <div className="flex justify-center items-center h-96">
+              <div className="font-vt323 text-2xl text-[#4A3B32] animate-pulse">Loading recipes...</div>
+            </div>
+          ) : totalItems > 0 ? (
             <>
               <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 ${isViewRecipes ? 'gap-6' : 'gap-6'} mb-8`}>
                 
                 {isViewRecipes && currentRecipes.map(recipe => (
                   <RecipeCard 
                     key={recipe.id} 
-                    title={recipe.title} author={recipe.author} image={recipe.image}
-                    time={recipe.time} difficulty={recipe.difficulty} likes={recipe.likes}
-                    onClick={() => nav.recipe(recipe.id)}
+                    title={recipe.title} 
+                    author={recipe.author || 'Unknown Chef'} 
+                    image={recipe.thumbnail_url || 'https://via.placeholder.com/600'}
+                    time={`${recipe.cook_time_min || 0} min`} 
+                    difficulty={recipe.difficulty} 
+                    likes={recipe.likes_count || 0}
+                    onClick={() => nav.recipe(recipe.id.toString())}
                   />
                 ))}
 

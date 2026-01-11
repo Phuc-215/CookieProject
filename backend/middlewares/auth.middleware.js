@@ -16,6 +16,7 @@ exports.requireAuth = (req, res, next) => {
       ...payload,
       id: parseInt(payload.id, 10)
     };
+    console.log('Authenticated user:', req.user);
     next();
   } catch (err) {
     return res.status(401).json({ message: 'TOKEN_INVALID' });

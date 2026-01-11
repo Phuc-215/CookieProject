@@ -93,10 +93,12 @@ exports.search = async ({ title, ingredientIds_included, ingredientIds_excluded,
 
     // 8. Execute
     const result = await pool.query(query, values);
-
+    console.log('userId:', userId, 'Search Query Result Count:', result.rowCount);
     // 9. Save History (Async, don't await blocking the response)
     if (userId && title) {
+        console.log('Saving search history for user', userId, 'query:', title);
         this.saveHistory(userId, title).catch(err => console.error('History save error', err));
+        console.log('Search history saved.');
     }
 
     const offset = (page - 1) * limit;
@@ -113,26 +115,43 @@ exports.search = async ({ title, ingredientIds_included, ingredientIds_excluded,
 
 exports.getSuggestions = async (partialQuery) => {
     if (!partialQuery) return [];
-    
     // Suggest Titles from recipes
     const query = `
         SELECT title 
         FROM recipes 
-        WHERE title ILIKE $1 
+        WHERE title ILIKE $1
+        AND status = 'published' 
         ORDER BY likes_count DESC 
         LIMIT 5
     `;
-    const result = await pool.query(query, [`%${partialQuery}%`]);
-    return result.rows;
+    const values = [`%${partialQuery}%`];
+    console.log('Suggestion Query Values:', values); // Suggestion Query Values: [ '%hello%' ]
+    const result = await pool.query(query, values);
+    console.log('Suggestions found:', result.rowCount);
+    return result.rows.map(row => row.title);
 };
 
 exports.saveHistory = async (userId, queryText) => {
-    // Insert new history
-    await pool.query(
-        `INSERT INTO search_history (user_id, query_text) VALUES ($1, $2)`, 
+    // Check if the same query already exists for the user
+    const existing = await pool.query(
+        `SELECT id FROM search_history WHERE user_id = $1 AND query_text = $2`,
         [userId, queryText]
     );
 
+    if (existing.rowCount > 0) {
+        // Update timestamp
+        await pool.query(
+            `UPDATE search_history SET created_at = NOW() WHERE id = $1`,
+            [existing.rows[0].id]
+        );
+    }
+    else {
+        // Insert new history record
+        await pool.query(
+            `INSERT INTO search_history (user_id, query_text, created_at) VALUES ($1, $2, NOW())`,
+            [userId, queryText]
+        );
+    }
     // Maintenance: Keep only last 10
     await pool.query(`
         DELETE FROM search_history 
@@ -154,5 +173,11 @@ exports.getHistory = async (userId) => {
 };
 
 exports.clearHistory = async (userId) => {
+    console.log('Clearing search history for user:', userId);
     await pool.query(`DELETE FROM search_history WHERE user_id = $1`, [userId]);
+    console.log('Clear done');
+};
+
+exports.deleteHistoryItem = async (userId, historyId) => {
+    await pool.query(`DELETE FROM search_history WHERE user_id = $1 AND id = $2`, [userId, historyId]);
 };

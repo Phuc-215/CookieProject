@@ -9,13 +9,14 @@ import api from './axios';
 
 export interface SearchParams {
   title?: string;
-  ingredients_included?: string[]; // Changed to string to match frontend input
-  ingredients_excluded?: string[];
-  difficulty?: Array<"Easy" | "Medium" | "Hard">;
+  ingredients_included?: string[]; // Array of ingredient names
+  ingredients_excluded?: string[]; // Array of ingredient names to exclude
+  difficulty?: string; // "easy" | "medium" | "hard" or empty string
   category?: string;
   sort?: string;
   page?: number;
   limit?: number;
+  type?: string;
 }
 
 export const searchApi = (params: SearchParams) =>
@@ -31,3 +32,6 @@ export const getSearchHistoryApi = () =>
 
 export const clearSearchHistoryApi = () =>
   api.delete('/search/history');
+
+export const deleteSearchHistoryItemApi = (item: string) =>
+  api.delete('/search/history', { data: { item } });

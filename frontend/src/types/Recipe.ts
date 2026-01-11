@@ -27,6 +27,7 @@ export interface RecipeStep {
   description: string;
   image_urls: string[];
   stepNumber: number;
+  _newImages: File[];
 }
 
 export interface Ingredient {

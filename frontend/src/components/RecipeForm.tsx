@@ -82,8 +82,9 @@ export function RecipeForm({
   const [newIngredientAmount, setNewIngredientAmount] = useState<number | ''>('');
   const [newIngredientUnit, setNewIngredientUnit] = useState('');
 
-  // Track which fields have been touched by the user / ユーザーが触れたフィールドを追跡
+  // Track which fields have been touched by the user
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
+  const [mainImageFile, setMainImageFile] = useState<File | null>(null);
 
   /* ===== INIT EDIT DATA ===== */
   useEffect(() => {
@@ -151,43 +152,88 @@ export function RecipeForm({
     );
   };
 
-  const handleUploadStepImages = (id: string, files: FileList | null) => {
-    if (!files) return;
+  const handleUploadStepImages = (
+    stepId: string,
+    files: FileList | null
+  ) => {
+    if (!files || files.length === 0) return;
 
-    const currentSteps = getValues('steps');
-    const step = currentSteps.find(s => s.id === id);
-    
-    // Don't allow image upload if step has no description
-    if (!step || step.description.trim().length === 0) return;
+    const steps = getValues('steps');
 
-    setValue(
-      'steps',
-      currentSteps.map(s => {
-        if (s.id !== id) return s;
+    const updatedSteps = steps.map(step => {
+      if (step.id !== stepId) return step;
 
-        const currentImages = s.image_urls || [];
+      const existingImages = step.image_urls || [];
 
-        const remain = MAX_STEP_IMAGES - currentImages.length;
-        const newImages = Array.from(files)
-          .slice(0, remain)
-          .map(f => URL.createObjectURL(f));
+      // Enforce max images
+      const remainingSlots = MAX_STEP_IMAGES - existingImages.length;
 
-        return { ...s, image_urls: [...currentImages, ...newImages] };
-      })
-    );
+      const acceptedFiles = Array.from(files).slice(0, remainingSlots);
+
+      return {
+        ...step,
+        image_urls: [
+          ...existingImages,
+          ...acceptedFiles.map(file =>
+            URL.createObjectURL(file)
+          ),
+        ],
+        _newImages: [
+          ...(step as any)._newImages || [],
+          ...acceptedFiles,
+        ],
+      };
+    });
+
+    setValue('steps', updatedSteps, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
   };
 
-  const handleRemoveStepImage = (stepId: string, image: string) => {
-    const currentSteps = getValues('steps');
-    setValue(
-      'steps',
-      currentSteps.map(s =>
-        s.id === stepId
-          ? { ...s, image_urls: s.image_urls.filter(i => i !== image) }
-          : s
-      )
-    );
+  const handleRemoveStepImage = (
+    stepId: string,
+    imageUrl: string
+  ) => {
+    const steps = getValues('steps');
+
+    const updatedSteps = steps.map(step => {
+      if (step.id !== stepId) return step;
+
+      // Remove preview URL
+      const newImageUrls = step.image_urls.filter(
+        img => img !== imageUrl
+      );
+
+      // If it's a newly added image, revoke preview & remove file
+      let newImages = (step as any)._newImages || [];
+
+      if (imageUrl.startsWith('blob:')) {
+        const index = step.image_urls.indexOf(imageUrl);
+
+        if (index !== -1) {
+          URL.revokeObjectURL(imageUrl);
+          newImages = newImages.filter(
+            (_: File, i: number) => i !== index
+          );
+        }
+      }
+
+      return {
+        ...step,
+        image_urls: newImageUrls,
+        _newImages: newImages,
+      };
+    });
+
+    setValue('steps', updatedSteps, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
   };
+
 
   const handleReorderStepImages = (
     stepId: string,
@@ -230,7 +276,9 @@ export function RecipeForm({
   const handleMainImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     markFieldTouched('mainImage');
     const file = e.target.files?.[0];
-    if (file) setValue('mainImage', URL.createObjectURL(file));
+    if (!file) return;
+    setMainImageFile(file);
+    setValue('mainImage', URL.createObjectURL(file));
   };
 
   /* ===== VALIDATION ===== */
@@ -320,39 +368,30 @@ export function RecipeForm({
       const formData = getValues();
       const payload = { ...formData, status };
 
-      if (currentRecipeId) {
-        // --- UPDATE MODE ---
-        console.log(`Updating ${status}:`, currentRecipeId);
+      if (status === 'draft') {
 
-        await saveRecipeApi(currentRecipeId, payload);
-        
-        if (status === 'published') {
-           alert('Recipe published successfully!');
-           // Optional: nav.push('/recipes');
-        } else {
-           alert('Draft saved!');
-        }
+        await saveRecipeApi(currentRecipeId, payload, mainImageFile);
+        alert('Draft saved!');
 
       } else {
-        // --- CREATE MODE ---
-        console.log(`Creating new ${status}...`);
-        const response = await createRecipeApi(payload);
-        
-        // Capture the new ID!
-        const newId = response.data?.recipe.id;
-        
-        if (newId) {
-          setCurrentRecipeId(newId);
-          console.log('ID assigned:', newId);
-        }
 
-        if (status === 'published') {
-           alert('Recipe created and published!');
-           // Optional: nav.push('/recipes');
+        if (currentRecipeId) {
+          // Update existing
+          await saveRecipeApi(currentRecipeId, payload, mainImageFile);
+          alert('Recipe published successfully!');
         } else {
-           alert('Draft created!');
+          // Create new
+          const response = await createRecipeApi(payload, mainImageFile);
+          const newId = response.data?.recipe?.id;
+          
+          if (newId) {
+            setCurrentRecipeId(newId);
+          }
+          alert('Recipe created and published!');
         }
+        
       }
+
     } catch (error) {
       console.error(`Error saving ${status}:`, error);
       alert(`Failed to save ${status}.`);

@@ -29,10 +29,11 @@ const getColor = (id: number | string) => {
 export function AddToCollectionModal({ onClose, onAdd }: Props) {
   const nav = useNav();
   const { viewer } = useAuth();
-  
+  console.log("Viewer in AddToCollectionModal:", viewer);
   const [jars, setJars] = useState<CookieJar[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [addingToId, setAddingToId] = useState<string | null>(null);
+  console.log("Current jars state:", jars);
 
   // 1. Fetch Collections on Mount
   useEffect(() => {
@@ -66,6 +67,7 @@ export function AddToCollectionModal({ onClose, onAdd }: Props) {
   const handleAddClick = async (jarId: string) => {
     setAddingToId(jarId);
     try {
+      console.log("Adding to jar ID:", jarId);
       await onAdd(jarId); // Trigger parent's API call
       // Optional: Show success state briefly or close immediately
       setTimeout(() => {

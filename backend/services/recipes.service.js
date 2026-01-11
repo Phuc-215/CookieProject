@@ -7,6 +7,7 @@ exports.getById = async (recipeId, currentUserId) => {
   const client = await pool.connect();
   try {
     // 1. Updated Query: Includes is_liked and is_saved checks
+    console.log("Fetching recipe by ID:", recipeId, "for user:", currentUserId);
     const query = `
       SELECT r.*, 
              u.id as author_id,
@@ -30,6 +31,7 @@ exports.getById = async (recipeId, currentUserId) => {
 
     // Pass currentUserId (can be null for guests)
     const res = await client.query(query, [recipeId, currentUserId]);
+    console.log("Recipe query result:", res.rows);
 
     if (res.rows.length === 0) return null;
     const recipe = res.rows[0];
@@ -294,7 +296,7 @@ exports.likeRecipe = async (userId, recipeId) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-
+        console.log("Liking recipe:", recipeId, "by user:", userId);
         // Insert like record
         const insertLikeText = `
             INSERT INTO likes (user_id, recipe_id, created_at)

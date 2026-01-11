@@ -3,8 +3,8 @@ const { uploadToSupabase } = require('../utils/storage');
 
 exports.getDetail = async (req, res) => {
   try {
-    const currentUserId = req.user ? req.user.id : null;
-    
+    const currentUserId = req.query.currentUserId ? parseInt(req.query.currentUserId) : null;
+    console.log("Current User ID from query params:", req.query.currentUserId);
     const recipe = await service.getById(req.params.id, currentUserId);
 
     if (!recipe) {

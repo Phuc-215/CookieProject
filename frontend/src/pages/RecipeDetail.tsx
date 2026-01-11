@@ -82,9 +82,11 @@ export function RecipeDetail({ isLoggedIn = false }: RecipeDetailProps) {
       try {
         setIsLoading(true);
         // fetch raw data
-        const response = await getDetailApi(id);
+        const user = isLoggedIn ? JSON.parse(localStorage.getItem("user") || '{}') : null;
+        const currentUserId = user ? user.id : null;
+        const response = await getDetailApi(id, currentUserId);
         const raw = response.data.data as unknown as BackendRecipeData; // Access the inner data from controller response
-
+        console.log("Fetched Recipe Data:", raw);
         // --- MAPPING LOGIC (Backend -> Frontend Adapter) ---
         const mappedRecipe: RecipeData = {
           id: raw.id.toString(),

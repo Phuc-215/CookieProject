@@ -12,7 +12,6 @@ import { Pagination } from '../components/Pagination';
 
 import { searchApi } from '../api/search.api';
 import { getIngredients } from '../api/search.api';
-
 interface SearchPageProps {
   isLoggedIn?: boolean;
   onLogout?: () => void;
@@ -443,7 +442,6 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
                 </div>
              </div>
           </div>
-
           {loading ? (
             <div className="flex justify-center items-center h-96">
               <div className="font-vt323 text-2xl text-[#4A3B32] animate-pulse">Loading recipes...</div>
@@ -460,9 +458,11 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
                     image={recipe.thumbnail_url || 'https://via.placeholder.com/600'}
                     time={`${recipe.cook_time_min || 0} min`} 
                     difficulty={recipe.difficulty} 
-                    isSaved={recipe.in_user_collections || false}
+                    // FIX: Robust check for isSaved
+                    isSaved={recipe.is_saved || recipe.in_user_collections || recipe.isSaved || false}
                     likes={recipe.likes_count || 0}
-                    isLiked={recipe.user_liked || false}
+                    // FIX: Robust check for isLiked (Backends often send is_liked or user_liked)
+                    isLiked={recipe.is_liked || recipe.user_liked || recipe.isLiked || false}
                     onClick={() => nav.recipe(recipe.id.toString())}
                   />
                 ))}
@@ -476,13 +476,11 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
               />
             </>
           ) : (
+            // Empty State
             <div className="border-4 border-[#4A3B32] bg-white w-full h-96 flex flex-col items-center justify-center p-8 text-center shadow-[4px_4px_0px_rgba(74,59,50,0.2)] mt-auto mb-auto">
                 <div className="text-8xl mb-4 grayscale opacity-50">🐻</div> 
                 <h2 className="text-3xl font-bold mb-2 font-vt323 text-[#4A3B32]">No results found!</h2>
-                <p className="text-gray-500 font-vt323 text-xl">Try changing your filters or search term.</p>
-                <div className="mt-4">
-                  <PixelButton variant="primary" onClick={handleReset}>Clear All</PixelButton>
-                </div>
+                <PixelButton variant="primary" onClick={handleReset} className="mt-4">Clear All</PixelButton>
             </div>
           )}
         </section>

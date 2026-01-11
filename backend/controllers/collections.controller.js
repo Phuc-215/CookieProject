@@ -54,6 +54,7 @@ exports.getOne = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
+    console.log("Create Collection Request Body:", req.body);
     const newCollection = await service.createCollection({
       userId: req.user.id, 
       title: req.body.title,
@@ -76,6 +77,7 @@ exports.create = async (req, res) => {
 
 exports.addToCollection = async (req, res) => {
   try {
+    console.log("Add Recipe to Collection Request Body:", req.body);
     const collectionId = parseInt(req.params.id);
     if (isNaN(collectionId)) {
       return res.status(400).json({ success: false, message: "Invalid Collection ID" });

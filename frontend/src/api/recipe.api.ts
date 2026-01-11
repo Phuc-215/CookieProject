@@ -2,8 +2,10 @@ import api from './axios';
 
 import type { RecipeDetail } from '@/types/Recipe';
 
-export const getDetailApi = (recipeId: string | number) =>
-  api.get<{ success: boolean; data: RecipeDetail }>(`/recipes/${recipeId}`);
+export const getDetailApi = (recipeId: string | number, currentUserId?: string | number) =>
+  api.get<{ success: boolean; data: RecipeDetail }>(`/recipes/${recipeId}`, {
+    params: { currentUserId }
+  });
 
 export const createRecipeApi = (data: FormData) => 
   api.post('/recipes/create', data, {

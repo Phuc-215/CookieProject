@@ -6,7 +6,7 @@ import { CollectionCard } from "../../components/CollectionCard";
 import { useNav } from '../../hooks/useNav'; 
 import homefeed from "../../assets/homefeed.svg"; 
 import { Star, Clock, Grid, ChevronLeft, ChevronRight, ArrowRight, Loader2 } from 'lucide-react';
-import { searchApi } from '../../api/search.api'; // Import your API
+import { searchApi } from '../../api/search.api'; 
 
 interface HomeFeedProps {
   isLoggedIn?: boolean;
@@ -36,8 +36,6 @@ const CreatePostBar = () => {
   );
 };
 
-// --- CATEGORY CONFIG ---
-// Use this array to map display labels to API slugs
 const CATEGORY_OPTIONS = [
   { label: "All", value: "All" },
   { label: "Cookie", value: "cookie" },
@@ -47,7 +45,6 @@ const CATEGORY_OPTIONS = [
   { label: "Brownies & Bars", value: "brownies-bars" },
 ];
 
-// --- MOCK COLLECTIONS (Replace with API later) ---
 const MOCK_COLLECTIONS = [
   {
     id: "jar-1",
@@ -67,37 +64,32 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
   const nav = useNav();
   const navigate = useNavigate();
   
-  // --- STATE ---
   const [activeTab, setActiveTab] = useState<TabType>('trending');
-  
-  // Save the SLUG value (e.g. "cupcakes-muffins") in state
   const [selectedCategoryValue, setSelectedCategoryValue] = useState("All"); 
-  
-  // Data States
   const [recipes, setRecipes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // --- FETCH DATA EFFECT ---
   useEffect(() => {
-    // Only fetch recipes if we are NOT in 'collections' tab
     if (activeTab === 'collections') return;
 
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // Determine sort based on active tab
         const sortType = activeTab === 'trending' ? 'popular' : 'newest';
         
-        // Prepare params
         const params = {
           page: 1,
-          limit: activeTab === 'trending' ? 4 : 6, // Trending needs 4 (1 big + 3 small), Latest needs 6 grid
+          limit: activeTab === 'trending' ? 4 : 6, 
           sort: sortType,
-          // Only send category if it's not "All"
           category: selectedCategoryValue !== "All" ? selectedCategoryValue : undefined,
+          // IMPORTANT: Pass userId so backend knows who is asking (to check is_liked)
+          userId: localStorage.getItem('userId') || undefined,
         };
 
+        console.log("Fetching home feed with params:", params.userId);
+
         const res = await searchApi(params);
+        console.log("Fetched recipes for home feed:", res.data.results);
         setRecipes(Array.isArray(res.data.results) ? res.data.results : []);
       } catch (error) {
         console.error("Failed to fetch home feed:", error);
@@ -107,14 +99,11 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
     };
 
     fetchData();
-  }, [activeTab, selectedCategoryValue]); // Re-fetch when Tab or Category changes
+  }, [activeTab, selectedCategoryValue]); 
 
-  // --- PREPARE DATA FOR VIEW ---
-  // For Trending: Split into Main (1st) and Side (Next 3)
   const trendingMain = recipes[0];
   const trendingSide = recipes.slice(1, 4);
 
-  // --- LOGIC QUAY SỐ (DIAL) ---
   const getTabOrder = () => {
     const currentIndex = TABS.findIndex(t => t.id === activeTab);
     const prevIndex = (currentIndex - 1 + TABS.length) % TABS.length;
@@ -129,33 +118,21 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
 
   const { prev, current, next } = getTabOrder();
 
-  // --- HANDLE DISCOVER MORE ---
   const handleDiscoverMore = () => {
     const params = new URLSearchParams();
-
-    // Use the SLUG value for URL
     if (selectedCategoryValue !== 'All') {
       params.set('category', selectedCategoryValue);
     }
-
     switch (activeTab) {
-      case 'trending':
-        params.set('sort', 'popular'); 
-        break;
-      case 'latest':
-        params.set('sort', 'newest'); 
-        break;
-      case 'collections':
-        params.set('type', 'collections'); 
-        break;
+      case 'trending': params.set('sort', 'popular'); break;
+      case 'latest': params.set('sort', 'newest'); break;
+      case 'collections': params.set('type', 'collections'); break;
     }
-
     navigate(`/search?${params.toString()}`);
   };
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
-      {/* Hero Section */}
       {!isLoggedIn && (
         <section className="max-w-7xl mx-auto px-4 py-8">
           <div className="pixel-card bg-white p-8 md:p-8 text-center flex flex-col md:flex-row items-center justify-center gap-8">
@@ -174,11 +151,9 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
 
       <section className="max-w-7xl mx-auto px-4">
         
-        {/* === BỘ CHỌN QUAY SỐ (ROTARY DIAL) === */}
+        {/* === ROTARY DIAL === */}
         <div className="relative mb-8">
             <div className="flex items-center justify-center gap-4 md:gap-8 h-24">
-                
-                {/* 1. NÚT TRÁI (Previous) */}
                 <button 
                     onClick={() => setActiveTab(prev.id)}
                     className="group flex items-center gap-2 px-6 py-3 bg-white border-4 border-[#4A3B32]/60 text-[#4A3B32]/50 font-vt323 text-xl transition-all transform scale-90 hover:scale-95 hover:border-[#4A3B32] hover:text-[#4A3B32] hover:shadow-[4px_4px_0px_rgba(74,59,50,0.2)]"
@@ -187,7 +162,6 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
                     <span className="hidden md:inline">{prev.label}</span>
                 </button>
 
-                {/* 2. NÚT GIỮA (Active - To nhất) */}
                 <div className="z-10 transform scale-110">
                     <div className="flex items-center gap-3 px-8 py-4 bg-[#FF99AA] border-4 border-[#4A3B32] text-[#4A3B32] font-vt323 text-2xl font-bold shadow-[6px_6px_0px_#4A3B32]">
                         {current.icon}
@@ -195,7 +169,6 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
                     </div>
                 </div>
 
-                {/* 3. NÚT PHẢI (Next) */}
                 <button 
                     onClick={() => setActiveTab(next.id)}
                     className="group flex items-center gap-2 px-6 py-3 bg-white border-4 border-[#4A3B32]/60 text-[#4A3B32]/50 font-vt323 text-xl transition-all transform scale-90 hover:scale-95 hover:border-[#4A3B32] hover:text-[#4A3B32] hover:shadow-[4px_4px_0px_rgba(74,59,50,0.2)]"
@@ -203,18 +176,17 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
                     <span className="hidden md:inline">{next.label}</span>
                     <ChevronRight size={16} />
                 </button>
-
             </div>
             <div className="absolute top-1/2 left-0 w-full h-1 bg-[#4A3B32]/60 -z-10 rounded-full"></div>
         </div>
 
-        {/* === CATEGORY FILTER (Use CATEGORY_OPTIONS) === */}
+        {/* === CATEGORY FILTER === */}
         {activeTab !== "collections" && (
           <div className="flex gap-3 overflow-x-auto scrollbar-hide md:justify-center border-b-2 border-[#4A3B32]/10 pb-6">
                 {CATEGORY_OPTIONS.map((cat) => (
                     <button
                         key={cat.value}
-                        onClick={() => setSelectedCategoryValue(cat.value)} // Set Slug Value
+                        onClick={() => setSelectedCategoryValue(cat.value)}
                         className={`
                             px-3 py-1 font-vt323 text-lg border-2 whitespace-nowrap transition-all
                             ${selectedCategoryValue === cat.value 
@@ -223,7 +195,7 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
                             }
                         `}
                     >
-                        {cat.label} {/* Display Label */}
+                        {cat.label}
                     </button>
                 ))}
             </div>
@@ -247,6 +219,7 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
                                     {trendingMain && (
                                         <div className="lg:col-span-2">
                                             <RecipeCard 
+                                                key={trendingMain.id}
                                                 id={trendingMain.id}
                                                 title={trendingMain.title}
                                                 image={trendingMain.thumbnail_url}
@@ -254,7 +227,12 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
                                                 likes={trendingMain.likes_count}
                                                 time={`${trendingMain.cook_time_min} min`}
                                                 difficulty={trendingMain.difficulty}
-                                                large 
+                                                // FIX: Added isLiked prop
+                                                isLiked={trendingMain.user_liked || false}
+                                                // FIX: Added isSaved prop
+                                                isSaved={trendingMain.in_user_collections || false}
+                                                large
+
                                                 onClick={() => nav.recipe(trendingMain.id)} 
                                             />
                                         </div>
@@ -271,6 +249,9 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
                                                 likes={r.likes_count}
                                                 time={`${r.cook_time_min} min`}
                                                 difficulty={r.difficulty}
+                                                // FIX: Added isLiked prop
+                                                isLiked={r.user_liked || false}
+                                                isSaved={r.in_user_collections || false}
                                                 small 
                                                 onClick={() => nav.recipe(r.id)} 
                                             />
@@ -316,6 +297,9 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
                                             likes={r.likes_count}
                                             time={`${r.cook_time_min} min`}
                                             difficulty={r.difficulty}
+                                            // FIX: Added isLiked prop
+                                            isLiked={r.is_liked || r.isLiked || false}
+                                            isSaved={r.is_saved || r.isSaved || false}
                                             onClick={() => nav.recipe(r.id)} 
                                         />
                                     ))}
@@ -330,13 +314,8 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
                 </>
             )}
 
-            {/* DISCOVER MORE BUTTON */}
-            {/* Sửa className: dùng py-12 (padding top & bottom đều nhau) và items-center */}
             <div className="relative py-12 flex justify-center items-center">
-              
-              {/* Line: Giữ nguyên absolute center */}
               <div className="absolute top-1/2 left-0 w-full h-1 bg-[#4A3B32]/60 -z-10 rounded-full -translate-y-1/2"></div>
-              
               <PixelButton 
                 variant="primary" 
                 className="px-8 py-3 text-lg flex items-center gap-2 group shadow-[6px_6px_0px_rgba(0,0,0,0.2)] hover:shadow-[4px_4px_0px_rgba(0,0,0,0.2)]"

@@ -5,11 +5,14 @@ import { PixelInput } from '../components/PixelInput';
 import { PixelTextarea } from '../components/PixelTextarea';
 import { PixelTag } from '../components/PixelTag';
 import { useNav } from '@/hooks/useNav';
+import {DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors,} from '@dnd-kit/core';
+import {SortableContext, useSortable, verticalListSortingStrategy, arrayMove} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface RecipeStep {
   id: string;
   instruction: string;
-  image: string | null;
+  images: string[];
 }
 
 interface Ingredient {
@@ -18,11 +21,71 @@ interface Ingredient {
   quantity: string;
 }
 
+const MAX_STEP_IMAGES = 5;
+
+function SortableStep({stepId,children}: {
+  stepId: string;
+  children: (listeners: any) => React.ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: stepId });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      {children(listeners)}
+    </div>
+  );
+}
+
+function SortableImage({id,src,onRemove,}: {
+  id: string;
+  src: string;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="relative w-24 h-24 pixel-border overflow-hidden cursor-grab active:cursor-grabbing"
+    >
+      <img src={src} className="w-full h-full object-cover pointer-events-none" />
+
+      <button
+        onClick={onRemove}
+        className="absolute top-1 right-1 bg-white pixel-border p-1 hover:bg-red-400"
+      >
+        <X className="w-3 h-3" />
+      </button>
+    </div>
+  );
+}
+
+
 export function CreateRecipe() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Medium');
-  const [prepTime, setPrepTime] = useState('');
+  const [category, setCategory] = useState<'Dessert' | 'Main' | 'Drink' | 'Snack'>('Dessert');
   const [cookTime, setCookTime] = useState('');
   const [servings, setServings] = useState('');
   const [ingredients, setIngredients] = useState<Ingredient[]>([
@@ -33,12 +96,20 @@ export function CreateRecipe() {
   const [newIngredientName, setNewIngredientName] = useState('');
   const [newIngredientQuantity, setNewIngredientQuantity] = useState('');
   const [steps, setSteps] = useState<RecipeStep[]>([
-    { id: '1', instruction: 'Preheat oven to 350°F (175°C)', image: null },
-    { id: '2', instruction: 'Mix dry ingredients in a large bowl', image: null },
+    { id: '1', instruction: 'Preheat oven to 350°F (175°C)', images: []},
+    { id: '2', instruction: 'Mix dry ingredients in a large bowl', images: []},
   ]);
-  const [mainImage] = useState<string | null>(null);
+  const [mainImage, setMainImage] = useState<string | null>(null);
 
   const nav = useNav();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5, // kéo chuột 5px mới kích hoạt drag
+      },
+    })
+  );
 
   const handleAddIngredient = () => {
     if (newIngredientName.trim() && newIngredientQuantity.trim()) {
@@ -61,9 +132,71 @@ export function CreateRecipe() {
     const newStep: RecipeStep = {
       id: Date.now().toString(),
       instruction: '',
-      image: null,
+      images: [],
     };
     setSteps([...steps, newStep]);
+  };
+
+  const handleStepImageUpload = (stepId: string, files: FileList | null) => {
+    if (!files) return;
+
+    setSteps(prev =>
+      prev.map(step => {
+        if (step.id !== stepId) return step;
+
+        const remain = MAX_STEP_IMAGES - step.images.length;
+        if (remain <= 0) return step;
+
+        const newImages = Array.from(files)
+          .slice(0, remain)
+          .map(file => URL.createObjectURL(file));
+
+        return {
+          ...step,
+          images: [...step.images, ...newImages],
+        };
+      })
+    );
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setSteps((prev) => {
+      const oldIndex = prev.findIndex(s => s.id === active.id);
+      const newIndex = prev.findIndex(s => s.id === over.id);
+      return arrayMove(prev, oldIndex, newIndex);
+    });
+  };
+
+  const handleRemoveStepImage = (stepId: string, img: string) => {
+    setSteps(prev =>
+      prev.map(step =>
+        step.id === stepId
+          ? { ...step, images: step.images.filter(i => i !== img) }
+          : step
+      )
+    );
+  };
+
+  const handleReorderStepImages = ( stepId: string, activeId: string, overId: string
+  ) => {
+    setSteps(prev =>
+      prev.map(step => {
+        if (step.id !== stepId) return step;
+
+        const oldIndex = step.images.indexOf(activeId);
+        const newIndex = step.images.indexOf(overId);
+
+        if (oldIndex === -1 || newIndex === -1) return step;
+
+        return {
+          ...step,
+          images: arrayMove(step.images, oldIndex, newIndex),
+        };
+      })
+    );
   };
 
   const handleRemoveStep = (id: string) => {
@@ -197,12 +330,20 @@ export function CreateRecipe() {
             </div>
 
             <div>
-              <PixelInput
-                label="Prep Time"
-                placeholder="e.g., 15 min"
-                value={prepTime}
-                onChange={(e) => setPrepTime(e.target.value)}
-              />
+              <label className="block mb-2 uppercase text-sm tracking-wide">
+                Category *
+              </label>
+
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as any)}
+                className="w-full px-3 py-3 pixel-border bg-white uppercase text-sm focus:outline-none focus:shadow-[0_0_0_3px_var(--brown)]"
+              >
+                <option value="Dessert">Dessert</option>
+                <option value="Main">Main Dish</option>
+                <option value="Drink">Drink</option>
+                <option value="Snack">Snack</option>
+              </select>
             </div>
 
             <div>
@@ -274,56 +415,149 @@ export function CreateRecipe() {
               Instructions *
             </label>
 
-            <div className="space-y-4">
-              {steps.map((step, index) => (
-                <div key={step.id} className="pixel-card bg-[#FFF8E1] p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 pixel-border bg-[#5D4037] text-white flex items-center justify-center shrink-0 mt-2">
-                      {index + 1}
-                    </div>
-
-                    <div className="flex-1">
-                      <textarea
-                        className="w-full px-3 py-2 pixel-border bg-white text-[#5D4037] placeholder:text-[#5D4037]/50 resize-none mb-3 focus:shadow-[0_0_0_3px_var(--brown)] focus:outline-none transition-shadow"
-                        rows={3}
-                        placeholder="Describe this step..."
-                        value={step.instruction}
-                        onChange={(e) => handleUpdateStep(step.id, e.target.value)}
-                      />
-
-                      <button 
-                        className="px-3 py-2 pixel-border bg-white hover:bg-[#4DB6AC] transition-colors text-sm uppercase flex items-center gap-2"
-                        onClick={() => {/* Add step image */}}
-                      >
-                        <Camera className="w-4 h-4" />
-                        Add Step Photo
-                      </button>
-                    </div>
-
-                    <button
-                      className="p-2 hover:bg-white/50 transition-colors"
-                      onClick={() => handleRemoveStep(step.id)}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-              <PixelButton
-                variant="outline"
-                className="w-full"
-                onClick={handleAddStep}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={steps.map(s => s.id)}
+                strategy={verticalListSortingStrategy}
               >
-                <Plus className="w-4 h-4 inline mr-2" />
-                Add Step
-              </PixelButton>
-            </div>
+                <div className="space-y-4">
+                  {steps.map((step, index) => (
+                    <SortableStep key={step.id} stepId={step.id}>
+                      {(listeners) => (
+                        <div className="pixel-card bg-[#FFF8E1] p-4">
+                          <div className="flex items-start gap-3">
+                            
+                            {/* DRAG HANDLE */}
+                            <div
+                              {...listeners}
+                              className="w-8 h-8 pixel-border bg-[#5D4037] text-white flex items-center justify-center shrink-0 mt-2 cursor-grab active:cursor-grabbing"
+                                title="Drag to reorder"
+                            >
+                              {index + 1}
+                            </div>
+
+                            <div className="flex-1">
+                              <textarea
+                                className="w-full px-3 py-2 pixel-border bg-white text-[#5D4037] placeholder:text-[#5D4037]/50 resize-none mb-3 focus:shadow-[0_0_0_3px_var(--brown)] focus:outline-none transition-shadow"
+                                rows={3}
+                                placeholder="Describe this step..."
+                                value={step.instruction}
+                                onChange={(e) =>
+                                  handleUpdateStep(step.id, e.target.value)
+                                }
+                              />
+
+                              {/* Hidden input */}
+                              <input
+                                type="file"
+                                multiple
+                                accept="image/*"
+                                className="hidden"
+                                id={`step-upload-${step.id}`}
+                                onChange={(e) =>
+                                  handleStepImageUpload(step.id, e.target.files)
+                                }
+                              />
+
+                              <button
+                                disabled={step.images.length >= MAX_STEP_IMAGES}
+                                className={`px-3 py-2 pixel-border text-sm uppercase flex items-center gap-2 transition-colors
+                                  ${
+                                    step.images.length >= MAX_STEP_IMAGES
+                                      ? 'bg-gray-300 cursor-not-allowed'
+                                      : 'bg-white hover:bg-[#4DB6AC]'
+                                  }
+                                `}
+                                onClick={() =>
+                                  document
+                                    .getElementById(`step-upload-${step.id}`)
+                                    ?.click()
+                                }
+                              >
+                                <Camera className="w-4 h-4" />
+                                {step.images.length >= MAX_STEP_IMAGES
+                                  ? 'Max Images'
+                                  : 'Add Step Photos'}
+                              </button>
+                              <div
+                                className={`mt-1 text-xs ${
+                                  step.images.length === MAX_STEP_IMAGES
+                                    ? 'text-red-500'
+                                    : 'text-[#5D4037]/70'
+                                }`}
+                              >
+                                {step.images.length} / {MAX_STEP_IMAGES} images
+                              </div>
+
+                              {/* Preview images */}
+                              {step.images.length > 0 && (
+                                <DndContext
+                                  sensors={sensors}
+                                  collisionDetection={closestCenter}
+                                  onDragEnd={(event) => {
+                                    const { active, over } = event;
+                                    if (!over || active.id === over.id) return;
+
+                                    handleReorderStepImages(
+                                      step.id,
+                                      active.id as string,
+                                      over.id as string
+                                    );
+                                  }}
+                                >
+                                  <SortableContext
+                                    items={step.images}
+                                    strategy={verticalListSortingStrategy}
+                                  >
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                      {step.images.map((img) => (
+                                        <SortableImage
+                                          key={img}
+                                          id={img}
+                                          src={img}
+                                          onRemove={() => handleRemoveStepImage(step.id, img)}
+                                        />
+                                      ))}
+                                    </div>
+                                  </SortableContext>
+                                </DndContext>
+                              )}
+
+                            </div>
+
+                            {/* REMOVE STEP */}
+                            <button
+                              className="p-2 hover:bg-white/50 transition-colors"
+                              onClick={() => handleRemoveStep(step.id)}
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </SortableStep>
+                  ))}
+
+                  <PixelButton
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleAddStep}
+                  >
+                    <Plus className="w-4 h-4 inline mr-2" />
+                    Add Step
+                  </PixelButton>
+                </div>
+              </SortableContext>
+            </DndContext>
           </div>
 
           {/* Action Buttons */}
           <div className="flex gap-4 pt-6 border-t-[3px] border-[#5D4037]">
-            <PixelButton variant="outline" className="flex-1" onClick={() => nav.home}>
+            <PixelButton variant="outline" className="flex-1" onClick={() => nav.home()}>
               Save Draft
             </PixelButton>
             <PixelButton variant="secondary" className="flex-1" onClick={() => nav.home()}>

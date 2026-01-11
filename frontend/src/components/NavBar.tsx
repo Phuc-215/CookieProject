@@ -7,8 +7,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import logo from "@/assets/logo.svg";
 
 interface NavBarProps {
-  isLoggedIn?: boolean;
-  onLogout?: () => void;
   title?: string;
   notificationCount?: number;
   showBackButton?: boolean; 
@@ -23,7 +21,6 @@ const MOCK_SUGGESTIONS = [
 const MOCK_HISTORY_INIT = ["Vegan Cookies", "Gluten Free", "Donuts"];
 
 export function NavBar({ 
-  isLoggedIn = false, 
   title = 'Cookie',
   notificationCount = 0,
   showBackButton = false,
@@ -41,7 +38,7 @@ export function NavBar({
   const searchContainerRef = useRef<HTMLDivElement>(null); // Ref cho Search bar
   
   const nav = useNav();
-  const { logout, viewer } = useAuth();
+  const { logout, viewer, isLoggedIn } = useAuth();
 
   const handleBack = () => {
     if (onBack) onBack();

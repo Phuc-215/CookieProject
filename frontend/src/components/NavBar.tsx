@@ -6,6 +6,7 @@ import { useNav } from "@/hooks/useNav";
 import { useAuth } from "@/contexts/AuthContext";
 import { getSearchSuggestionsApi, getSearchHistoryApi, clearSearchHistoryApi, deleteSearchHistoryItemApi } from '@/api/search.api';
 import logo from "@/assets/logo.svg";
+import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 
 interface NavBarProps {
   isLoggedIn?: boolean;
@@ -46,6 +47,8 @@ export function NavBar({
 
   const dropdownRef = useRef<HTMLDivElement>(null);     
   const searchContainerRef = useRef<HTMLDivElement>(null); 
+
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const nav = useNav();
   const { logout, viewer } = useAuth();
@@ -66,35 +69,45 @@ export function NavBar({
     }
   };
 
-  // --- INPUT HANDLER (DEBOUNCED) ---
+  // --- 3. HANDLE INPUT CHANGE (The Core Logic) ---
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setLocalQuery(val);
     setIsSearchFocused(true);
 
-    // 1. Clear previous timer
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
+    // A. URL SYNC (Immediate)
+    // Only update URL live if we are ALREADY on the search page
+    if (location.pathname === '/search') {
+        setSearchParams(prev => {
+            const newParams = new URLSearchParams(prev);
+            if (val) newParams.set('q', val);
+            else newParams.delete('q');
+            newParams.set('page', '1'); // Reset pagination
+            return newParams;
+        }, { replace: true });
     }
 
-    // 2. If empty, clear suggestions and show history (if logged in)
+    // B. API FETCHING (Debounced)
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
     if (!val.trim()) {
       setSuggestions([]);
-      if (isLoggedIn) fetchHistory();
+      if (isLoggedIn) fetchHistory(); // Refresh history if input cleared
       return;
     }
 
-    // 3. Set new timer (300ms)
+    // Wait 300ms before calling API
     debounceRef.current = setTimeout(async () => {
       try {
         const res = await getSearchSuggestionsApi(val);
-        console.log('Suggestions fetched:', res.data.data);
         setSuggestions(res.data.data); 
       } catch (err) {
         console.error("Failed to fetch suggestions", err);
       }
     }, 300);
   };
+
+
 
   // Initial fetch
   useEffect(() => {
@@ -115,13 +128,15 @@ export function NavBar({
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // --- ACTIONS ---
+  // --- 4. EXECUTE SEARCH ---
   const executeSearch = (term: string) => {
     if (!term.trim()) return;
-    if (debounceRef.current) clearTimeout(debounceRef.current); // Cancel pending suggest
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     
     setLocalQuery(term);
     setIsSearchFocused(false);
+    
+    // Navigate to search page (this handles both "Enter" on Home & Search page)
     nav.search(term);
   };
 
@@ -143,7 +158,6 @@ export function NavBar({
       console.error("Failed to delete item", err);
     }
   };
-
   return (
     <header className="border-b-[3px] border-[var(--border)] bg-[white] sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-4">
@@ -188,7 +202,10 @@ export function NavBar({
               
               {localQuery && (
                 <button 
-                  onClick={() => { setLocalQuery(''); setSuggestions([]); fetchHistory(); setIsSearchFocused(true); }}
+                  onClick={() => { setLocalQuery(''); setSuggestions([]); if(isLoggedIn) fetchHistory(); setIsSearchFocused(true); 
+                            // Clear URL param if on search page
+                            if(location.pathname === '/search') setSearchParams({ page: '1' }, { replace: true });
+                          }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
                 >
                   <X size={16} />

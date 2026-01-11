@@ -52,7 +52,6 @@ export function RecipeCard({
   small,
 }: RecipeCardProps) {
   
-  // --- LOCAL STATE (FIXED: Consistent naming) ---
   const [localIsLiked, setLocalIsLiked] = useState(isLiked);
   const [localLikesCount, setLocalLikesCount] = useState(likes);
   const [localIsSaved, setLocalIsSaved] = useState(isSaved);
@@ -68,7 +67,6 @@ export function RecipeCard({
     setLocalIsSaved(isSaved);
   }, [isLiked, isSaved, likes]);
 
-  // Reset image error when image prop changes
   useEffect(() => {
     if (image) {
       setImageError(false);
@@ -108,7 +106,7 @@ export function RecipeCard({
   const handleBookmarkClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation(); 
     
-    // FIX: If already saved, do nothing (Disabled)
+    // Check local state
     if (localIsSaved) return;
     
     setShowCollectionModal(true);
@@ -127,63 +125,61 @@ export function RecipeCard({
     }
   };
 
-
   return (
-    <div
-      className={`
-        pixel-card bg-white cursor-pointer
-        hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0_var(--border)]
-        transition-all
-        ${sizeMode === "small" ? "flex flex-row" : ""}
-      `}
-      onClick={onClick}
-    >
-      {/* IMAGE */}
+    <>
       <div
         className={`
-          relative bg-[var(--card)]
-          ${sizeMode === "small" ? "w-36 h-full flex-shrink-0" : ""}
-          ${sizeMode === "large" ? "aspect-[3/2]" : ""}
-          ${sizeMode === "default" ? "aspect-square" : ""}
+          pixel-card bg-white cursor-pointer
+          hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0_var(--border)]
+          transition-all
+          ${sizeMode === "small" ? "flex flex-row" : ""}
         `}
+        onClick={onClick}
       >
-        {(!image || image.trim() === '' || imageError) ? (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#FFF8E1] via-[#FFE4C4] to-[#FFF8E1] relative overflow-hidden">
-            {/* Subtle pattern overlay */}
-            <div 
-              className="absolute inset-0 opacity-[0.08]"
-              style={{
-                backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 8px, #4A3B32 8px, #4A3B32 16px)`,
-                backgroundSize: '16px 16px'
-              }}
-            />
-            {/* Cookie icon with pixel art style */}
-            <div className="relative z-10 flex flex-col items-center gap-2">
-              <Cookie 
-                className={`
-                  text-[#D7B899] 
-                  drop-shadow-[3px_3px_0px_rgba(74,59,50,0.3)]
-                  ${sizeMode === "small" ? "w-16 h-16" : sizeMode === "large" ? "w-32 h-32" : "w-24 h-24"}
-                `}
-                strokeWidth={2}
-                fill="currentColor"
+        {/* IMAGE */}
+        <div
+          className={`
+            relative bg-[var(--card)]
+            ${sizeMode === "small" ? "w-36 h-full flex-shrink-0" : ""}
+            ${sizeMode === "large" ? "aspect-[3/2]" : ""}
+            ${sizeMode === "default" ? "aspect-square" : ""}
+          `}
+        >
+          {(!image || image.trim() === '' || imageError) ? (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#FFF8E1] via-[#FFE4C4] to-[#FFF8E1] relative overflow-hidden">
+              <div 
+                className="absolute inset-0 opacity-[0.08]"
+                style={{
+                  backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 8px, #4A3B32 8px, #4A3B32 16px)`,
+                  backgroundSize: '16px 16px'
+                }}
               />
-              {sizeMode !== "small" && (
-                <span className="text-[#4A3B32]/60 font-vt323 text-sm uppercase tracking-wider font-bold">
-                  No Image
-                </span>
-              )}
+              <div className="relative z-10 flex flex-col items-center gap-2">
+                <Cookie 
+                  className={`
+                    text-[#D7B899] 
+                    drop-shadow-[3px_3px_0px_rgba(74,59,50,0.3)]
+                    ${sizeMode === "small" ? "w-16 h-16" : sizeMode === "large" ? "w-32 h-32" : "w-24 h-24"}
+                  `}
+                  strokeWidth={2}
+                  fill="currentColor"
+                />
+                {sizeMode !== "small" && (
+                  <span className="text-[#4A3B32]/60 font-vt323 text-sm uppercase tracking-wider font-bold">
+                    No Image
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        ) : (
-          <img
-            src={image}
-            alt={title}
-            className="w-full h-full object-cover"
-            style={{ imageRendering: "pixelated" }}
-            onError={() => setImageError(true)}
-          />
-        )}
+          ) : (
+            <img
+              src={image}
+              alt={title}
+              className="w-full h-full object-cover"
+              style={{ imageRendering: "pixelated" }}
+              onError={() => setImageError(true)}
+            />
+          )}
 
           {/* ACTION ICONS */}
           <div
@@ -208,7 +204,7 @@ export function RecipeCard({
               />
             </button>
 
-            {/* SAVE BUTTON (Disabled if Saved) */}
+            {/* SAVE BUTTON */}
             <button
               disabled={localIsSaved}
               className={`
@@ -218,7 +214,8 @@ export function RecipeCard({
                     : "bg-white hover:bg-gray-100"
                 }
               `}
-              onClick={handleBookmarkClick}
+              // FIX: Passed 'e' and 'id' correctly
+              onClick={(e) => handleBookmarkClick(e, id)}
             >
               <Bookmark
                 className={`w-4 h-4 ${
@@ -348,6 +345,7 @@ export function RecipeCard({
         </div>
       </div>
 
+      {/* FIX: Modal is now correctly outside the card div, inside the Fragment */}
       {showCollectionModal && (
         <AddToCollectionModal 
           onClose={() => setShowCollectionModal(false)}

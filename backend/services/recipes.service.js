@@ -1,5 +1,274 @@
 // services/recipes.service.js
 const { pool } = require('../config/db');
+const { deleteFromSupabase } = require('../utils/storage')
+
+exports.getById = async (recipeId, currentUserId) => {
+  const client = await pool.connect();
+  try {
+    const query = `
+      SELECT r.*, 
+             u.username as author_name,
+             u.avatar_url as author_avatar
+      FROM public.recipes r
+      JOIN public.users u ON r.user_id = u.id
+      WHERE r.id = $1
+    `;
+
+    const res = await client.query(query, [recipeId]);
+
+    console.log("Res: ",res.rows[0]);
+
+    if (res.rows.length === 0) return null;
+    const recipe = res.rows[0];
+
+    // Security Check (Private Protection)
+    // If it's not published, ONLY the author can see it
+    if (recipe.status !== 'published' && recipe.user_id !== currentUserId) {
+      throw new Error("Unauthorized: This recipe is private.");
+    }
+
+    // Fetch Children (Ingredients & Steps)
+    const ingRes = await client.query(
+      `SELECT i.name, ri.amount, ri.unit
+       FROM public.recipe_ingredients ri
+       JOIN public.ingredients i ON ri.ingredient_id = i.id
+       WHERE ri.recipe_id = $1`,
+      [recipeId]
+    );
+
+    const stepsRes = await client.query(
+      `SELECT s.step_number, s.description,
+              (SELECT json_agg(si.image_url) FROM public.step_images si WHERE si.step_id = s.id) as image_urls
+       FROM public.steps s
+       WHERE s.recipe_id = $1
+       ORDER BY s.step_number ASC`,
+      [recipeId]
+    );
+
+    return {
+      ...recipe,
+      ingredients: ingRes.rows,
+      steps: stepsRes.rows
+    };
+
+  } finally {
+    client.release();
+  }
+};
+
+exports.saveRecipe = async ({
+  recipeId, userId, title, difficulty = 'easy', category, servings, 
+  cookTime, thumbnailUrl = null, status = 'published', ingredients, steps
+}) => {
+  // Get a dedicated client from the pool (Required for Transactions)
+  const client = await pool.connect();
+  let imageToDelete = null;
+  let categoryIdToSave = undefined;
+  
+  try {
+    // Start the Transaction
+    await client.query('BEGIN');
+
+    // --- STEP A: Upsert (Update/Insert) the Recipe ---
+    const slug = title.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
+    
+    if (category !== undefined) {
+        // Check if it's already an ID (number) or a Name (string)
+        if (typeof category === 'number') {
+            categoryIdToSave = category;
+        } else {
+            // Lookup ID by Name (Case Insensitive)
+            const catRes = await client.query(
+                `SELECT id FROM public.categories WHERE LOWER(name) = LOWER($1)`, 
+                [category.trim()]
+            );
+            
+            if (catRes.rows.length > 0) {
+                categoryIdToSave = catRes.rows[0].id;
+            } else {
+                throw new Error(`Category '${category}' does not exist.`);
+            }
+        }
+    }
+
+    if (recipeId) {
+        console.log("UPDATE");
+        // --- UPDATE DRAFT ---
+        const oldRes = await client.query(
+            `SELECT thumbnail_url FROM public.recipes WHERE id = $1`, 
+            [recipeId]
+        );
+
+        const oldThumbnailUrl = oldRes.rows[0]?.thumbnail_url;
+
+        const fieldsToUpdate = [];
+        const values = [];
+        let paramIndex = 1;
+
+        const addField = (col, val) => {
+            if (val !== undefined) {
+                fieldsToUpdate.push(`${col} = $${paramIndex++}`);
+                values.push(val);
+            }
+        };
+
+        if (difficulty) addField('difficulty', difficulty);
+        if (categoryIdToSave) addField('category_id', categoryIdToSave);
+        if (servings) addField('servings', servings);
+        if (cookTime) addField('cook_time_min', cookTime);
+        if (thumbnailUrl) addField('thumbnail_url', thumbnailUrl);
+        if (status) addField('status', status);
+
+        if (values.length > 0) {
+            values.push(recipeId);
+            values.push(userId);
+
+            const updateQuery = `
+                UPDATE public.recipes 
+                SET ${fieldsToUpdate.join(', ')}
+                WHERE id = $${paramIndex++} AND user_id = $${paramIndex++}
+                RETURNING id
+            `;
+
+            const updateRes = await client.query(updateQuery, values);
+            if (updateRes.rowCount === 0) {
+                throw new Error("Recipe not found or permission denied.");
+            }
+        }
+
+        // CLEAR OLD RELATIONS (Wipe & Rewrite Strategy / Delete & Re-insert)
+        /*
+        Trying to calculate the "Diff" (e.g., "User changed Step 2, deleted Step 3, and added Step 4") is extremely complex and error-prone.
+        "Wipe and Rewrite" is fast, safe, and ensures the database exactly matches what is on the user's screen.
+        */
+        await client.query(`DELETE FROM public.recipe_ingredients WHERE recipe_id = $1`, [recipeId]);
+        await client.query(`DELETE FROM public.steps WHERE recipe_id = $1`, [recipeId]);
+
+        if (oldThumbnailUrl && data.thumbnailUrl && oldThumbnailUrl !== data.thumbnailUrl) {
+            imageToDelete = oldThumbnailUrl;
+        }
+
+    } else {
+        console.log("INSERT");
+        // --- CREATE RECIPE/DRAFT ---
+        const insertQuery = `
+            INSERT INTO public.recipes (
+            user_id, slug, title, difficulty, category_id, 
+            servings, cook_time_min, thumbnail_url, status
+            ) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING id;
+        `;
+
+        // Note: Zod has already validated these values earlier
+        const insertRes = await client.query(insertQuery, [
+            userId, slug, title, difficulty, categoryIdToSave, 
+            servings, cookTime, thumbnailUrl, status
+        ]);
+
+        recipeId = insertRes.rows[0].id;
+    }
+
+    // --- STEP B: Process Ingredients ---
+    if (ingredients && ingredients.length > 0) {
+        for (const item of ingredients) {
+            let ingredientId;
+
+            // Find existing ingredient by name (Case insensitive)
+            const findIngRes = await client.query(
+            `SELECT id FROM public.ingredients WHERE LOWER(name) = LOWER($1)`, 
+            [item.name]
+            );
+
+            if (findIngRes.rows.length > 0) {
+            ingredientId = findIngRes.rows[0].id;
+            } else {
+            const insertIngRes = await client.query(
+                `INSERT INTO public.ingredients (name) VALUES ($1) RETURNING id`,
+                [item.name]
+            );
+            ingredientId = insertIngRes.rows[0].id;
+            }
+
+            await client.query(
+            `INSERT INTO public.recipe_ingredients (recipe_id, ingredient_id, amount, unit) 
+            VALUES ($1, $2, $3, $4)`,
+            [recipeId, ingredientId, item.amount, item.unit]
+            );
+        }
+    }
+
+    // --- STEP C: Process Steps & Images ---
+    if (steps && steps.length > 0) {
+        for (const step of steps) {
+            const stepRes = await client.query(
+            `INSERT INTO public.steps (recipe_id, step_number, description)
+            VALUES ($1, $2, $3)
+            RETURNING id`,
+            [recipeId, step.stepNumber, step.description]
+            );
+            
+            const stepId = stepRes.rows[0].id;
+
+            if (step.imageUrls && step.imageUrls.length > 0) {
+            for (const url of step.imageUrls) {
+                await client.query(
+                `INSERT INTO public.step_images (step_id, image_url) VALUES ($1, $2)`,
+                [stepId, url]
+                );
+            }
+            }
+        }
+    }
+
+    // --- STEP D: Commit Transaction ---
+    await client.query('COMMIT');
+
+    if (imageToDelete) {
+        deleteFromSupabase(imageToDelete).catch(err => console.error("Cleanup failed:", err));
+    }
+
+    // Return success
+
+  } catch (error) {
+    // --- ROLLBACK on any error ---
+    await client.query('ROLLBACK');
+    console.error("Transaction Error:", error);
+  } finally {
+    // 3. Release the client back to the pool
+    client.release();
+  }
+};
+
+exports.deleteRecipe = async (recipeId, userId) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // A. Verify Ownership
+    const check = await client.query('SELECT user_id FROM public.recipes WHERE id = $1', [recipeId]);
+    if (check.rows.length === 0) throw new Error("Recipe not found");
+    if (parseInt(check.rows[0].user_id) !== userId) throw new Error("Unauthorized");
+
+    // B. Soft Delete (Set status)
+    await client.query(
+      `UPDATE public.recipes SET status = 'deleted' WHERE id = $1`,
+      [recipeId]
+    );
+
+    // C. Cleanup User Lists (Cookie Jars / Watchlists)
+    // We remove it from other users' saved lists so they don't see dead links
+    await client.query(`DELETE FROM public.collection_recipes WHERE recipe_id = $1`, [recipeId]);
+    
+    await client.query('COMMIT');
+    return { success: true };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+};
 
 exports.likeRecipe = async (userId, recipeId) => {
     const client = await pool.connect();

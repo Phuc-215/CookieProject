@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { ProfilePage } from './ProfilePage';
 import { MOCK_COLLECTIONS } from "@/mocks/mock_collection";
 import { MOCK_RECIPES } from "@/mocks/mock_recipe";
@@ -21,6 +21,7 @@ interface PublicProfileProps {
 
 export function PublicProfile({ isLoggedIn, viewer, onLogout }: PublicProfileProps) {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +38,11 @@ export function PublicProfile({ isLoggedIn, viewer, onLogout }: PublicProfilePro
         setProfile(res.data);
       } catch (err: any) {
         if (!active) return;
+        // Handle 404 - user not found
+        if (err?.response?.status === 404) {
+          navigate('/error', { state: { statusCode: 404, message: 'User not found' } });
+          return;
+        }
         const msg = err?.response?.data?.message || 'Failed to load profile';
         setError(msg);
       }
@@ -45,7 +51,7 @@ export function PublicProfile({ isLoggedIn, viewer, onLogout }: PublicProfilePro
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [id, navigate]);
 
   const profileUser = useMemo(() => {
     if (!profile) {

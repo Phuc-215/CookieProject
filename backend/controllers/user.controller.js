@@ -10,7 +10,7 @@ exports.getPublicProfile = async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT id, username, is_verified, avatar_url, bio, followers_count, following_count
+      `SELECT id, username, email, is_verified, avatar_url, bio, followers_count, following_count
        FROM users
        WHERE id = $1`,
       [userId]
@@ -24,6 +24,7 @@ exports.getPublicProfile = async (req, res) => {
     return res.json({
       id: user.id,
       username: user.username,
+      email: user.email || '',
       is_verified: user.is_verified,
       avatar_url: user.avatar_url || null,
       bio: user.bio || '',
@@ -204,7 +205,80 @@ exports.deleteAccount = async (req, res) => {
       return res.status(403).json({ message: 'FORBIDDEN' });
     }
 
-    // Delete user and cascade delete related data (refresh tokens, etc.)
+    // Get list of users who follow this user & users this user follows (for count update)
+    const followersResult = await pool.query(
+      `SELECT follower_id FROM follows WHERE followee_id = $1`,
+      [userId]
+    );
+    const followingResult = await pool.query(
+      `SELECT followee_id FROM follows WHERE follower_id = $1`,
+      [userId]
+    );
+
+    // Hybrid delete: keep recipes & comments, but anonymize user data
+    // Step 1: Set recipes.user_id to NULL (keep recipe history)
+    await pool.query(
+      `UPDATE recipes SET user_id = NULL WHERE user_id = $1`,
+      [userId]
+    );
+
+    // Step 2: Set comments.user_id to NULL (keep comment history)
+    await pool.query(
+      `UPDATE comments SET user_id = NULL WHERE user_id = $1`,
+      [userId]
+    );
+
+    // Step 3: Delete follower/followee relationships
+    await pool.query(
+      `DELETE FROM follows WHERE follower_id = $1 OR followee_id = $1`,
+      [userId]
+    );
+
+    // Step 3b: Decrease following_count for users who were following this user
+    if (followersResult.rowCount > 0) {
+      const followerIds = followersResult.rows.map(r => r.follower_id);
+      await pool.query(
+        `UPDATE users SET following_count = GREATEST(0, following_count - 1) 
+         WHERE id = ANY($1)`,
+        [followerIds]
+      );
+    }
+
+    // Step 3c: Decrease followers_count for users this user was following
+    if (followingResult.rowCount > 0) {
+      const followingIds = followingResult.rows.map(r => r.followee_id);
+      await pool.query(
+        `UPDATE users SET followers_count = GREATEST(0, followers_count - 1) 
+         WHERE id = ANY($1)`,
+        [followingIds]
+      );
+    }
+
+    // Step 4: Delete all notifications for/from this user
+    await pool.query(
+      `DELETE FROM notifications WHERE user_id = $1 OR actor_id = $1`,
+      [userId]
+    );
+
+    // Step 5: Delete likes
+    await pool.query(
+      `DELETE FROM likes WHERE user_id = $1`,
+      [userId]
+    );
+
+    // Step 6: Delete collections (cascade will delete collection_recipes)
+    await pool.query(
+      `DELETE FROM collections WHERE user_id = $1`,
+      [userId]
+    );
+
+    // Step 7: Delete refresh tokens
+    await pool.query(
+      `DELETE FROM refresh_tokens WHERE user_id = $1`,
+      [userId]
+    );
+
+    // Step 8: Delete user account
     const result = await pool.query(
       `DELETE FROM users WHERE id = $1 RETURNING id, username, email`,
       [userId]
@@ -214,14 +288,7 @@ exports.deleteAccount = async (req, res) => {
       return res.status(404).json({ message: 'USER_NOT_FOUND' });
     }
 
-    console.log('[deleteAccount] Account deleted:', result.rows[0]);
-
-    // Clear tokens
-    await pool.query(
-      `DELETE FROM refresh_tokens WHERE user_id = $1`,
-      [userId]
-    );
-
+    console.log('[deleteAccount] Account deleted (hybrid):', result.rows[0]);
     res.json({ message: 'Account deleted successfully' });
   } catch (err) {
     console.error('deleteAccount error:', err);

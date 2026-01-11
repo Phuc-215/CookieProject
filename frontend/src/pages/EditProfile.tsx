@@ -94,6 +94,7 @@ export function EditProfile({ viewer }: EditProfileProps) {
     !!avatarFile;
   const canSave = isUsernameValid && hasChanges && !profileSaving ;
   const [verifiedAction, setVerifiedAction] = useState<SecureAction>(null);
+  const displayEmail = email || originalEmail;
 
   const userId = (() => {
     if (viewer?.id) {
@@ -265,6 +266,8 @@ const startSecureAction = (action: SecureAction) => {
     if (password) setVerifiedPassword(password);
     if (action === 'email') {
       setEditingEmail(true);
+      setEmailError(null);
+      setAccountError(null);
     }
     if (action === 'password') {
       setEditingPassword(true);
@@ -533,16 +536,21 @@ const startSecureAction = (action: SecureAction) => {
 
               <div className="flex items-center gap-4">
                 <div className="flex-1">
-                <PixelInput
-                  value={email}
-                  disabled={!editingEmail}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setEmail(value);
-                    setEmailError(validateEmail(value));
-                  }}
-                  error={emailError}
-                />
+                {editingEmail ? (
+                  <PixelInput
+                    value={email}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setEmail(value);
+                      setEmailError(validateEmail(value));
+                    }}
+                    error={emailError}
+                  />
+                ) : (
+                  <div className="text-sm text-[#5D4037] break-words" aria-label="Current email">
+                    {loading ? 'Loading email…' : displayEmail || 'No email on file'}
+                  </div>
+                )}
                 </div>
 
                 {!editingEmail ? (
@@ -562,7 +570,9 @@ const startSecureAction = (action: SecureAction) => {
                         setEmail(originalEmail);
                         setEditingEmail(false);
                         setIsVerified(false);
+                        setVerifiedPassword(null);
                         setEmailError(null);
+                        setAccountError(null);
                       }}
                     >
                       Cancel

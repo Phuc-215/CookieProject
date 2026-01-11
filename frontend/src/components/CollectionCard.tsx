@@ -4,8 +4,12 @@ interface CollectionCardProps {
   id: string;
   title: string;
   recipeCount: number;
-  cover_images: string[];
-  ownerUsername: string;
+  // Rename this to match your HomeFeed data (usually camelCase in React)
+  // Or keep it snake_case if your DB returns it that way. 
+  // I will support both just in case.
+  cover_images?: string[]; 
+  coverImages?: string[]; // Added this to handle the mismatch from previous HomeFeed code
+  ownerUsername?: string; // Made optional to prevent crashes if missing
   onClick?: (id: string) => void;
 
   showEdit?: boolean;
@@ -20,15 +24,20 @@ export function CollectionCard({
   title,
   recipeCount,
   cover_images,
-  ownerUsername,
+  coverImages, // Destructure this too
+  ownerUsername = 'Unknown', // Default value
   onClick,
   showEdit = false,
   onEdit,
   showDelete = false,
   onDelete,
 }: CollectionCardProps) {
+
+  // FIX: Merge the two potential prop names and ensure it defaults to an empty array
+  // This handles cases where parent passes 'coverImages' OR 'cover_images' OR undefined
+  const validImages = cover_images || coverImages || [];
+
   return (
-    
     <div
       className="
         pixel-card bg-white cursor-pointer
@@ -40,7 +49,8 @@ export function CollectionCard({
     >
       {/* PREVIEW GRID */}
       <div className="relative aspect-square bg-[var(--background)] grid grid-cols-2">
-        {cover_images.slice(0, 4).map((img, idx) => (
+        {/* FIX: Map over validImages instead of cover_images directly */}
+        {validImages.slice(0, 4).map((img, idx) => (
           <div
             key={idx}
             className="overflow-hidden border border-[var(--border)]"
@@ -54,7 +64,7 @@ export function CollectionCard({
           </div>
         ))}
 
-        {cover_images.length === 0 && (
+        {validImages.length === 0 && (
           <div className="col-span-2 flex items-center justify-center">
             <FolderOpen className="w-12 h-12 opacity-30" />
           </div>

@@ -203,7 +203,7 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
   };
 
   const handleSortChange = (newSort: string) => updateParams({ sort: newSort, page: '1' });
-  const handleTypeChange = (newType: string) => updateParams({ type: newType, page: '1', category: null });
+  // const handleTypeChange = (newType: string) => updateParams({ type: newType, page: '1', category: null });
   const handleCategoryClick = (cat: string) => updateParams({ category: cat, type: 'recipes', page: '1' });
   const handleCategoryReset = () => updateParams({ category: null, page: '1' });
 
@@ -267,7 +267,7 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
 
   return (
     <div className="min-h-screen bg-[var(--background-image)] pb-10">
-      <NavBar isLoggedIn={isLoggedIn} onLogout={onLogout} notificationCount={1} showBackButton={true} />
+      {/* <NavBar isLoggedIn={isLoggedIn} onLogout={onLogout} notificationCount={1} showBackButton={true} /> */}
       
       <div className="flex flex-col md:flex-row gap-5">
         
@@ -376,7 +376,7 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
           <div className="mt-5 mb-6 flex flex-col gap-4">
              
              {/* 1. TYPE TABS */}
-             <div className="flex gap-0 border-b-4 border-[#4A3B32]">
+             {/* <div className="flex gap-0 border-b-4 border-[#4A3B32]">
                 <button 
                   onClick={() => handleTypeChange('recipes')}
                   className={`px-6 py-2 font-vt323 text-xl flex items-center gap-2 transition-all ${typeParam === 'recipes' ? 'bg-[#FF99AA] text-[#4A3B32] border-t-4 border-x-4 border-[#4A3B32] -mb-1 pb-3' : 'bg-[#FFF8E7] text-[#4A3B32]/60 hover:bg-[#ffe4c4]'}`}
@@ -389,7 +389,7 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
                 >
                   <LayoutGrid size={20}/> COOKIE JARS
                 </button>
-             </div>
+             </div> */}
 
              {/* 2. Controls Row */}
              <div className="flex flex-col md:flex-row justify-between items-end md:items-center border-4 border-[#4A3B32] py-2 bg-[#FFF8E7] pixel-card w-full">

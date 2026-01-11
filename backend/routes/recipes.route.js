@@ -1,9 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/recipes.controller');
+const authMiddleware = require('../middlewares/auth.middleware');
 // Middleware for authentication (placeholder name)
 
 // Like
+router.use(authMiddleware.requireAuth);
+
 router.post('/:id/like', controller.likeRecipe);
 
 // Unlike

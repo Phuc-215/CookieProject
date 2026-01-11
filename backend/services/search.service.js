@@ -1,7 +1,18 @@
 // services/search.service.js
 const { pool } = require('../config/db');
 
-exports.search = async ({ title, ingredientIds_included, ingredientIds_excluded, userId }) => {
+        // title, 
+        // ingredientIds_included: included_ingredients, 
+        // ingredientIds_excluded: excluded_ingredients,
+        // difficulty,
+        // category,
+        // sort,
+        // page,
+        // limit,
+        // userId 
+
+
+exports.search = async ({ title, ingredientIds_included, ingredientIds_excluded, difficulty, category, sort, page, limit, userId }) => {
     // 1. Base Query
     let query = `
         SELECT r.id, r.slug, r.title, r.difficulty, r.thumbnail_url, 
@@ -52,23 +63,52 @@ exports.search = async ({ title, ingredientIds_included, ingredientIds_excluded,
         index++;
     }
 
-    // 5. Sorting
+    // 5. Difficulty Filter
+    if (difficulty) {
+        query += ` AND r.difficulty = $${index}`;
+        values.push(difficulty);
+        index++;
+    }
+
+    // 6. Category Filter
+    if (category) {
+        query += `
+            AND r.id IN (
+                SELECT rc.recipe_id
+                FROM recipe_categories rc
+                WHERE rc.category = $${index}
+            )
+        `;
+        values.push(category);
+        index++;
+    }
+
+    // 7. Sorting
     // If searching text, sort by Rank. Otherwise sort by Trending or Newest.
-    if (title) {
+    if (sort == 'popular') {
         query += ` ORDER BY rank DESC, r.likes_count DESC`;
-    } else {
+    } else if (sort == 'newest') {
         query += ` ORDER BY r.created_at DESC`;
     }
 
-    // 6. Execute
+    // 8. Execute
     const result = await pool.query(query, values);
 
-    // 7. Save History (Async, don't await blocking the response)
+    // 9. Save History (Async, don't await blocking the response)
     if (userId && title) {
         this.saveHistory(userId, title).catch(err => console.error('History save error', err));
     }
 
-    return result.rows;
+    const offset = (page - 1) * limit;
+    query += ` LIMIT $${index} OFFSET $${index + 1}`;
+    const paginatedResult = await pool.query(query, [...values, limit, offset]);
+
+    return {
+        results: paginatedResult.rows,
+        total: result.rowCount,
+        page,
+        limit
+    }
 };
 
 exports.getSuggestions = async (partialQuery) => {

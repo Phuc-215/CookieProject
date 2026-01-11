@@ -7,20 +7,27 @@
 
 import api from './axios';
 
-export const searchApi = (query: string, page: number, limit: number) =>
-  api.get<{ results: Array<any>; total: number }>('/search', {
-    params: { query, page, limit },
-  });
-  
-export const getSearchSuggestionsApi = () =>
-  api.get<{ suggestions: string[] }>('/search/suggestions');
+export interface SearchParams {
+  title?: string;
+  ingredients_included?: string[]; // Changed to string to match frontend input
+  ingredients_excluded?: string[];
+  difficulty?: Array<"Easy" | "Medium" | "Hard">;
+  category?: string;
+  sort?: string;
+  page?: number;
+  limit?: number;
+}
 
-export const getSearchHistoryApi = (userId: string) =>
-  api.get<{ history: string[] }>('/search/history', {
-    params: { userId },
+export const searchApi = (params: SearchParams) =>
+  api.post<{ data: Array<any>; results: number }>('/search', params);
+
+export const getSearchSuggestionsApi = (query: string) =>
+  api.get<{ data: string[] }>('/search/suggestions', {
+    params: { q: query }
   });
 
-export const clearSearchHistoryApi = (userId: string) =>
-  api.delete('/search/history', {
-    params: { userId },
-  });
+export const getSearchHistoryApi = () =>
+  api.get<{ data: Array<{ query_text: string, created_at: string }> }>('/search/history');
+
+export const clearSearchHistoryApi = () =>
+  api.delete('/search/history');

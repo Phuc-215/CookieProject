@@ -2,8 +2,7 @@ const recipesService = require('../services/recipes.service');
 
 exports.likeRecipe = async (req, res) => {
     try {
-        // req.user is set by auth middleware
-        const userId = req.user.id; 
+        const userId = req.user.id;
         const recipeId = parseInt(req.params.id, 10);
         
         await recipesService.likeRecipe(userId, recipeId);

@@ -1,5 +1,8 @@
 const searchService = require('../services/search.service');
 
+
+
+
 exports.search = async (req, res) => {
   try {
     const userId = req.userId; 
@@ -8,20 +11,50 @@ exports.search = async (req, res) => {
         title = '',
         // Expecting arrays of IDs (integers) - [1, 4, 12]
         included_ingredients = [], 
-        excluded_ingredients = []
-    } = req.body;
+        excluded_ingredients = [],
+        difficulty = '',
+        category = '',
+        sort = '',
+        page = 1,
+        limit = 10,
+        type = 'recipes'
+    } = req.query;
+    console.log('Search Params:', {
+        title,
+        included_ingredients,
+        excluded_ingredients,
+        difficulty,
+        category,
+        sort,
+        page,
+        limit,
+        type
+    });
 
+    // if (type === 'collections') {
+    //     // Handle collection search separately if needed
+    // }
     const result = await searchService.search({
         title, 
         ingredientIds_included: included_ingredients, 
         ingredientIds_excluded: excluded_ingredients,
+        difficulty,
+        category,
+        sort,
+        page,
+        limit,
         userId 
     });
 
     res.status(200).json({
       message: 'Query success',
-      results: result.length,
-      data: result,
+      results: result.results,
+      meta: {
+        totalRecipes: result.total,
+        totalPages: Math.ceil(result.total / limit),
+        page: result.page,
+        limit: result.limit
+      }
     });
 
   } catch (err) {

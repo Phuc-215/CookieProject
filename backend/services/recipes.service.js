@@ -9,6 +9,7 @@ exports.getById = async (recipeId, currentUserId) => {
     // 1. Updated Query: Includes is_liked and is_saved checks
     const query = `
       SELECT r.*, 
+             u.id as author_id,
              u.username as author_name,
              u.avatar_url as author_avatar,
              (

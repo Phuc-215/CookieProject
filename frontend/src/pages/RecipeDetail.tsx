@@ -2,11 +2,30 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Heart, Bookmark, Clock, Users, ChefHat, Share2, Link2, Copy, Check, Loader2 } from 'lucide-react';
 
-import { PixelTag } from '../components/PixelTag';
 import { useNav } from '../hooks/useNav';
 import { AddToCollectionModal } from "@/components/modals/AddToCollectionModal";
 import { getDetailApi, likeRecipeApi, unlikeRecipeApi } from '@/api/recipe.api';
 import { CommentSection } from '../components/CommentSection'; 
+
+// --- Backend Response Interface ---
+interface BackendRecipeData {
+  id: number;
+  title: string;
+  description?: string;
+  thumbnail_url?: string;
+  author_id?: number;
+  user_id?: number;
+  author_name?: string;
+  author_avatar?: string | null;
+  difficulty?: string;
+  cook_time_min?: number;
+  servings?: number;
+  likes_count?: number;
+  is_liked?: boolean;
+  is_saved?: boolean;
+  ingredients?: Array<{ name: string; amount: number; unit: string }>;
+  steps?: Array<{ step_number: number; description: string; image_urls?: string[] }>;
+}
 
 // --- UI Interface (Existing, matches your JSX) ---
 interface RecipeData {
@@ -15,6 +34,7 @@ interface RecipeData {
   description: string;
   image: string;
   author: {
+    id: string;
     username: string;
     avatar?: string | null;
   };
@@ -63,7 +83,7 @@ export function RecipeDetail({ isLoggedIn = false }: RecipeDetailProps) {
         setIsLoading(true);
         // fetch raw data
         const response = await getDetailApi(id);
-        const raw = response.data.data; // Access the inner data from controller response
+        const raw = response.data.data as unknown as BackendRecipeData; // Access the inner data from controller response
 
         // --- MAPPING LOGIC (Backend -> Frontend Adapter) ---
         const mappedRecipe: RecipeData = {
@@ -72,6 +92,7 @@ export function RecipeDetail({ isLoggedIn = false }: RecipeDetailProps) {
           description: raw.description || "",
           image: raw.thumbnail_url || "https://via.placeholder.com/800x400?text=No+Image",
           author: {
+            id: raw.author_id?.toString() || raw.user_id?.toString() || "",
             username: raw.author_name || "Unknown",
             avatar: raw.author_avatar
           },
@@ -101,7 +122,7 @@ export function RecipeDetail({ isLoggedIn = false }: RecipeDetailProps) {
         setIsLiked(mappedRecipe.isLiked);
         setIsSaved(mappedRecipe.isSaved);
         
-      } catch (err: any) {
+      } catch (err) {
         console.error("Failed to fetch recipe:", err);
         setError("Failed to load recipe.");
       } finally {
@@ -279,7 +300,7 @@ export function RecipeDetail({ isLoggedIn = false }: RecipeDetailProps) {
             <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
                 <button 
                   className="inline-flex items-center gap-3 group"
-                  onClick ={() => nav.profile(recipe?.author.username)}
+                  onClick ={() => nav.profile(recipe?.author.id)}
                 >
                   <div className="w-10 h-10 bg-[#4DB6AC] border-2 border-[#4A3B32] flex items-center justify-center overflow-hidden">
                     <img src={recipe?.author?.avatar || undefined} alt="Avatar" className="w-full h-full object-cover" />

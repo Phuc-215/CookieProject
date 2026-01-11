@@ -12,6 +12,7 @@ const MAX_STEP_IMAGES = 5;
 interface StepItemProps {
   step: RecipeStep;
   index: number;
+  error?: string;
 
   onUpdateInstruction: (id: string, value: string) => void;
   onUploadImages: (id: string, files: FileList | null) => void;
@@ -65,6 +66,7 @@ function SortableImage({
 export function StepItem({
   step,
   index,
+  error,
   onUpdateInstruction,
   onUploadImages,
   onRemoveImage,
@@ -117,8 +119,15 @@ export function StepItem({
             onChange={(e) =>
               onUpdateInstruction(step.id, e.target.value)
             }
-            className="w-full px-3 py-2 pixel-border bg-white text-[#5D4037] placeholder:text-[#5D4037]/50 resize-none mb-3 focus:shadow-[0_0_0_3px_var(--brown)] focus:outline-none"
+            className={`w-full px-3 py-2 pixel-border bg-white text-[#5D4037] placeholder:text-[#5D4037]/50 resize-none mb-3 focus:shadow-[0_0_0_3px_var(--brown)] focus:outline-none ${
+              error ? 'border-pink-500 shadow-[0_0_0_3px_#f9a8d4]' : ''
+            }`}
           />
+          {error && (
+            <p className="mt-1 text-sm text-pink-500 mb-3">
+              {error}
+            </p>
+          )}
 
           {/* IMAGE UPLOAD */}
           <input

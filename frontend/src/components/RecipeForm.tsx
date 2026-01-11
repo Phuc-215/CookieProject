@@ -236,12 +236,17 @@ export function RecipeForm({
   /* ===== VALIDATION ===== */
   // Validation function: Compute errors with given touched fields set
   const computeValidationErrors = useCallback(
-    (fieldsToCheck: Set<string>): Record<string, string> => {
+    (fieldsToCheck: Set<string>): { errors: Record<string, string>; stepErrors: Record<string, string> } => {
       const errors: Record<string, string> = {};
+      const stepErrors: Record<string, string> = {};
 
       // Only show errors for checked fields
-      if (fieldsToCheck.has('title') && title.trim().length === 0) {
-        errors.title = 'Recipe title is required';
+      if (fieldsToCheck.has('title')) {
+        if (title.trim().length === 0) {
+          errors.title = 'Recipe title is required';
+        } else if (title.trim().length < 3) {
+          errors.title = 'Recipe title must be at least 3 characters';
+        }
       }
 
       if (fieldsToCheck.has('mainImage') && mainImage === null) {
@@ -256,11 +261,32 @@ export function RecipeForm({
         errors.ingredients = 'At least one ingredient is required';
       }
 
+      if (fieldsToCheck.has('servings') && servings !== null && servings !== undefined) {
+        if (servings < 0) {
+          errors.servings = 'Servings cannot be negative';
+        }
+      }
+
+      if (fieldsToCheck.has('cookTime') && cookTime !== null && cookTime !== undefined) {
+        if (cookTime < 0) {
+          errors.cookTime = 'Cook time cannot be negative';
+        }
+      }
+
       if (fieldsToCheck.has('steps')) {
         if (steps.length === 0) {
           errors.steps = 'At least one step is required';
         } else {
-          // Each step must have a description
+          // Track errors for individual steps
+          steps.forEach(step => {
+            if (step.description.trim().length === 0) {
+              stepErrors[step.id] = 'Step description is required';
+            } else if (step.description.trim().length < 10) {
+              stepErrors[step.id] = 'Step description must be at least 10 characters';
+            }
+          });
+
+          // General error message for backward compatibility
           const stepsWithoutDescription = steps.filter(
             step => step.description.trim().length === 0
           );
@@ -270,15 +296,18 @@ export function RecipeForm({
         }
       }
 
-      return errors;
+      return { errors, stepErrors };
     },
-    [title, mainImage, category, ingredients.length, steps]
+    [title, mainImage, category, ingredients.length, steps, servings, cookTime]
   );
 
   //Validation: Check required fields and minimum requirements
-  const validationErrors = useMemo(() => {
+  const validationResult = useMemo(() => {
     return computeValidationErrors(touchedFields);
   }, [computeValidationErrors, touchedFields]);
+
+  const validationErrors = validationResult.errors;
+  const stepErrors = validationResult.stepErrors;
 
   // Helper to mark field as touched
   const markFieldTouched = (fieldName: string) => {
@@ -354,8 +383,8 @@ export function RecipeForm({
       'steps',
       'category',
     ]);
-    const errors = computeValidationErrors(allFieldsTouched);
-    return Object.keys(errors).length === 0;
+    const result = computeValidationErrors(allFieldsTouched);
+    return Object.keys(result.errors).length === 0 && Object.keys(result.stepErrors).length === 0;
   }, [computeValidationErrors]);
 
   /* ================= RENDER ================= */
@@ -468,13 +497,24 @@ export function RecipeForm({
                 </div>
               </div>
 
-              <PixelInput
-                label="Servings"
-                type="number"
-                placeholder="e.g. 2"
+              <div>
+                <PixelInput
+                  label="Servings"
+                  type="number"
+                  placeholder="e.g. 2"
                 value={servings ?? ''}
-                {...register('servings')}
-              />
+                  min="0"
+                  error={validationErrors.servings || null}
+                  {...register('servings', {
+                    onChange: () => markFieldTouched('servings'),
+                  })}
+                />
+                {validationErrors.servings && (
+                  <p className="mt-1 text-sm text-pink-500">
+                    {validationErrors.servings}
+                  </p>
+                )}
+              </div>
 
               {/* Category */}
               <div>
@@ -498,13 +538,24 @@ export function RecipeForm({
                 )}
               </div>
 
-              <PixelInput
-                label="Cook Time"
-                type="number"
-                placeholder="e.g. 12 mins"
+              <div>
+                <PixelInput
+                  label="Cook Time"
+                  type="number"
+                  placeholder="e.g. 12 mins"
                 value={cookTime ?? ''}
-                {...register('cookTime')}
-              />
+                  min="0"
+                  error={validationErrors.cookTime || null}
+                  {...register('cookTime', {
+                    onChange: () => markFieldTouched('cookTime'),
+                  })}
+                />
+                {validationErrors.cookTime && (
+                  <p className="mt-1 text-sm text-pink-500">
+                    {validationErrors.cookTime}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* INGREDIENTS */}
@@ -571,18 +622,22 @@ export function RecipeForm({
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="space-y-4">
-                    {steps.map((step, index) => (
-                      <StepItem
-                        key={step.id}
-                        step={step}
-                        index={index}
-                        onUpdateInstruction={handleUpdateStepDescription}
-                        onUploadImages={handleUploadStepImages}
-                        onRemoveImage={handleRemoveStepImage}
-                        onReorderImages={handleReorderStepImages}
-                        onRemoveStep={handleRemoveStep}
-                      />
-                    ))}
+                    {steps.map((step, index) => {
+                      const stepError = stepErrors[step.id];
+                      return (
+                        <StepItem
+                          key={step.id}
+                          step={step}
+                          index={index}
+                          error={stepError}
+                          onUpdateInstruction={handleUpdateStepDescription}
+                          onUploadImages={handleUploadStepImages}
+                          onRemoveImage={handleRemoveStepImage}
+                          onReorderImages={handleReorderStepImages}
+                          onRemoveStep={handleRemoveStep}
+                        />
+                      );
+                    })}
                   </div>
                 </SortableContext>
               </DndContext>
@@ -626,8 +681,8 @@ export function RecipeForm({
               setTouchedFields(allFieldsTouched);
               
               // Check validation with all fields touched
-              const errors = computeValidationErrors(allFieldsTouched);
-              const isFormValid = Object.keys(errors).length === 0;
+              const result = computeValidationErrors(allFieldsTouched);
+              const isFormValid = Object.keys(result.errors).length === 0 && Object.keys(result.stepErrors).length === 0;
               
               if (isFormValid) {
                 // handlePublish(buildData());

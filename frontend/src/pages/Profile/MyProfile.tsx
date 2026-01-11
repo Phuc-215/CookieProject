@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ProfilePage } from './ProfilePage';
-import { MOCK_COLLECTIONS } from "@/mocks/mock_collection";
-import { MOCK_RECIPES } from "@/mocks/mock_recipe";
 import { getUserProfileApi, getUserRecipesApi } from '@/api/user.api';
+import { getUserCollectionsApi } from '@/api/collection.api'
 import type { UserProfile } from '@/types/User';
-import type { Recipe } from '@/types/Recipe';
+import type { RecipeCard } from '@/types/Recipe';
+import type { Collection } from '@/types/Collection'
 
 const DRAFT_RECIPES = [
   {
@@ -33,7 +33,8 @@ interface MyProfileProps {
 
 export function MyProfile({ isLoggedIn, viewer, onLogout }: MyProfileProps) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [recipes, setRecipes] = useState<RecipeCard[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const userId = useMemo(() => {
@@ -51,6 +52,10 @@ export function MyProfile({ isLoggedIn, viewer, onLogout }: MyProfileProps) {
   }, [viewer]);
 
   useEffect(() => {
+    console.log("Collections updated:", collections);
+  }, [collections]);
+
+  useEffect(() => {
     if (!userId) {
       setError('Missing user ID');
       return;
@@ -58,34 +63,82 @@ export function MyProfile({ isLoggedIn, viewer, onLogout }: MyProfileProps) {
 
     let active = true;
 
+    // Helper to handle safe state updates
+    const safeSet = <T,>(setter: (val: T) => void, val: T) => {
+      if (active) setter(val);
+    };
+
     (async () => {
       try {
         setError(null);
-        const res = await getUserProfileApi(userId);
-        if (!active) return;
-        setProfile(res.data);
-        
-        // Fetch user's recipes
-        try {
-          const recipesRes = await getUserRecipesApi(userId);
-          if (!active) return;
-          // Transform API response to match Recipe type
-          const transformedRecipes: Recipe[] = (recipesRes.data.recipes || []).map((r: any) => ({
+        // Run fetches in parallel for better performance
+        const [profileRes, recipesRes, collectionsRes] = await Promise.allSettled([
+          getUserProfileApi(userId),
+          getUserRecipesApi(userId),
+          getUserCollectionsApi(userId)
+        ]);
+
+        // A. Handle Profile
+        if (profileRes.status === 'fulfilled') {
+          safeSet(setProfile, profileRes.value.data);
+        } else {
+          // If profile fails, that's a critical error
+          throw profileRes.reason; 
+        }
+
+        // B. Handle Recipes
+        if (recipesRes.status === 'fulfilled') {
+          const rawRecipes = recipesRes.value.data.recipes || [];
+          const transformed: RecipeCard[] = rawRecipes.map((r: any) => ({
             id: r.id,
             title: r.title,
-            image: r.image,
-            author: res.data?.username || viewer?.username || 'Me',
-            difficulty: 'Medium' as const,
-            time: '30 min',
-            likes: 0,
+            image: r.thumbnail_url || r.image, // Check backend field name
+            author: profileRes.status === 'fulfilled' ? profileRes.value.data.username : 'Me',
+            difficulty: 'Medium' as const, // Map from backend if available
+            cookTime: r.cook_time ? `${r.cook_time} min` : '30 min',
+            likes: r.likes_count || 0,
             isLiked: false,
             isSaved: false,
           }));
-          setRecipes(transformedRecipes);
-        } catch (recipesErr) {
-          console.warn('Failed to load recipes:', recipesErr);
-          setRecipes([]);
+          safeSet(setRecipes, transformed);
+        } else {
+          console.warn('Failed to load recipes', recipesRes.reason);
         }
+
+        // C. Handle Collections (New)
+        if (collectionsRes.status === 'fulfilled') {
+          console.log(collectionsRes);
+          // Transform if necessary, or pass raw if it matches interface
+          safeSet(setCollections, collectionsRes.value.data.data);
+        } else {
+          console.warn('Failed to load collections', collectionsRes.reason);
+        }
+
+        // const res = await getUserProfileApi(userId);
+        // if (!active) return;
+        // setProfile(res.data);
+        
+        // // Fetch user's recipes
+        // try {
+        //   const recipesRes = await getUserRecipesApi(userId);
+        //   if (!active) return;
+        //   // Transform API response to match Recipe type
+        //   const transformedRecipes: Recipe[] = (recipesRes.data.recipes || []).map((r: any) => ({
+        //     id: r.id,
+        //     title: r.title,
+        //     image: r.image,
+        //     author: res.data?.username || viewer?.username || 'Me',
+        //     difficulty: 'Medium' as const,
+        //     time: '30 min',
+        //     likes: 0,
+        //     isLiked: false,
+        //     isSaved: false,
+        //   }));
+        //   setRecipes(transformedRecipes);
+        // } catch (recipesErr) {
+        //   console.warn('Failed to load recipes:', recipesErr);
+        //   setRecipes([]);
+        // }
       } catch (err: any) {
         if (!active) return;
         const msg = err?.response?.data?.message || 'Failed to load profile';
@@ -121,7 +174,7 @@ export function MyProfile({ isLoggedIn, viewer, onLogout }: MyProfileProps) {
       profileUser={profileUser}
       recipes={recipes}
       drafts={DRAFT_RECIPES}
-      collections={MOCK_COLLECTIONS}
+      collections={collections}
       isLoggedIn={isLoggedIn}
     />
   );

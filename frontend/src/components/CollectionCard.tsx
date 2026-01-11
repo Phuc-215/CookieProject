@@ -4,7 +4,7 @@ interface CollectionCardProps {
   id: string;
   title: string;
   recipeCount: number;
-  coverImages: string[];
+  cover_images: string[];
   ownerUsername: string;
   onClick?: (id: string) => void;
 
@@ -19,7 +19,7 @@ export function CollectionCard({
   id,
   title,
   recipeCount,
-  coverImages,
+  cover_images,
   ownerUsername,
   onClick,
   showEdit = false,
@@ -40,7 +40,7 @@ export function CollectionCard({
     >
       {/* PREVIEW GRID */}
       <div className="relative aspect-square bg-[var(--background)] grid grid-cols-2">
-        {coverImages.slice(0, 4).map((img, idx) => (
+        {cover_images.slice(0, 4).map((img, idx) => (
           <div
             key={idx}
             className="overflow-hidden border border-[var(--border)]"
@@ -54,7 +54,7 @@ export function CollectionCard({
           </div>
         ))}
 
-        {coverImages.length === 0 && (
+        {cover_images.length === 0 && (
           <div className="col-span-2 flex items-center justify-center">
             <FolderOpen className="w-12 h-12 opacity-30" />
           </div>

@@ -1,10 +1,18 @@
-import { useMemo, useState } from "react";
-import { Globe, Lock } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
+import { Globe, Lock, Loader2 } from "lucide-react";
 
 import { PixelButton } from "@/components/PixelButton";
 import { PixelInput } from "@/components/PixelInput";
 import { PixelTextarea } from "@/components/PixelTextarea";
 import { useNav } from "@/hooks/useNav";
+
+import { 
+  createCollectionApi, 
+  updateCollectionApi, 
+  deleteCollectionApi, 
+  getCollectionDetailApi 
+} from "@/api/collection.api";
 
 type JarVisibility = "public" | "private";
 
@@ -12,58 +20,141 @@ type Mode = "edit" | "create";
 
 export function EditCollection({ mode = "edit" }: { mode?: Mode }) {
   const nav = useNav();
-
-  /* ===== Initial values (mock – sau này thay bằng API) ===== */
-  const initialState = mode === "edit"
-    ? {
-        jarName: "My Cookie Jar",
-        description: "Tell us about your collection...",
-        visibility: "private" as JarVisibility,
-      }
-    : {
-        jarName: "",
-        description: "",
-        visibility: "private" as JarVisibility,
-      };
+  const { id } = useParams<{ id: string }>();
 
   /* ===== State ===== */
-  const [jarName, setJarName] = useState(initialState.jarName);
-  const [description, setDescription] = useState(initialState.description);
-  const [visibility, setVisibility] = useState<JarVisibility>(
-    initialState.visibility
-  );
+  const [jarName, setJarName] = useState("");
+  const [description, setDescription] = useState("");
+  const [visibility, setVisibility] = useState<JarVisibility>("private");
+
+  const [isLoading, setIsLoading] = useState(false); // For fetching initial data
+  const [isSubmitting, setIsSubmitting] = useState(false); // For saving/deleting
+  const [error, setError] = useState<string | null>(null);
+
+  const [initialData, setInitialData] = useState({
+    jarName: "",
+    description: "",
+    visibility: "private" as JarVisibility,
+  });
+
+  useEffect(() => {
+    if (mode === "create") return;
+    if (!id) {
+      setError("No Collection ID provided");
+      return;
+    }
+
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const res = await getCollectionDetailApi(id);
+        const data = res.data.data;
+
+        // Map Backend Data to Frontend State
+        const fetchedName = data.title;
+        const fetchedDesc = data.description || "";
+        const fetchedVis = data.is_private ? "private" : "public";
+
+        // Set Form State
+        setJarName(fetchedName);
+        setDescription(fetchedDesc);
+        setVisibility(fetchedVis);
+
+        // Set Snapshot for change detection
+        setInitialData({
+          jarName: fetchedName,
+          description: fetchedDesc,
+          visibility: fetchedVis,
+        });
+
+      } catch (err: any) {
+        console.error(err);
+        setError("Failed to load collection details.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [mode, id]);
 
   /* ===== Detect changes ===== */
   const isChanged = useMemo(() => {
     return (
-      jarName !== initialState.jarName ||
-      description !== initialState.description ||
-      visibility !== initialState.visibility
+      jarName.trim().length > 0 &&
+      (jarName !== initialData.jarName ||
+       description !== initialData.description ||
+       visibility !== initialData.visibility)
     );
-  }, [jarName, description, visibility]);
+  }, [jarName, description, visibility, initialData, mode]);
 
   /* ===== Handlers ===== */
-  const handleSave = () => {
-    if (mode === "edit") {
-      alert("Cookie Jar updated!");
-    } else {
-      alert("Cookie Jar created!");
+  const handleSave = async () => {
+    if (!jarName.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        title: jarName,
+        description: description,
+        isPrivate: visibility === "private",
+      };
+
+      if (mode === "edit" && id) {
+        await updateCollectionApi(id, payload);
+        alert("Cookie Jar updated!");
+      } else {
+        await createCollectionApi(payload);
+        alert("Cookie Jar created!");
+      }
+      
+      nav.back();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to save collection");
+    } finally {
+      setIsSubmitting(false);
     }
-    nav.back();
   };
 
-  const handleDelete = () => {
-    if (confirm("Are you sure you want to delete this cookie jar?")) {
+  const handleDelete = async () => {
+    if (!id) return;
+    if (!confirm("Are you sure you want to delete this cookie jar? This cannot be undone.")) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await deleteCollectionApi(id);
       alert("Cookie Jar deleted");
       nav.back();
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to delete collection");
+      setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[var(--background-image)] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#5D4037]" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
 
       <div className="max-w-3xl mx-auto px-4 py-10">
         <div className="pixel-card bg-white p-8">
+          {/* Submitting Overlay */}
+          {isSubmitting && (
+            <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-[#5D4037]" />
+            </div>
+          )}
+
           {/* ===== Title ===== */}
           <h2
             className="text-sm mb-10"

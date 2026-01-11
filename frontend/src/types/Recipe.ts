@@ -1,12 +1,7 @@
 export type Difficulty = 'Easy' | 'Medium' | 'Hard';
-
-interface RecipeAuthor {
-  username: string;
-  avatar: string | null;
-}
 export interface RecipeCard {
   id: string;
-  author: RecipeAuthor;
+  author: string;
   title: string;
   image: string;
   difficulty: Difficulty;

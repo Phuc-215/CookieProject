@@ -1,8 +1,6 @@
 const { pool } = require('../config/db');
 
-exports.getUserCollections = async (targetUserId, currentUserId, { page = 1, limit = 20 }) => {
-  console.log(targetUserId, currentUserId);
-  const offset = (page - 1) * limit;
+exports.getUserCollections = async (targetUserId, currentUserId) => {
 
   const isOwner = Number(targetUserId) === Number(currentUserId);
   const privacyClause = isOwner ? "" : "AND c.is_private = false";
@@ -31,26 +29,43 @@ exports.getUserCollections = async (targetUserId, currentUserId, { page = 1, lim
           ) t
         ), 
         '[]'
-      ) as thumbnails
+      ) as cover_images
 
     FROM public.collections c
     LEFT JOIN public.collection_recipes cr ON c.id = cr.collection_id
     WHERE c.user_id = $1 ${privacyClause}
     GROUP BY c.id
-    LIMIT $2 OFFSET $3
   `;
 
-  const res = await pool.query(query, [targetUserId, limit, offset]);
+  const res = await pool.query(query, [targetUserId]);
   return res.rows;
 };
 
-exports.getCollectionDetails = async (collectionId, currentUserId, { page = 1, limit = 12 }) => {
+exports.getCollectionDetails = async (collectionId, currentUserId) => {
+  console.log(collectionId, currentUserId);
   const client = await pool.connect();
   try {
-    const offset = (page - 1) * limit;
 
     const metaQuery = `
-      SELECT c.*, u.username as owner_name, u.avatar_url as owner_avatar
+      SELECT 
+        c.*, 
+        u.username as owner_name, u.avatar_url as owner_avatar,
+        -- FETCH COVER IMAGES HERE (Correct Context)
+        COALESCE(
+          (
+            SELECT json_agg(t.thumbnail_url)
+            FROM (
+              SELECT r.thumbnail_url 
+              FROM public.collection_recipes cr_sub
+              JOIN public.recipes r ON cr_sub.recipe_id = r.id
+              WHERE cr_sub.collection_id = c.id 
+                AND r.thumbnail_url IS NOT NULL
+              ORDER BY cr_sub.added_at DESC
+              LIMIT 3
+            ) t
+          ), 
+          '[]'
+        ) as cover_images
       FROM public.collections c
       JOIN public.users u ON c.user_id = u.id
       WHERE c.id = $1
@@ -59,8 +74,9 @@ exports.getCollectionDetails = async (collectionId, currentUserId, { page = 1, l
 
     if (metaRes.rows.length === 0) return null; // 404 Not Found
     const collection = metaRes.rows[0];
+    console.log(collection);
 
-    if (collection.is_private && collection.user_id !== currentUserId) {
+    if (collection.is_private && parseInt(collection.user_id) !== currentUserId) {
       throw new Error("Unauthorized: This cookie jar is private.");
     }
 
@@ -92,21 +108,9 @@ exports.getCollectionDetails = async (collectionId, currentUserId, { page = 1, l
       JOIN public.users u ON r.user_id = u.id
       WHERE cr.collection_id = $1 AND r.status = 'published'
       ORDER BY cr.added_at DESC
-      LIMIT $3 OFFSET $4
     `;
 
-    // 4. Get Total Count (for pagination)
-    const countQuery = `
-      SELECT COUNT(*) 
-      FROM public.collection_recipes cr
-      JOIN public.recipes r ON cr.recipe_id = r.id
-      WHERE cr.collection_id = $1 AND r.status = 'published'
-    `;
-
-    const [recipesRes, countRes] = await Promise.all([
-      client.query(recipesQuery, [collectionId, currentUserId, limit, offset]),
-      client.query(countQuery, [collectionId])
-    ]);
+    const recipesRes = await client.query(recipesQuery, [collectionId, currentUserId]);
 
     const formattedRecipes = recipesRes.rows.map(row => ({
       id: row.id.toString(),
@@ -123,12 +127,6 @@ exports.getCollectionDetails = async (collectionId, currentUserId, { page = 1, l
     return {
       ...collection,
       recipes: formattedRecipes,
-      pagination: {
-        total: parseInt(countRes.rows[0].count),
-        page: Number(page),
-        limit: Number(limit),
-        totalPages: Math.ceil(parseInt(countRes.rows[0].count) / limit)
-      }
     };
 
   } finally {
@@ -180,4 +178,26 @@ exports.addRecipeToCollection = async (userId, collectionId, recipeId) => {
   } finally {
     client.release();
   }
+};
+
+exports.updateCollection = async (collectionId, userId, { title, description, isPrivate }) => {
+  const query = `
+    UPDATE public.collections
+    SET 
+      title = $3,
+      description = $4,
+      is_private = $5,
+      updated_at = NOW()
+    WHERE id = $1 AND user_id = $2
+    RETURNING *
+  `;
+
+  // Note: We map 'isPrivate' (frontend) to 'is_private' (database)
+  const values = [collectionId, userId, title, description, isPrivate];
+
+  const res = await pool.query(query, values);
+  
+  // If no rows were returned, it means the collection doesn't exist 
+  // OR the user doesn't own it.
+  return res.rows[0];
 };

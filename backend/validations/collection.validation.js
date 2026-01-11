@@ -35,5 +35,31 @@ const updateCollectionSchema = Joi.object({
     })
 });
 
+const editCollectionSchema = Joi.object({
+  title: Joi.string()
+    .trim()
+    .min(1)
+    .max(50)
+    .required()
+    .messages({
+      'string.empty': 'Title cannot be empty',
+      'string.max': 'Title cannot exceed 50 characters',
+      'any.required': 'Title is required'
+    }),
 
-module.exports = { createCollectionSchema, updateCollectionSchema };
+  description: Joi.string()
+    .allow('', null) // Allow empty string or null
+    .max(150)
+    .messages({
+      'string.max': 'Description cannot exceed 150 characters'
+    }),
+
+  isPrivate: Joi.boolean()
+    .required()
+    .messages({
+      'boolean.base': 'isPrivate must be a boolean'
+    })
+});
+
+
+module.exports = { createCollectionSchema, updateCollectionSchema, editCollectionSchema };

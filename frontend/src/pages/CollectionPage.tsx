@@ -1,10 +1,14 @@
+import { useState, useEffect } from "react"
 import { useParams } from "react-router-dom";
 import { RecipeCard } from "@/components/RecipeCard";
 import { Headline } from "@/pages/HomeFeed/Headline";
 import { useNav } from "@/hooks/useNav";
 import { MOCK_RECIPES } from "@/mocks/mock_recipe";
 import { MOCK_COLLECTIONS } from "@/mocks/mock_collection";
-import { Pencil} from "lucide-react";
+import { getCollectionDetailApi } from "@/api/collection.api";
+import { Pencil, Loader2} from "lucide-react";
+import type { RecipeCard as RecipeCardType } from '@/types/Recipe'
+
 interface Viewer {
   id: number;
   username: string;
@@ -16,6 +20,17 @@ interface CollectionPageProps {
   viewer?: Viewer | null;
 }
 
+interface CollectionDetail {
+  id: number;
+  user_id: string; // ID of the owner
+  title: string;
+  description: string | null;
+  cover_images: string[];
+  is_private: boolean;
+  owner_name: string;
+  recipes: RecipeCardType[];
+}
+
 export function CollectionPage({
   isLoggedIn = false,
   viewer,
@@ -23,26 +38,97 @@ export function CollectionPage({
   const nav = useNav();
   const { id } = useParams<{ id: string }>();
 
-  const collection = MOCK_COLLECTIONS.find(c => c.id === id);
+  const [collection, setCollection] = useState<CollectionDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!collection) {
-    return <div>Collection not found</div>;
+  useEffect(() => {
+    console.log(collection);
+  }, [collection]);
+
+  useEffect(() => {
+    if (!id) return;
+
+    let active = true;
+
+    const fetchCollection = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const res = await getCollectionDetailApi(id);
+        console.log(res);
+        
+        if (active) {
+          console.log("Assign");
+          setCollection(res.data.data);
+        }
+      } catch (err: any) {
+        if (active) {
+          console.error("Failed to load collection", err);
+          const msg = err.response?.data?.message || "Collection not found";
+          setError(msg);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchCollection();
+
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  // const isOwner = isLoggedIn && viewer?.id === collection?.id;
+
+  // const collection = MOCK_COLLECTIONS.find(c => c.id === id);
+
+  // if (!collection) {
+  //   return <div>Collection not found</div>;
+  // }
+  
+  // const recipesInCollection = MOCK_RECIPES.filter(recipe =>
+  //   collection.recipeIds.includes(recipe.id)
+  // );
+
+  const isOwner = isLoggedIn && String(viewer?.id) === String(collection?.user_id);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background-image)]">
+        <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
+      </div>
+    );
   }
 
-  const isOwner =
-    isLoggedIn &&
-    viewer?.username === collection.ownerUsername;
-
-  const recipesInCollection = MOCK_RECIPES.filter(recipe =>
-    collection.recipeIds.includes(recipe.id)
-  );
+  // --- Error State ---
+  if (error || !collection) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background-image)]">
+        <div className="bg-white p-6 pixel-border text-center">
+          <h2 className="text-xl mb-2 text-red-500 font-bold">Error</h2>
+          <p>{error || "Collection not found"}</p>
+          <button 
+            onClick={() => nav.home()} 
+            className="mt-4 px-4 py-2 pixel-btn"
+          >
+            Go Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--background-image)]">
     <section className="max-w-7xl mx-auto px-4 py-10">
     <div className="pixel-card bg-white p-6 flex gap-6 items-start">
         <img
-        src={collection.coverImages[0]}
+        src={collection.cover_images[0]}
         className="w-48 h-48 pixel-border object-cover"
         />
 
@@ -87,7 +173,7 @@ export function CollectionPage({
         <Headline>RECIPES</Headline>
 
         <div className="grid grid-cols-3 gap-6 mt-6">
-          {recipesInCollection.map((recipe) => (
+          {collection.recipes.map((recipe) => (
             <RecipeCard
               key={recipe.id}
               {...recipe}

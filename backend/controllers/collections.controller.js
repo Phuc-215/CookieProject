@@ -8,7 +8,6 @@ exports.list = async (req, res) => {
     const collections = await service.getUserCollections(
       targetUserId, 
       currentUserId,
-      { page, limit }
     );
 
     res.json({
@@ -29,18 +28,18 @@ exports.getOne = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid ID" });
     }
 
-    const { page, limit } = req.query;
     const currentUserId = req.user.id;
 
     const collection = await service.getCollectionDetails(
       collectionId, 
       currentUserId, 
-      { page, limit }
     );
 
     if (!collection) {
       return res.status(404).json({ success: false, message: "Cookie jar not found" });
     }
+
+    console.log(collection);
 
     res.json({ success: true, data: collection });
 
@@ -107,5 +106,40 @@ exports.addToCollection = async (req, res) => {
     
     console.error("Add Recipe Error:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+exports.update = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const currentUserId = req.user.id;
+    
+    const { title, description, isPrivate } = req.body;
+
+    const updatedCollection = await service.updateCollection(
+      id, 
+      currentUserId, 
+      { title, description, isPrivate }
+    );
+
+    if (!updatedCollection) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Cookie Jar not found or you do not have permission to edit it." 
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Collection updated successfully",
+      data: updatedCollection
+    });
+
+  } catch (error) {
+    console.error("Update Collection Error:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Internal server error" 
+    });
   }
 };

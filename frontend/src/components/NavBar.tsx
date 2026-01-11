@@ -6,7 +6,7 @@ import { useNav } from "@/hooks/useNav";
 import { useAuth } from "@/contexts/AuthContext";
 import { getSearchSuggestionsApi, getSearchHistoryApi, clearSearchHistoryApi, deleteSearchHistoryItemApi } from '@/api/search.api';
 import logo from "@/assets/logo.svg";
-import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 
 interface NavBarProps {
   title?: string;
@@ -36,7 +36,7 @@ export function NavBar({
   
   // Store History (Objects with ID)
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
-  // Store Suggestions (Strings) - MUST be state to trigger re-render
+  // Store Suggestions (Strings)
   const [suggestions, setSuggestions] = useState<string[]>([]);
 
   // Ref for Debouncing
@@ -46,6 +46,7 @@ export function NavBar({
   const searchContainerRef = useRef<HTMLDivElement>(null); 
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation(); // Hook to check current path
   
   const nav = useNav();
   const { logout, viewer, isLoggedIn } = useAuth();
@@ -66,34 +67,24 @@ export function NavBar({
     }
   };
 
-  // --- 3. HANDLE INPUT CHANGE (The Core Logic) ---
+  // --- 3. HANDLE INPUT CHANGE ---
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setLocalQuery(val);
     setIsSearchFocused(true);
 
-    // A. URL SYNC (Immediate)
-    // Only update URL live if we are ALREADY on the search page
-    if (location.pathname === '/search') {
-        setSearchParams(prev => {
-            const newParams = new URLSearchParams(prev);
-            if (val) newParams.set('q', val);
-            else newParams.delete('q');
-            newParams.set('page', '1'); // Reset pagination
-            return newParams;
-        }, { replace: true });
-    }
-
-    // B. API FETCHING (Debounced)
+    // We DO NOT update URL here to prevent history spamming while typing.
+    
+    // B. API FETCHING FOR SUGGESTIONS (Debounced)
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     if (!val.trim()) {
       setSuggestions([]);
-      if (isLoggedIn) fetchHistory(); // Refresh history if input cleared
+      if (isLoggedIn) fetchHistory(); 
       return;
     }
 
-    // Wait 300ms before calling API
+    // Wait 300ms before calling Suggestions API
     debounceRef.current = setTimeout(async () => {
       try {
         const res = await getSearchSuggestionsApi(val);
@@ -103,8 +94,6 @@ export function NavBar({
       }
     }, 300);
   };
-
-
 
   // Initial fetch
   useEffect(() => {
@@ -133,7 +122,7 @@ export function NavBar({
     setLocalQuery(term);
     setIsSearchFocused(false);
     
-    // Navigate to search page (this handles both "Enter" on Home & Search page)
+    // This triggers the navigation/URL update -> which triggers SearchPage -> which saves History
     nav.search(term);
   };
 
@@ -141,6 +130,15 @@ export function NavBar({
     try {
       await clearSearchHistoryApi();
       setSearchHistory([]);
+
+      if (location.pathname === '/search') {
+          setSearchParams(prev => {
+              const next = new URLSearchParams(prev);
+              next.delete('q');
+              return next;
+          });
+          setLocalQuery('');
+      }
     } catch (err) {
       console.error("Failed to clear search history", err);
     }
@@ -149,12 +147,27 @@ export function NavBar({
   const removeHistoryItem = async (e: React.MouseEvent, id: number) => {
     e.stopPropagation(); 
     try {
+      // Find item before deleting to check against current URL
+      const itemToDelete = searchHistory.find(h => h.id === id);
+      const currentUrlQuery = searchParams.get('q') || '';
+
       setSearchHistory(prev => prev.filter(h => h.id !== id));
       await deleteSearchHistoryItemApi(id);
+
+      // FIX: If deleting the item that is currently active in URL, clear the URL
+      if (location.pathname === '/search' && itemToDelete && currentUrlQuery === itemToDelete.query_text) {
+          setSearchParams(prev => {
+              const next = new URLSearchParams(prev);
+              next.delete('q');
+              return next;
+          });
+          setLocalQuery('');
+      }
     } catch (err) {
       console.error("Failed to delete item", err);
     }
   };
+
   return (
     <header className="border-b-[3px] border-[var(--border)] bg-[white] sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-4">
@@ -199,10 +212,18 @@ export function NavBar({
               
               {localQuery && (
                 <button 
-                  onClick={() => { setLocalQuery(''); setSuggestions([]); if(isLoggedIn) fetchHistory(); setIsSearchFocused(true); 
-                            // Clear URL param if on search page
-                            if(location.pathname === '/search') setSearchParams({ page: '1' }, { replace: true });
-                          }}
+                  onClick={() => { 
+                    setLocalQuery(''); 
+                    setSuggestions([]); 
+                    if(isLoggedIn) fetchHistory(); 
+                    setIsSearchFocused(true); 
+                    // Optional: Clear URL param if user manually clears input
+                    if(location.pathname === '/search') setSearchParams(prev => {
+                        const next = new URLSearchParams(prev);
+                        next.delete('q');
+                        return next;
+                    });
+                  }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
                 >
                   <X size={16} />
@@ -278,7 +299,6 @@ export function NavBar({
 
           {/* Right controls */}
           <div className="flex items-center gap-2 sm:gap-3">
-             {/* ... (Keep existing User/Login buttons same as before) ... */}
              {isLoggedIn ? (
               <>
                 <button className="p-2 hover:bg-[var(--cream)]" onClick={nav.create}><Plus className="w-5 h-5"/></button>

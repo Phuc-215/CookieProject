@@ -6,19 +6,6 @@ import type { UserProfile } from '@/types/User';
 import type { RecipeCard } from '@/types/Recipe';
 import type { Collection } from '@/types/Collection'
 
-const DRAFT_RECIPES = [
-  {
-    id: 'draft-1',
-    title: 'Matcha Cookies (Draft)',
-    image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8',
-    author: 'You',
-    difficulty: 'Medium' as const,
-    time: '45 min',
-    cookTime: '45 min',
-    likes: 0,
-  },
-];
-
 interface Viewer {
   id: number;
   username: string;
@@ -35,6 +22,7 @@ interface MyProfileProps {
 export function MyProfile({ isLoggedIn, viewer, onLogout: _onLogout }: MyProfileProps) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [recipes, setRecipes] = useState<RecipeCard[]>([]);
+  const [drafts, setDrafts] = useState<RecipeCard[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,13 +78,17 @@ export function MyProfile({ isLoggedIn, viewer, onLogout: _onLogout }: MyProfile
         // B. Handle Recipes
         if (recipesRes.status === 'fulfilled') {
           const rawRecipes = recipesRes.value.data.recipes || [];
-          const transformed: RecipeCard[] = rawRecipes.map((r: any) => {
+          const published: RecipeCard[] = [];
+          const draftsFetched: RecipeCard[] = [];
+
+          rawRecipes.forEach((r: any) => {
             const difficulty = r.difficulty
               ? (r.difficulty.charAt(0).toUpperCase() + r.difficulty.slice(1).toLowerCase()) as RecipeCard['difficulty']
               : 'Medium';
             const cookMinutes = r.cook_time_min ?? r.cook_time;
             const timeStr = cookMinutes ? `${cookMinutes} min` : '30 min';
-            return {
+
+            const mapped: RecipeCard = {
               id: String(r.id),
               title: r.title,
               image: r.thumbnail_url || r.image,
@@ -108,8 +100,16 @@ export function MyProfile({ isLoggedIn, viewer, onLogout: _onLogout }: MyProfile
               isLiked: Boolean(r.is_liked),
               isSaved: Boolean(r.is_saved),
             };
+
+            if (r.status === 'draft') {
+              draftsFetched.push(mapped);
+            } else {
+              published.push(mapped);
+            }
           });
-          safeSet(setRecipes, transformed);
+
+          safeSet(setRecipes, published);
+          safeSet(setDrafts, draftsFetched);
         } else {
           console.warn('Failed to load recipes', recipesRes.reason);
         }
@@ -192,7 +192,7 @@ export function MyProfile({ isLoggedIn, viewer, onLogout: _onLogout }: MyProfile
       viewer={{ username: profileUser.username, avatar_url: profileUser.avatarUrl || null }}
       profileUser={profileUser}
       recipes={recipes}
-      drafts={DRAFT_RECIPES}
+      drafts={drafts}
       collections={collections}
       isLoggedIn={isLoggedIn}
     />

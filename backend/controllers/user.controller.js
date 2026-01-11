@@ -175,8 +175,9 @@ exports.getUserRecipes = async (req, res) => {
       return res.status(400).json({ message: 'INVALID_USER_ID' });
     }
 
-    // Show all statuses for now to ensure recipes appear on profile
-    const statusFilter = '';
+    // Public: only published; Owner (when authenticated) gets all statuses
+    const isOwner = req.user && req.user.id === userId;
+    const statusFilter = isOwner ? '' : "AND status = 'published'";
 
     try {
       const result = await pool.query(

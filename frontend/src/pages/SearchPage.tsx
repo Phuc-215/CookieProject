@@ -433,7 +433,8 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
                 
                 {isViewRecipes && currentRecipes.map(recipe => (
                   <RecipeCard 
-                    key={recipe.id} 
+                    key={recipe.id}
+                    id={recipe.id.toString()}
                     title={recipe.title} 
                     author={recipe.author || 'Unknown Chef'} 
                     image={recipe.thumbnail_url || 'https://via.placeholder.com/600'}

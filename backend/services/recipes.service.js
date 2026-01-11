@@ -135,24 +135,22 @@ exports.saveRecipe = async ({
                 RETURNING id
             `;
 
-            console.log(updateQuery);
-
             const updateRes = await client.query(updateQuery, values);
             if (updateRes.rowCount === 0) {
                 throw new Error("Recipe not found or permission denied.");
             }
-        }
 
-        // CLEAR OLD RELATIONS (Wipe & Rewrite Strategy / Delete & Re-insert)
-        /*
-        Trying to calculate the "Diff" (e.g., "User changed Step 2, deleted Step 3, and added Step 4") is extremely complex and error-prone.
-        "Wipe and Rewrite" is fast, safe, and ensures the database exactly matches what is on the user's screen.
-        */
-        await client.query(`DELETE FROM public.recipe_ingredients WHERE recipe_id = $1`, [recipeId]);
-        await client.query(`DELETE FROM public.steps WHERE recipe_id = $1`, [recipeId]);
+            // CLEAR OLD RELATIONS (Wipe & Rewrite Strategy / Delete & Re-insert)
+            /*
+            Trying to calculate the "Diff" (e.g., "User changed Step 2, deleted Step 3, and added Step 4") is extremely complex and error-prone.
+            "Wipe and Rewrite" is fast, safe, and ensures the database exactly matches what is on the user's screen.
+            */
+            await client.query(`DELETE FROM public.recipe_ingredients WHERE recipe_id = $1`, [recipeId]);
+            await client.query(`DELETE FROM public.steps WHERE recipe_id = $1`, [recipeId]);
 
-        if (oldThumbnailUrl && data.thumbnailUrl && oldThumbnailUrl !== data.thumbnailUrl) {
-            imageToDelete = oldThumbnailUrl;
+            if (oldThumbnailUrl && updateRes.thumbnailUrl && oldThumbnailUrl !== updateRes.thumbnailUrl) {
+                imageToDelete = oldThumbnailUrl;
+            }
         }
 
     } else {
@@ -205,6 +203,8 @@ exports.saveRecipe = async ({
             );
         }
     }
+
+    console.log("HELLO");
 
     // --- STEP C: Process Steps & Images ---
     if (steps && steps.length > 0) {

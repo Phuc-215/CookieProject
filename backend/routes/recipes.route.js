@@ -14,7 +14,7 @@ router.get('/:id', controller.getDetail);
 router.post('/create', upload.any(), validate(RecipeSchema), controller.saveRecipe);
 
 // Save as draft
-router.put('/:id', upload.any(), controller.saveRecipe);
+router.put('/save', upload.any(), controller.saveRecipe);
 
 // Update recipe
 router.patch('/:id', upload.any(), validate(RecipeSchema), controller.saveRecipe);

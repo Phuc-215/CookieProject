@@ -22,47 +22,66 @@ exports.getDetail = async (req, res) => {
 
 exports.saveRecipe = async (req, res) => {
     try {
-        const recipeId = req.params.id;
-        console.log(recipeId);
+        const recipeId = req.body.recipeId || null;
+        const userId = parseInt(req.user.id);
 
-        let { ingredients, steps, ...others } = req.body;
+        console.log(recipeId, userId);
+
+        const ingredients = req.body.ingredients ? JSON.parse(req.body.ingredients) : [];
+
+        const steps = req.body.steps ? JSON.parse(req.body.steps) : [];
+
+        const {
+            title,
+            description,
+            difficulty,
+            category,
+            cookTime,
+            servings,
+        } = req.body;
 
         images = req.files || [];
 
-        const thumbnailImg = images.find(f => f.fieldname === 'thumbnail');
+        const thumbnailImg = images.find(f => f.fieldname === 'mainImage');
         let thumbnailUrl = null;
 
         if (thumbnailImg) {
-            thumbnailUrl = await uploadToSupabase(thumbnailImg, 'recipes');
+            thumbnailUrl = await uploadToSupabase(thumbnailImg, 'recipe-image', 'recipes');
         } else if (req.body.thumbnailUrl) {
             thumbnailUrl = req.body.thumbnailUrl;
         }
 
-        if (steps && Array.isArray(steps)) {
-            for (let i = 0; i < steps.length; i++) {
-                if (!steps[i].imageUrls) {
-                    steps[i].imageUrls = [];
-                }
+        for (const step of steps) {
+            console.log("Step: ", step);
+            step.image_urls = step.image_urls || [];
 
-                const stepFiles = images.filter(f => f.fieldname === `step_${i}_images`);
-                if (stepFiles.length > 0) {
-                    // Upload all images for this specific step concurrently
-                    const uploadPromises = stepFiles.map(file => 
-                        uploadToSupabase(file, 'steps')
-                    );
-                    const uploadedUrls = await Promise.all(uploadPromises);
-                    steps[i].imageUrls.push(...uploadedUrls);
-                }
+            const stepFiles = images.filter(f => f.fieldname === `step_${step.stepNumber}`);
+            if (stepFiles && stepFiles.length > 0) {
+                console.log(stepFiles);
+                // Upload all images for this specific step concurrently
+                // const uploadPromises = stepFiles.map(file => 
+                //     uploadToSupabase(file, 'steps')
+                // );
+                // const uploadedUrls = await Promise.all(uploadPromises);
+                const uploadedUrls = await Promise.all(
+                    stepFiles.map(file => uploadToSupabase(file, 'steps'))
+                );
+                step.image_urls.push(...uploadedUrls);
             }
         }
 
         const result = await service.saveRecipe({
-            ...others,
+            recipeId: recipeId ? parseInt(recipeId) : null,
+            userId,
+            title,
+            description,
+            difficulty,
+            category,
+            cookTime: cookTime ? parseInt(cookTime) : null,
+            servings: servings ? parseInt(servings) : null,
+            thumbnailUrl,
             ingredients,
             steps,
-            thumbnailUrl,
-            recipeId: parseInt(recipeId),
-            userId: parseInt(req.user.id)
         });
 
         const statusCode = req.body.id ? 200 : 201;

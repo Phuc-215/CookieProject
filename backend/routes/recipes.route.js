@@ -6,15 +6,15 @@ const { upload } = require('../middlewares/upload.middleware');
 const { RecipeSchema } = require('../validations/recipe.validation');
 const { validate } = require('../middlewares/validate.middleware');
 
-router.get('/:id', controller.getDetail);
-
 router.use(requireAuth);
+
+router.get('/:id', controller.getDetail);
 
 // Publish recipe
 router.post('/create', upload.any(), validate(RecipeSchema), controller.saveRecipe);
 
 // Save as draft
-router.put('/save', upload.any(), controller.saveRecipe);
+router.put('/:id', upload.any(), controller.saveRecipe);
 
 // Update recipe
 router.patch('/:id', upload.any(), validate(RecipeSchema), controller.saveRecipe);

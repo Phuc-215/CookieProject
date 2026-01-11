@@ -22,7 +22,7 @@ exports.getDetail = async (req, res) => {
 
 exports.saveRecipe = async (req, res) => {
     try {
-        const recipeId = req.query.recipeId;
+        const recipeId = req.params.id;
         console.log(recipeId);
 
         let { ingredients, steps, ...others } = req.body;

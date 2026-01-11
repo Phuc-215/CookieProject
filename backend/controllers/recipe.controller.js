@@ -22,14 +22,8 @@ exports.getDetail = async (req, res) => {
 
 exports.saveRecipe = async (req, res) => {
     try {
-        const userId = parseInt(req.params.id);
-        if (Number.isNaN(userId)) {
-            return res.status(400).json({ message: 'INVALID_USER_ID' });
-        }
-
-        if (!req.user || req.user.id !== userId) {
-            return res.status(403).json({ message: 'FORBIDDEN' });
-        }
+        const recipeId = parseInt(req.params.id);
+        const userId = parseInt(req.user.id);
 
         let { ingredients, steps, ...others } = req.body;
 
@@ -67,7 +61,8 @@ exports.saveRecipe = async (req, res) => {
             ingredients,
             steps,
             thumbnailUrl,
-            userId: parseInt(userId)
+            recipeId,
+            userId,
         });
 
         const statusCode = req.body.id ? 200 : 201;

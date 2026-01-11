@@ -22,7 +22,7 @@ import {
 import { StepItem } from '@/components/StepItem';
 import { RecipeFormData} from '@/types/Recipe';
 import { Category } from '@/types/Category';
-import { createRecipeApi } from '@/api/recipe.api';
+import { createRecipeApi, saveRecipeApi } from '@/api/recipe.api';
 
 interface Props {
   mode: 'create' | 'edit';
@@ -40,6 +40,7 @@ export function RecipeForm({
   initialData,
   categories,
 }: Props) {
+  console.log("INIT: ", initialData);
   /* ===== FORM STATE ===== */
   // Form state management
   const {
@@ -69,6 +70,11 @@ export function RecipeForm({
   const mainImage = watch('mainImage');
   const ingredients = watch('ingredients');
   const steps = watch('steps');
+  const servings = watch('servings');
+  const cookTime = watch('cookTime');
+  const [currentRecipeId, setCurrentRecipeId] = useState<string | null>(
+    mode === 'edit' && initialData?.id ? initialData.id : null
+  );
 
   // Temporary input state for adding new ingredients
   const [loading, setLoading] = useState(false);
@@ -82,7 +88,7 @@ export function RecipeForm({
   useEffect(() => {
     if (!initialData) return;
     reset(initialData);
-  }, [initialData, reset]);
+  }, [initialData, reset, mode]);
 
   /* ===== DND ===== */
   const sensors = useSensors(
@@ -156,12 +162,14 @@ export function RecipeForm({
       currentSteps.map(s => {
         if (s.id !== id) return s;
 
-        const remain = MAX_STEP_IMAGES - s.images.length;
+        const currentImages = s.images || [];
+
+        const remain = MAX_STEP_IMAGES - currentImages.length;
         const newImages = Array.from(files)
           .slice(0, remain)
           .map(f => URL.createObjectURL(f));
 
-        return { ...s, images: [...s.images, ...newImages] };
+        return { ...s, images: [...currentImages, ...newImages] };
       })
     );
   };
@@ -277,16 +285,58 @@ export function RecipeForm({
     setTouchedFields(prev => new Set(prev).add(fieldName));
   };
 
-  const handleSaveDraft = (data: RecipeFormData) => {
-    console.log('Save Draft', data);
-  
+  const handleSave = async (status: 'draft' | 'published') => {
+    try {
+      setLoading(true);
+      const formData = getValues();
+      const payload = { ...formData, status };
+
+      if (currentRecipeId) {
+        // --- UPDATE MODE ---
+        console.log(`Updating ${status}:`, currentRecipeId);
+
+        await saveRecipeApi(currentRecipeId, payload);
+        
+        if (status === 'published') {
+           alert('Recipe published successfully!');
+           // Optional: nav.push('/recipes');
+        } else {
+           alert('Draft saved!');
+        }
+
+      } else {
+        // --- CREATE MODE ---
+        console.log(`Creating new ${status}...`);
+        const response = await createRecipeApi(payload);
+        
+        // Capture the new ID!
+        const newId = response.data?.recipe.id;
+        
+        if (newId) {
+          setCurrentRecipeId(newId);
+          console.log('ID assigned:', newId);
+        }
+
+        if (status === 'published') {
+           alert('Recipe created and published!');
+           // Optional: nav.push('/recipes');
+        } else {
+           alert('Draft created!');
+        }
+      }
+    } catch (error) {
+      console.error(`Error saving ${status}:`, error);
+      alert(`Failed to save ${status}.`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePublish = async (data: RecipeFormData) => {
     console.log('Publish', data);
     try {
       setLoading(true);
-        const response = await createRecipeApi(data);
+      const response = await createRecipeApi(data);
       console.log('response', response);
     } catch (error) {
       console.error('Error publishing recipe', error);
@@ -422,6 +472,7 @@ export function RecipeForm({
                 label="Servings"
                 type="number"
                 placeholder="e.g. 2"
+                value={servings ?? ''}
                 {...register('servings')}
               />
 
@@ -432,6 +483,7 @@ export function RecipeForm({
                 </label>
                 <select
                   {...register('category', { required: true, onChange: () => markFieldTouched('category') })}
+                  value={category || ''}
                   className="w-full px-3 py-3 pixel-border bg-white uppercase text-sm"
                 >
                   <option value="">Select a category</option>
@@ -450,6 +502,7 @@ export function RecipeForm({
                 label="Cook Time"
                 type="number"
                 placeholder="e.g. 12 mins"
+                value={cookTime ?? ''}
                 {...register('cookTime')}
               />
             </div>
@@ -553,7 +606,7 @@ export function RecipeForm({
           <PixelButton
             variant="outline"
             className="flex-1"
-            onClick={() => handleSaveDraft(buildData())}
+            onClick={() => handleSave('draft')}
             disabled={loading}
           >
             {loading ? 'Saving...' : 'Save Draft'}
@@ -577,7 +630,8 @@ export function RecipeForm({
               const isFormValid = Object.keys(errors).length === 0;
               
               if (isFormValid) {
-                handlePublish(buildData());
+                // handlePublish(buildData());
+                handleSave('published');
               }
             }}
             disabled={!isValid || loading}

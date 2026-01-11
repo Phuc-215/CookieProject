@@ -8,8 +8,6 @@ export const getDetailApi = (recipeId: string | number) =>
 export const createRecipeApi = (
   data: RecipeFormData) => api.post<{ recipe: RecipeFormData }>('/recipes/create', data);
 
-export const saveRecipeApi = (data: FormData, recipeId?: string | number) => {
-  return api.put(`/recipes/${recipeId}`, data, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-};
+
+export const saveRecipeApi = (id: string, data: RecipeFormData) => 
+  api.put<{ data: RecipeFormData }>(`/recipes/${id}`, data);

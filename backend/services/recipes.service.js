@@ -8,9 +8,11 @@ exports.getById = async (recipeId, currentUserId) => {
     const query = `
       SELECT r.*, 
              u.username as author_name,
-             u.avatar_url as author_avatar
+             u.avatar_url as author_avatar,
+             c.name as category
       FROM public.recipes r
       JOIN public.users u ON r.user_id = u.id
+      LEFT JOIN public.categories c ON r.category_id = c.id
       WHERE r.id = $1
     `;
 
@@ -23,7 +25,7 @@ exports.getById = async (recipeId, currentUserId) => {
 
     // Security Check (Private Protection)
     // If it's not published, ONLY the author can see it
-    if (recipe.status !== 'published' && recipe.user_id !== currentUserId) {
+    if (recipe.status !== 'published' && parseInt(recipe.user_id) !== currentUserId) {
       throw new Error("Unauthorized: This recipe is private.");
     }
 
@@ -47,6 +49,7 @@ exports.getById = async (recipeId, currentUserId) => {
 
     return {
       ...recipe,
+      category: recipe.category,
       ingredients: ingRes.rows,
       steps: stepsRes.rows
     };
@@ -132,6 +135,8 @@ exports.saveRecipe = async ({
                 RETURNING id
             `;
 
+            console.log(updateQuery);
+
             const updateRes = await client.query(updateQuery, values);
             if (updateRes.rowCount === 0) {
                 throw new Error("Recipe not found or permission denied.");
@@ -174,6 +179,7 @@ exports.saveRecipe = async ({
     // --- STEP B: Process Ingredients ---
     if (ingredients && ingredients.length > 0) {
         for (const item of ingredients) {
+            console.log(item);
             let ingredientId;
 
             // Find existing ingredient by name (Case insensitive)

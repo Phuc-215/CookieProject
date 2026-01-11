@@ -25,7 +25,7 @@ export interface RecipeDetail extends RecipeCard {
 export interface RecipeStep {
   id: string;
   description: string;
-  images: string[];
+  image_urls: string[];
   stepNumber: number;
 }
 

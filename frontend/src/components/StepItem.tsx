@@ -77,6 +77,8 @@ export function StepItem({
     })
   );
 
+  console.log("STEP: ", step);
+
   const {
     attributes,
     listeners,
@@ -132,7 +134,7 @@ export function StepItem({
 
           <button
             disabled={
-              step.images.length >= MAX_STEP_IMAGES ||
+              step.image_urls?.length >= MAX_STEP_IMAGES ||
               step.description.trim().length === 0
             }
             onClick={() =>
@@ -142,7 +144,7 @@ export function StepItem({
             }
             className={`px-3 py-2 pixel-border text-sm uppercase flex items-center gap-2 transition-colors
               ${
-                step.images.length >= MAX_STEP_IMAGES ||
+                step.image_urls?.length >= MAX_STEP_IMAGES ||
                 step.description.trim().length === 0
                   ? 'bg-gray-300 cursor-not-allowed'
                   : 'bg-white hover:bg-[#4DB6AC]'
@@ -151,13 +153,13 @@ export function StepItem({
             title={
               step.description.trim().length === 0
                 ? 'Please add a description first'
-                : step.images.length >= MAX_STEP_IMAGES
+                : step.image_urls?.length >= MAX_STEP_IMAGES
                 ? 'Maximum images reached'
                 : 'Add step photos'
             }
           >
             <Camera className="w-4 h-4" />
-            {step.images.length >= MAX_STEP_IMAGES
+            {step.image_urls?.length >= MAX_STEP_IMAGES
               ? 'Max Images'
               : step.description.trim().length === 0
               ? 'Add Description First'
@@ -166,16 +168,16 @@ export function StepItem({
 
           <div
             className={`mt-1 text-xs ${
-              step.images.length === MAX_STEP_IMAGES
+              step.image_urls?.length === MAX_STEP_IMAGES
                 ? 'text-red-500'
                 : 'text-[#5D4037]/70'
             }`}
           >
-            {step.images.length} / {MAX_STEP_IMAGES} images
+            {step.image_urls?.length} / {MAX_STEP_IMAGES} images
           </div>
 
           {/* IMAGE PREVIEW + SORT */}
-          {step.images.length > 0 && (
+          {step.image_urls?.length > 0 && (
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -191,11 +193,11 @@ export function StepItem({
               }}
             >
               <SortableContext
-                items={step.images}
+                items={step.image_urls}
                 strategy={verticalListSortingStrategy}
               >
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {step.images.map((img) => (
+                  {step.image_urls?.map((img) => (
                     <SortableImage
                       key={img}
                       id={img}

@@ -86,7 +86,7 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
       setIsLoading(true);
       try {
         // Determine sort based on active tab
-        const sortType = activeTab === 'trending' ? 'likes' : 'newest';
+        const sortType = activeTab === 'trending' ? 'popular' : 'newest';
         
         // Prepare params
         const params = {
@@ -98,7 +98,7 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
         };
 
         const res = await searchApi(params);
-        setRecipes(res.data.results || []);
+        setRecipes(Array.isArray(res.data.results) ? res.data.results : []);
       } catch (error) {
         console.error("Failed to fetch home feed:", error);
       } finally {
@@ -140,7 +140,7 @@ export function HomeFeed({ isLoggedIn = false}: HomeFeedProps) {
 
     switch (activeTab) {
       case 'trending':
-        params.set('sort', 'likes'); 
+        params.set('sort', 'popular'); 
         break;
       case 'latest':
         params.set('sort', 'newest'); 

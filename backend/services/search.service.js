@@ -16,7 +16,8 @@ exports.search = async ({ title, ingredientNames_included, ingredientNames_exclu
                 r.thumbnail_url,       
                 r.cook_time_min, 
                 r.likes_count, 
-                r.created_at`;
+                r.created_at,
+                u.username as author`;
     if (userId) {
         selectClause += `,
             EXISTS (
@@ -49,6 +50,7 @@ exports.search = async ({ title, ingredientNames_included, ingredientNames_exclu
 
     let query = selectClause + `
         FROM recipes r
+        JOIN users u ON r.user_id = u.id
         WHERE r.status = 'published'
     `;
 
@@ -103,23 +105,35 @@ exports.search = async ({ title, ingredientNames_included, ingredientNames_exclu
     }
 
     // 6. Category Filter
+    // Category can be either category name (string) or category id (number)
+    // We need to map category name to category_id
     if (category) {
-        query += `
-            AND r.id IN (
-                SELECT rc.recipe_id
-                FROM recipe_categories rc
-                WHERE rc.category = $${index}
-            )
-        `;
-        values.push(category);
-        index++;
+        // First, try to find category by name (case insensitive)
+        // If category is a number, use it directly as category_id
+        if (typeof category === 'number' || /^\d+$/.test(category)) {
+            // It's already a number (category_id)
+            query += ` AND r.category_id = $${index}`;
+            values.push(parseInt(category));
+            index++;
+        } else {
+            // It's a category name, need to lookup category_id
+            query += ` AND r.category_id IN (
+                SELECT id FROM categories WHERE LOWER(name) = LOWER($${index})
+            )`;
+            values.push(category);
+            index++;
+        }
     }
 
     // 7. Sorting
     // If searching text, sort by Rank. Otherwise sort by Trending or Newest.
-    if (sort == 'popular') {
-        query += ` ORDER BY rank DESC, r.likes_count DESC`;
+    if (sort == 'popular' || sort == 'likes') {
+        // Sort by likes_count for trending/popular recipes
+        query += ` ORDER BY rank DESC, r.likes_count DESC, r.created_at DESC`;
     } else if (sort == 'newest') {
+        query += ` ORDER BY r.created_at DESC`;
+    } else {
+        // Default: sort by created_at DESC
         query += ` ORDER BY r.created_at DESC`;
     }
 

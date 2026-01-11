@@ -13,7 +13,8 @@ export function FollowersModal({
   isOwner: boolean;
   userId: string | number;
 }) {
-  const [followers, setFollowers] = useState<UserLite[]>([]);
+  const [allFollowers, setAllFollowers] = useState<UserLite[]>([]);
+  const [displayedCount, setDisplayedCount] = useState(5);
   const [loading, setLoading] = useState(true);
   const currentUserId = (() => {
     const stored = localStorage.getItem('user');
@@ -25,6 +26,10 @@ export function FollowersModal({
       return null;
     }
   })();
+
+  // Get displayed followers (first N items)
+  const displayedFollowers = allFollowers.slice(0, displayedCount);
+  const hasMore = displayedCount < allFollowers.length;
 
   useEffect(() => {
     const fetchFollowers = async () => {
@@ -39,7 +44,7 @@ export function FollowersModal({
             avatar: u.avatar_url || undefined,
             isFollowing: false, // Not logged in, so can't follow
           }));
-          setFollowers(mapped);
+          setAllFollowers(mapped);
           setLoading(false);
           return;
         }
@@ -68,7 +73,7 @@ export function FollowersModal({
           })
         );
         console.log('Final followers state:', mapped);
-        setFollowers(mapped);
+        setAllFollowers(mapped);
       } catch (err) {
         console.error('Failed to load followers:', err);
       } finally {
@@ -79,47 +84,79 @@ export function FollowersModal({
     fetchFollowers();
   }, [userId, currentUserId]);
 
+  const handleLoadMore = () => {
+    setDisplayedCount(prev => Math.min(prev + 5, allFollowers.length));
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const isNearBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 50;
+    
+    if (isNearBottom && hasMore && !loading) {
+      handleLoadMore();
+    }
+  };
+
   return (
-    <PixelModal title="FOLLOWERS" onClose={onClose}>
+    <PixelModal title="FOLLOWERS" onClose={onClose} width="400px">
       {loading ? (
         <div className="p-4 text-center">Loading...</div>
       ) : (
-        <FollowList
-          users={followers}
-          type="followers"
-          isOwner={isOwner}
-          currentUserId={currentUserId ?? undefined}
-          onFollow={currentUserId ? async (id) => {
-            if (String(currentUserId) === id) return;
-            try {
-              await followUserApi(id);
-              setFollowers((prev) =>
-                prev.map((u) =>
-                  u.id === id ? { ...u, isFollowing: true } : u
-                )
-              );
-            } catch (err) {
-              console.error('Failed to follow:', err);
-            }
-          } : undefined}
-          onUnfollow={currentUserId ? async (id) => {
-            if (String(currentUserId) === id) return;
-            try {
-              await unfollowUserApi(id);
-              setFollowers((prev) =>
-                prev.map((u) =>
-                  u.id === id ? { ...u, isFollowing: false } : u
-                )
-              );
-            } catch (err) {
-              console.error('Failed to unfollow:', err);
-            }
-          } : undefined}
-          onUserClick={(id) => {
-            onClose();
-            window.location.href = `/profile/${id}`;
+        <div 
+          className="max-h-[400px] overflow-y-auto pr-2"
+          onScroll={handleScroll}
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#5D4037 #FFF8E1'
           }}
-        />
+        >
+          <FollowList
+            users={displayedFollowers}
+            type="followers"
+            isOwner={isOwner}
+            currentUserId={currentUserId ?? undefined}
+            onFollow={currentUserId ? async (id) => {
+              if (String(currentUserId) === id) return;
+              try {
+                await followUserApi(id);
+                setAllFollowers((prev) =>
+                  prev.map((u) =>
+                    u.id === id ? { ...u, isFollowing: true } : u
+                  )
+                );
+              } catch (err) {
+                console.error('Failed to follow:', err);
+              }
+            } : undefined}
+            onUnfollow={currentUserId ? async (id) => {
+              if (String(currentUserId) === id) return;
+              try {
+                await unfollowUserApi(id);
+                setAllFollowers((prev) =>
+                  prev.map((u) =>
+                    u.id === id ? { ...u, isFollowing: false } : u
+                  )
+                );
+              } catch (err) {
+                console.error('Failed to unfollow:', err);
+              }
+            } : undefined}
+            onUserClick={(id) => {
+              onClose();
+              window.location.href = `/profile/${id}`;
+            }}
+          />
+          {hasMore && (
+            <div className="text-center mt-4 pb-2">
+              <button
+                onClick={handleLoadMore}
+                className="px-4 py-2 text-xs pixel-border bg-[#FFF8E1] hover:bg-[#FFE082] transition-colors"
+              >
+                Load More ({allFollowers.length - displayedCount} remaining)
+              </button>
+            </div>
+          )}
+        </div>
       )}
     </PixelModal>
   );
@@ -134,7 +171,8 @@ export function FollowingsModal({
   isOwner: boolean;
   userId: string | number;
 }) {
-  const [followings, setFollowings] = useState<UserLite[]>([]);
+  const [allFollowings, setAllFollowings] = useState<UserLite[]>([]);
+  const [displayedCount, setDisplayedCount] = useState(5);
   const [loading, setLoading] = useState(true);
   const currentUserId = (() => {
     const stored = localStorage.getItem('user');
@@ -146,6 +184,10 @@ export function FollowingsModal({
       return null;
     }
   })();
+
+  // Get displayed followings (first N items)
+  const displayedFollowings = allFollowings.slice(0, displayedCount);
+  const hasMore = displayedCount < allFollowings.length;
 
   useEffect(() => {
     const fetchFollowings = async () => {
@@ -160,7 +202,7 @@ export function FollowingsModal({
             avatar: u.avatar_url || undefined,
             isFollowing: false, // Not logged in, so can't follow
           }));
-          setFollowings(mapped);
+          setAllFollowings(mapped);
           setLoading(false);
           return;
         }
@@ -189,7 +231,7 @@ export function FollowingsModal({
           })
         );
         console.log('Final followings state:', mapped);
-        setFollowings(mapped);
+        setAllFollowings(mapped);
       } catch (err) {
         console.error('Failed to load followings:', err);
       } finally {
@@ -200,47 +242,79 @@ export function FollowingsModal({
     fetchFollowings();
   }, [userId, currentUserId]);
 
+  const handleLoadMore = () => {
+    setDisplayedCount(prev => Math.min(prev + 5, allFollowings.length));
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const isNearBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 50;
+    
+    if (isNearBottom && hasMore && !loading) {
+      handleLoadMore();
+    }
+  };
+
   return (
-    <PixelModal title="FOLLOWINGS" onClose={onClose}>
+    <PixelModal title="FOLLOWINGS" onClose={onClose} width="400px">
       {loading ? (
         <div className="p-4 text-center">Loading...</div>
       ) : (
-        <FollowList
-          users={followings}
-          type="followings"
-          isOwner={isOwner}
-          currentUserId={currentUserId ?? undefined}
-          onUnfollow={currentUserId ? async (id) => {
-            if (String(currentUserId) === id) return;
-            try {
-              await unfollowUserApi(id);
-              setFollowings((prev) =>
-                prev.map((u) =>
-                  u.id === id ? { ...u, isFollowing: false } : u
-                )
-              );
-            } catch (err) {
-              console.error('Failed to unfollow:', err);
-            }
-          } : undefined}
-          onFollow={currentUserId ? async (id) => {
-            if (String(currentUserId) === id) return;
-            try {
-              await followUserApi(id);
-              setFollowings((prev) =>
-                prev.map((u) =>
-                  u.id === id ? { ...u, isFollowing: true } : u
-                )
-              );
-            } catch (err) {
-              console.error('Failed to follow:', err);
-            }
-          } : undefined}
-          onUserClick={(id) => {
-            onClose();
-            window.location.href = `/profile/${id}`;
+        <div 
+          className="max-h-[400px] overflow-y-auto pr-2"
+          onScroll={handleScroll}
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#5D4037 #FFF8E1'
           }}
-        />
+        >
+          <FollowList
+            users={displayedFollowings}
+            type="followings"
+            isOwner={isOwner}
+            currentUserId={currentUserId ?? undefined}
+            onUnfollow={currentUserId ? async (id) => {
+              if (String(currentUserId) === id) return;
+              try {
+                await unfollowUserApi(id);
+                setAllFollowings((prev) =>
+                  prev.map((u) =>
+                    u.id === id ? { ...u, isFollowing: false } : u
+                  )
+                );
+              } catch (err) {
+                console.error('Failed to unfollow:', err);
+              }
+            } : undefined}
+            onFollow={currentUserId ? async (id) => {
+              if (String(currentUserId) === id) return;
+              try {
+                await followUserApi(id);
+                setAllFollowings((prev) =>
+                  prev.map((u) =>
+                    u.id === id ? { ...u, isFollowing: true } : u
+                  )
+                );
+              } catch (err) {
+                console.error('Failed to follow:', err);
+              }
+            } : undefined}
+            onUserClick={(id) => {
+              onClose();
+              window.location.href = `/profile/${id}`;
+            }}
+          />
+          {hasMore && (
+            <div className="text-center mt-4 pb-2">
+              <button
+                onClick={handleLoadMore}
+                className="px-4 py-2 text-xs pixel-border bg-[#FFF8E1] hover:bg-[#FFE082] transition-colors"
+              >
+                Load More ({allFollowings.length - displayedCount} remaining)
+              </button>
+            </div>
+          )}
+        </div>
       )}
     </PixelModal>
   );

@@ -35,7 +35,6 @@ router.post('/:id/follow', requireAuth, requireVerifiedEmail, followUser);
 router.delete('/:id/follow', requireAuth, requireVerifiedEmail, unfollowUser);
 
 // Delete account (self only) - requires verified email
-router.delete('/:id', requireAuth, requireVerifiedEmail, ensureOwner('id'), async (req, res) => {  return deleteAccount(req, res);
-});
+router.delete('/:id', requireAuth, requireVerifiedEmail, ensureOwner('id'), async (req, res) => {  return deleteAccount(req, res);});
 
 module.exports = router;

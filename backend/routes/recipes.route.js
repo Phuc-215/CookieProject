@@ -7,7 +7,6 @@ const { RecipeSchema } = require('../validations/recipe.validation');
 const { validate } = require('../middlewares/validate.middleware');
 
 router.get('/:id', controller.getDetail);
-
 router.use(requireAuth, requireVerifiedEmail);
 
 // Publish recipe
@@ -23,7 +22,6 @@ router.patch('/:id', upload.any(), validate(RecipeSchema), controller.saveRecipe
 router.delete('/:id', controller.deleteRecipe);
 
 // Like
-
 router.post('/:id/like', controller.likeRecipe);
 
 // Unlike

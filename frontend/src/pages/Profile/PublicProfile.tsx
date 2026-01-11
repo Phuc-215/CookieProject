@@ -133,7 +133,7 @@ export function PublicProfile({ isLoggedIn, viewer, onLogout: _onLogout }: Publi
       following: profile.following_count || 0,
       bio: profile.bio || '',
       avatarUrl: profile.avatar_url || null,
-      recipes: profile.recipes_count ?? recipes.length,
+      recipes: recipes.length,
     };
   }, [profile, recipes.length]);
 

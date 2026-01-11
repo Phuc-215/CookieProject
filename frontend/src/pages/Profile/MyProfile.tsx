@@ -101,7 +101,8 @@ export function MyProfile({ isLoggedIn, viewer, onLogout: _onLogout }: MyProfile
               isSaved: Boolean(r.is_saved),
             };
 
-            if (r.status === 'draft') {
+            const status = (r.status || '').toLowerCase();
+            if (status && status !== 'published') {
               draftsFetched.push(mapped);
             } else {
               published.push(mapped);
@@ -184,7 +185,7 @@ export function MyProfile({ isLoggedIn, viewer, onLogout: _onLogout }: MyProfile
     following: profile?.following_count || 0,
     bio: profile?.bio || '',
     avatarUrl: profile?.avatar_url || viewer?.avatar_url || null,
-    recipes: profile?.recipes_count ?? recipes.length,
+    recipes: recipes.length,
   };
 
   return (

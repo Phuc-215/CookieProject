@@ -9,6 +9,22 @@ const IngredientSchema = Joi.object({
       'string.empty': 'Ingredient name is required',
       'any.required': 'Ingredient name is required'
     }),
+  amount: Joi.number()
+    .positive()
+    .required()
+    .messages({
+      'number.base': 'Ingredient amount must be a number',
+      'number.positive': 'Ingredient amount must be positive',
+      'any.required': 'Ingredient amount is required'
+    }),
+  unit: Joi.string()
+    .min(1)
+    .trim()
+    .required()
+    .messages({
+      'string.empty': 'Ingredient unit is required',
+      'any.required': 'Ingredient unit is required'
+    }),
 });
 
 const StepSchema = Joi.object({
@@ -65,6 +81,7 @@ const RecipeSchema = Joi.object({
   cookTime: Joi.number()
     .integer()
     .min(0)
+    .allow(null)
     .messages({
       'number.min': 'Cook time cannot be negative'
     }),

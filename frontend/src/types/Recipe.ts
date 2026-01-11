@@ -1,4 +1,5 @@
-export type Difficulty = 'Easy' | 'Medium' | 'Hard';
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
 export interface RecipeCard {
   id: string;
   author: string;
@@ -23,23 +24,27 @@ export interface RecipeDetail extends RecipeCard {
 }
 export interface RecipeStep {
   id: string;
-  instruction: string;
-  images: string[];
+  description: string;
+  image_urls: string[];
+  stepNumber: number;
+  _newImages: File[];
 }
 
 export interface Ingredient {
   id: string;
   name: string;
-  quantity: string;
+  amount: number;
+  unit: string;
 }
 
 export interface RecipeFormData {
+  id?: string;
   title: string;
   description: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  difficulty: 'easy' | 'medium' | 'hard';
   category: string | null;
-  cookTime: string;
-  servings: string;
+  cookTime: number | null;
+  servings: number | null;
   mainImage: string | null;
   ingredients: Ingredient[];
   steps: RecipeStep[];

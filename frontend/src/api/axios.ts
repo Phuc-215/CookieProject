@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { getAccessToken } from '@/utils/token';
 
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 const api = axios.create({
-  baseURL: 'http://localhost:3000', // backend Express
+  baseURL: BASE_URL, // <--- Sửa ở đây
   withCredentials: true,
 });
 
@@ -69,8 +71,9 @@ api.interceptors.response.use(
           return Promise.reject(error);
         }
 
+        // 2. QUAN TRỌNG: Sửa cả đoạn gọi Refresh Token
         const res = await axios.post(
-          'http://localhost:3000/auth/refresh',
+          `${BASE_URL}/auth/refresh`, // <--- Sửa ở đây để dùng chung BASE_URL
           { refreshToken }
         );
 

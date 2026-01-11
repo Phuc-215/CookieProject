@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Heart, Bookmark, Trash2, Clock, Pencil } from "lucide-react";
+import { Heart, Bookmark, Trash2, Clock, Pencil, Cookie } from "lucide-react";
 
 import { unlikeRecipeApi, likeRecipeApi } from "@/api/recipe.api";
 
@@ -54,6 +54,7 @@ export function RecipeCard({
   const [localIsLiked, setLocalIsLiked] = useState(isLiked);
   const [localLikesCount, setLocalLikesCount] = useState(likes);
   const [localIsSaved, setLocalSaved] = useState(isSaved);
+  const [imageError, setImageError] = useState(false);
   const sizeMode = small ? "small" : large ? "large" : "default";
 
 
@@ -64,6 +65,13 @@ export function RecipeCard({
     setLocalLikesCount(likes);
     setLocalSaved(isSaved);
   }, [isLiked, isSaved]);
+
+  // Reset image error when image prop changes
+  useEffect(() => {
+    if (image) {
+      setImageError(false);
+    }
+  }, [image]);
 
   const difficultyColor = {
     Easy: "bg-[var(--secondary)] text-[var(--secondary-foreground)]",
@@ -119,12 +127,43 @@ export function RecipeCard({
           ${sizeMode === "default" ? "aspect-square" : ""}
         `}
       >
-        <img
-          src={image}
-          alt={title}
-          className="w-full h-full object-cover"
-          style={{ imageRendering: "pixelated" }}
-        />
+        {(!image || image.trim() === '' || imageError) ? (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#FFF8E1] via-[#FFE4C4] to-[#FFF8E1] relative overflow-hidden">
+            {/* Subtle pattern overlay */}
+            <div 
+              className="absolute inset-0 opacity-[0.08]"
+              style={{
+                backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 8px, #4A3B32 8px, #4A3B32 16px)`,
+                backgroundSize: '16px 16px'
+              }}
+            />
+            {/* Cookie icon with pixel art style */}
+            <div className="relative z-10 flex flex-col items-center gap-2">
+              <Cookie 
+                className={`
+                  text-[#D7B899] 
+                  drop-shadow-[3px_3px_0px_rgba(74,59,50,0.3)]
+                  ${sizeMode === "small" ? "w-16 h-16" : sizeMode === "large" ? "w-32 h-32" : "w-24 h-24"}
+                `}
+                strokeWidth={2}
+                fill="currentColor"
+              />
+              {sizeMode !== "small" && (
+                <span className="text-[#4A3B32]/60 font-vt323 text-sm uppercase tracking-wider font-bold">
+                  No Image
+                </span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <img
+            src={image}
+            alt={title}
+            className="w-full h-full object-cover"
+            style={{ imageRendering: "pixelated" }}
+            onError={() => setImageError(true)}
+          />
+        )}
 
         {/* ACTION ICONS */}
         <div

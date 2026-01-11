@@ -24,13 +24,7 @@ var app = express();
 
 const cors = require('cors');
 
-app.use(cors({
-  origin: [
-    'http://localhost:5173',               // Cho phép chạy Local
-    // 'https://cookieproject.vercel.app/'    // <--- THÊM LINK VERCEL CỦA BẠN VÀO ĐÂY
-  ],
-  credentials: true 
-}));
+app.use(cors())
 
 
 // view engine setup

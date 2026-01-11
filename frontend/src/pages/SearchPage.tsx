@@ -12,12 +12,14 @@ import { Pagination } from '../components/Pagination';
 
 import { searchApi } from '../api/search.api';
 import { getIngredients } from '../api/search.api';
+import { getCategoriesListApi } from '../api/category.api';
+import { Category } from '../types/Category';
+
 interface SearchPageProps {
   isLoggedIn?: boolean;
   onLogout?: () => void;
 }
 
-const CATEGORIES = ["Cookie", "Cheesecake", "Cupcakes & Muffins", "Tarts & Pies", "Brownies & Bars"];
 const ITEMS_PER_PAGE = 6;
 
 interface Ingredient {
@@ -35,6 +37,10 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
   // --- INGREDIENTS DATA ---
   const [availableIngredients, setAvailableIngredients] = useState<Ingredient[]>([]);
   const [ingredientsLoading, setIngredientsLoading] = useState(true); // Loading state cho list ingredients
+
+  // --- CATEGORIES DATA ---
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
 
   // --- FILTER STATE ---
   const [filterIngredient, setFilterIngredient] = useState<Ingredient[]>([]);
@@ -80,6 +86,22 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
       }
     };
     fetchIngredients();
+  }, []);
+
+  // --- FETCH CATEGORIES ON MOUNT ---
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await getCategoriesListApi();
+        setCategories(response.data.categories || []);
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
   }, []);
 
   // --- CLICK OUTSIDE TO CLOSE DROPDOWN ---
@@ -406,11 +428,23 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
                <h2 className="text-2xl font-bold font-vt323 text-[#4A3B32]">Category</h2>
                {categoryParam && <button onClick={handleCategoryReset} className="text-xs text-red-500 hover:text-red-700 font-vt323 flex items-center gap-1 hover:underline"><RefreshCw size={12} /> Clear</button>}
             </div>
-            <ul className="space-y-2 font-vt323">
-              {CATEGORIES.map(cat => (
-                <li key={cat} onClick={() => handleCategoryClick(cat)} className={`cursor-pointer text-xl p-1 transition-colors ${categoryParam === cat ? 'bg-[#FF99AA] border border-[#4A3B32] text-[#4A3B32]' : 'hover:text-[#FF99AA]'}`}>{cat}</li>
-              ))}
-            </ul>
+            {categoriesLoading ? (
+              <div className="flex justify-center items-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-[#4A3B32]" />
+              </div>
+            ) : (
+              <ul className="space-y-2 font-vt323">
+                {categories.map(cat => (
+                  <li 
+                    key={cat.id} 
+                    onClick={() => handleCategoryClick(cat.name)} 
+                    className={`cursor-pointer text-xl p-1 transition-colors ${categoryParam === cat.name ? 'bg-[#FF99AA] border border-[#4A3B32] text-[#4A3B32]' : 'hover:text-[#FF99AA]'}`}
+                  >
+                    {cat.name}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </aside>
 

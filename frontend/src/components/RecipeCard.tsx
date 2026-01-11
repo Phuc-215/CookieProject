@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Heart, Bookmark, Trash2, Clock, Pencil } from "lucide-react";
+import { Heart, Bookmark, Trash2, Clock, Pencil, Cookie } from "lucide-react";
 
 import { unlikeRecipeApi, likeRecipeApi } from "@/api/recipe.api";
 import { addRecipeToCollectionApi } from "@/api/collection.api"; 
@@ -56,6 +56,7 @@ export function RecipeCard({
   const [localIsLiked, setLocalIsLiked] = useState(isLiked);
   const [localLikesCount, setLocalLikesCount] = useState(likes);
   const [localIsSaved, setLocalIsSaved] = useState(isSaved);
+  const [imageError, setImageError] = useState(false);
   
   const [showCollectionModal, setShowCollectionModal] = useState(false);
 
@@ -66,6 +67,13 @@ export function RecipeCard({
     setLocalLikesCount(likes);
     setLocalIsSaved(isSaved);
   }, [isLiked, isSaved, likes]);
+
+  // Reset image error when image prop changes
+  useEffect(() => {
+    if (image) {
+      setImageError(false);
+    }
+  }, [image]);
 
   const difficultyColor = {
     Easy: "bg-[var(--secondary)] text-[var(--secondary-foreground)]",
@@ -121,31 +129,61 @@ export function RecipeCard({
 
 
   return (
-    <>
+    <div
+      className={`
+        pixel-card bg-white cursor-pointer
+        hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0_var(--border)]
+        transition-all
+        ${sizeMode === "small" ? "flex flex-row" : ""}
+      `}
+      onClick={onClick}
+    >
+      {/* IMAGE */}
       <div
         className={`
-          pixel-card bg-white cursor-pointer
-          hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0_var(--border)]
-          transition-all
-          ${sizeMode === "small" ? "flex flex-row" : ""}
+          relative bg-[var(--card)]
+          ${sizeMode === "small" ? "w-36 h-full flex-shrink-0" : ""}
+          ${sizeMode === "large" ? "aspect-[3/2]" : ""}
+          ${sizeMode === "default" ? "aspect-square" : ""}
         `}
-        onClick={onClick}
       >
-        {/* IMAGE */}
-        <div
-          className={`
-            relative bg-[var(--card)]
-            ${sizeMode === "small" ? "w-36 h-full flex-shrink-0" : ""}
-            ${sizeMode === "large" ? "aspect-[3/2]" : ""}
-            ${sizeMode === "default" ? "aspect-square" : ""}
-          `}
-        >
+        {(!image || image.trim() === '' || imageError) ? (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#FFF8E1] via-[#FFE4C4] to-[#FFF8E1] relative overflow-hidden">
+            {/* Subtle pattern overlay */}
+            <div 
+              className="absolute inset-0 opacity-[0.08]"
+              style={{
+                backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 8px, #4A3B32 8px, #4A3B32 16px)`,
+                backgroundSize: '16px 16px'
+              }}
+            />
+            {/* Cookie icon with pixel art style */}
+            <div className="relative z-10 flex flex-col items-center gap-2">
+              <Cookie 
+                className={`
+                  text-[#D7B899] 
+                  drop-shadow-[3px_3px_0px_rgba(74,59,50,0.3)]
+                  ${sizeMode === "small" ? "w-16 h-16" : sizeMode === "large" ? "w-32 h-32" : "w-24 h-24"}
+                `}
+                strokeWidth={2}
+                fill="currentColor"
+              />
+              {sizeMode !== "small" && (
+                <span className="text-[#4A3B32]/60 font-vt323 text-sm uppercase tracking-wider font-bold">
+                  No Image
+                </span>
+              )}
+            </div>
+          </div>
+        ) : (
           <img
             src={image}
             alt={title}
             className="w-full h-full object-cover"
             style={{ imageRendering: "pixelated" }}
+            onError={() => setImageError(true)}
           />
+        )}
 
           {/* ACTION ICONS */}
           <div

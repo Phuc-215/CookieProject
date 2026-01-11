@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ProfileTabs } from '@/components/profile/ProfileTabs';
 import { ProfileRecipes } from '@/components/profile/ProfileRecipes';
@@ -20,6 +20,7 @@ interface ProfilePageProps {
     username: string;
     followers: number;
     following: number;
+    recipes?: number;
     bio: string;
     avatarUrl?: string | null;
   };
@@ -44,6 +45,15 @@ export function ProfilePage({
   const [recipes, setRecipes] = useState(initialRecipes);
   const [drafts, setDrafts] = useState(initialDrafts);
 
+  // Sync when parent passes new data (after fetch)
+  useEffect(() => {
+    setRecipes(initialRecipes);
+  }, [initialRecipes]);
+
+  useEffect(() => {
+    setDrafts(initialDrafts);
+  }, [initialDrafts]);
+
   const [activeTab, setActiveTab] = useState<
     'recipes' | 'collections' | 'drafts'
   >('recipes');
@@ -57,7 +67,12 @@ export function ProfilePage({
     <div className="min-h-screen bg-[var(--background-image)]">
       <div className="max-w-5xl mx-auto px-4 py-8">
         <ProfileHeader
-          user={{ id: profileUser.id ?? profileId, ...profileUser, recipes: recipes.length, avatarUrl: profileUser.avatarUrl ?? viewer?.avatar_url ?? null}}
+          user={{
+            id: profileUser.id ?? profileId,
+            ...profileUser,
+            recipes: profileUser.recipes ?? recipes.length,
+            avatarUrl: profileUser.avatarUrl ?? viewer?.avatar_url ?? null,
+          }}
           isOwner={isOwner}
           isLoggedIn={isLoggedIn}
           onEditProfile={() => nav.editProfile()}

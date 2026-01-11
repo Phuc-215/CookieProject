@@ -18,15 +18,18 @@ var ingredientsRouter = require('./routes/ingredients.route')
 
 var { connectDB } = require('./config/db'); 
 
-var cors = require('cors');
-
 
 
 var app = express();
 
+const cors = require('cors');
+
 app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true
+  origin: [
+    'http://localhost:5173',               // Cho phép chạy Local
+    // 'https://cookieproject.vercel.app/'    // <--- THÊM LINK VERCEL CỦA BẠN VÀO ĐÂY
+  ],
+  credentials: true 
 }));
 
 

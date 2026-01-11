@@ -48,3 +48,23 @@ exports.requireVerifiedEmail = async (req, res, next) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+// Optional auth: set req.user if Bearer token is provided and valid; otherwise continue silently
+exports.maybeAuth = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader?.startsWith('Bearer ')) {
+    return next();
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = { ...payload, id: parseInt(payload.id, 10) };
+  } catch (err) {
+    // ignore invalid token to keep route public
+  }
+
+  return next();
+};

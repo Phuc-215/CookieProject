@@ -7,6 +7,7 @@ export interface UserProfile {
   bio?: string | null;
   followers_count?: number;
   following_count?: number;
+  recipes_count?: number;
 }
 
 export interface UserLite {

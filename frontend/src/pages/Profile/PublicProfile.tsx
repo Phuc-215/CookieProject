@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ProfilePage } from './ProfilePage';
-import { MOCK_COLLECTIONS } from "@/mocks/mock_collection";
-import { MOCK_RECIPES } from "@/mocks/mock_recipe";
-import { getUserProfileApi } from '@/api/user.api';
+import { getUserProfileApi, getUserRecipesApi } from '@/api/user.api';
+import { getUserCollectionsApi } from '@/api/collection.api';
 import type { UserProfile } from '@/types/User';
+import type { RecipeCard } from '@/types/Recipe';
+import type { Collection } from '@/types/Collection';
 
 interface Viewer {
   id: number;
@@ -19,11 +20,12 @@ interface PublicProfileProps {
   onLogout?: () => void;
 }
 
-export function PublicProfile({ isLoggedIn, viewer, onLogout }: PublicProfileProps) {
+export function PublicProfile({ isLoggedIn, viewer, onLogout: _onLogout }: PublicProfileProps) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+    const [recipes, setRecipes] = useState<RecipeCard[]>([]);
+    const [collections, setCollections] = useState<Collection[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -33,9 +35,68 @@ export function PublicProfile({ isLoggedIn, viewer, onLogout }: PublicProfilePro
     (async () => {
       try {
         setError(null);
-        const res = await getUserProfileApi(id);
-        if (!active) return;
-        setProfile(res.data);
+        
+          // Fetch profile, recipes, and collections in parallel
+          const [profileRes, recipesRes, collectionsRes] = await Promise.allSettled([
+            getUserProfileApi(id),
+            getUserRecipesApi(id),
+            getUserCollectionsApi(id)
+          ]);
+
+          if (!active) return;
+
+          // Handle profile
+          if (profileRes.status === 'fulfilled') {
+            setProfile(profileRes.value.data);
+          } else {
+            throw profileRes.reason;
+          }
+
+          // Handle recipes
+          if (recipesRes.status === 'fulfilled') {
+            const rawRecipes = recipesRes.value.data.recipes || [];
+            const transformed: RecipeCard[] = rawRecipes.map((r: any) => {
+              const difficulty = r.difficulty
+                ? (r.difficulty.charAt(0).toUpperCase() + r.difficulty.slice(1).toLowerCase()) as RecipeCard['difficulty']
+                : 'Medium';
+              const cookMinutes = r.cook_time_min ?? r.cook_time;
+              const timeStr = cookMinutes ? `${cookMinutes} min` : '30 min';
+              return {
+                id: String(r.id),
+                title: r.title,
+                image: r.thumbnail_url || r.image,
+                author: profileRes.status === 'fulfilled' ? profileRes.value.data.username : 'User',
+                difficulty,
+                time: timeStr,
+                cookTime: timeStr,
+                likes: r.likes_count || 0,
+                isLiked: Boolean(r.is_liked),
+                isSaved: Boolean(r.is_saved),
+              };
+            });
+            setRecipes(transformed);
+          } else {
+            console.warn('Failed to load recipes', recipesRes.reason);
+            setRecipes([]);
+          }
+
+          // Handle collections
+          if (collectionsRes.status === 'fulfilled') {
+            const rawCollections = collectionsRes.value.data.collections || [];
+            const mapped: Collection[] = rawCollections.map((c: any) => ({
+              id: c.id,
+              title: c.title,
+              ownerUsername: profileRes.status === 'fulfilled' ? profileRes.value.data.username : 'Unknown',
+              coverImages: Array.isArray(c.image) ? c.image : [],
+              description: c.description || '',
+              recipeIds: [],
+              recipeCount: 0,
+            }));
+            setCollections(mapped);
+          } else {
+            console.warn('Failed to load collections', collectionsRes.reason);
+            setCollections([]);
+          }
       } catch (err: any) {
         if (!active) return;
         // Handle 404 - user not found
@@ -72,8 +133,9 @@ export function PublicProfile({ isLoggedIn, viewer, onLogout }: PublicProfilePro
       following: profile.following_count || 0,
       bio: profile.bio || '',
       avatarUrl: profile.avatar_url || null,
+      recipes: recipes.length,
     };
-  }, [profile]);
+  }, [profile, recipes.length]);
 
   if (!id) {
     return <div className="p-8">Invalid profile link</div>;
@@ -88,10 +150,9 @@ export function PublicProfile({ isLoggedIn, viewer, onLogout }: PublicProfilePro
       viewer={{ username: viewer?.username ?? null }}
       profileId={id}
       profileUser={profileUser}
-      recipes={MOCK_RECIPES}
-      collections={MOCK_COLLECTIONS}
+        recipes={recipes}
+        collections={collections}
       isLoggedIn={isLoggedIn}
-      onLogout={onLogout}
     />
   );
 }

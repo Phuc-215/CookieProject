@@ -1,6 +1,6 @@
 var express = require('express');
 var router = express.Router();
-const { requireAuth, requireVerifiedEmail } = require('../middlewares/auth.middleware');
+const { requireAuth, requireVerifiedEmail, maybeAuth } = require('../middlewares/auth.middleware');
 const { ensureOwner } = require('../middlewares/owner.middleware');
 const { getPublicProfile, updateProfile, uploadAvatar, getUserRecipes, followUser, unfollowUser, deleteAccount, getFollowers, getFollowings } = require('../controllers/user.controller');
 const { upload } = require('../middlewares/upload.middleware');
@@ -16,8 +16,8 @@ router.put('/:id', requireAuth, requireVerifiedEmail, ensureOwner('id'), validat
 // Upload avatar (multipart/form-data: field name 'avatar') - requires verified email
 router.post('/:id/avatar', requireAuth, requireVerifiedEmail, ensureOwner('id'), upload.single('avatar'), uploadAvatar);
 
-// Get user's recipe list sorted by date
-router.get('/:id/recipes', getUserRecipes);
+// Get user's recipe list sorted by date (owner sees all statuses, others see published)
+router.get('/:id/recipes', maybeAuth, getUserRecipes);
 
 // Get followers list
 router.get('/:id/followers', getFollowers);
@@ -35,7 +35,6 @@ router.post('/:id/follow', requireAuth, requireVerifiedEmail, followUser);
 router.delete('/:id/follow', requireAuth, requireVerifiedEmail, unfollowUser);
 
 // Delete account (self only) - requires verified email
-router.delete('/:id', requireAuth, requireVerifiedEmail, ensureOwner('id'), async (req, res) => {  return deleteAccount(req, res);
-});
+router.delete('/:id', requireAuth, requireVerifiedEmail, ensureOwner('id'), async (req, res) => {  return deleteAccount(req, res);});
 
 module.exports = router;

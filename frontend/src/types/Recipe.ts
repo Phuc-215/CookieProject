@@ -1,5 +1,3 @@
-import { Category } from "./Category";
-
 export type Difficulty = 'Easy' | 'Medium' | 'Hard';
 export interface RecipeCard {
   id: string;
@@ -7,11 +5,15 @@ export interface RecipeCard {
   title: string;
   image: string;
   difficulty: Difficulty;
-  cookTime: string;
+  time: string;      // used by RecipeCard component
+  cookTime?: string; // optional alias
   likes: number;
   isLiked?: boolean;
   isSaved?: boolean;
 }
+
+  // Alias for backward compatibility
+  export type Recipe = RecipeCard;
 
 export interface RecipeDetail extends RecipeCard {
   servings: string;

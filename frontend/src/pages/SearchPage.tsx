@@ -266,7 +266,8 @@ export function SearchPage({ isLoggedIn = false, onLogout }: SearchPageProps) {
   else if (categoryParam && isViewRecipes) displayTitle = categoryParam;
 
   return (
-    <div className="min-h-screen bg-[var(--background-image)] pb-10">      
+    <div className="min-h-screen bg-[var(--background-image)] pb-10">
+      
       <div className="flex flex-col md:flex-row gap-5">
         
         {/* --- LEFT SIDEBAR (FILTERS) --- */}

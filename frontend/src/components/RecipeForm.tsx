@@ -5,7 +5,6 @@ import { PixelButton } from '@/components/PixelButton';
 import { PixelInput } from '@/components/PixelInput';
 import { PixelTextarea } from '@/components/PixelTextarea';
 import { PixelTag } from '@/components/PixelTag';
-
 import {
   DndContext,
   closestCenter,
@@ -20,33 +19,16 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 
-import { StepItem, RecipeStep } from '@/components/StepItem';
-
-/* ================= TYPES ================= */
-
-export interface Ingredient {
-  id: string;
-  name: string;
-  quantity: string;
-}
-
-export interface RecipeFormData {
-  title: string;
-  description: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  category: 'Dessert' | 'Main' | 'Drink' | 'Snack';
-  cookTime: string;
-  servings: string;
-  mainImage: string | null;
-  ingredients: Ingredient[];
-  steps: RecipeStep[];
-}
+import { StepItem } from '@/components/StepItem';
+import { RecipeFormData} from '@/types/Recipe';
+import { Category } from '@/types/Category';
 
 interface Props {
   mode: 'create' | 'edit';
   initialData?: RecipeFormData;
   onSaveDraft: (data: RecipeFormData) => void;
   onPublish: (data: RecipeFormData) => void;
+  categories: Category[];
 }
 
 const MAX_STEP_IMAGES = 5;
@@ -58,6 +40,7 @@ export function RecipeForm({
   initialData,
   onSaveDraft,
   onPublish,
+  categories,
 }: Props) {
   /* ===== FORM STATE ===== */
   // Form state management
@@ -72,7 +55,7 @@ export function RecipeForm({
       title: '',
       description: '',
       difficulty: 'Medium',
-      category: 'Dessert',
+      category: '',
       cookTime: '',
       servings: '',
       mainImage: null,
@@ -84,6 +67,7 @@ export function RecipeForm({
   // Watch form values (for validation and display)
   const title = watch('title');
   const difficulty = watch('difficulty');
+  const category = watch('category');
   const mainImage = watch('mainImage');
   const ingredients = watch('ingredients');
   const steps = watch('steps');
@@ -259,6 +243,10 @@ export function RecipeForm({
         errors.mainImage = 'Main recipe image is required';
       }
 
+      if (fieldsToCheck.has('category') && (!category || category.trim().length === 0)) {
+        errors.category = 'Category is required';
+      }
+
       if (fieldsToCheck.has('ingredients') && ingredients.length === 0) {
         errors.ingredients = 'At least one ingredient is required';
       }
@@ -279,7 +267,7 @@ export function RecipeForm({
 
       return errors;
     },
-    [title, mainImage, ingredients.length, steps]
+    [title, mainImage, category, ingredients.length, steps]
   );
 
   //Validation: Check required fields and minimum requirements
@@ -292,9 +280,18 @@ export function RecipeForm({
     setTouchedFields(prev => new Set(prev).add(fieldName));
   };
 
+  // Check actual form validity (always validate all fields, not just touched ones)
   const isValid = useMemo(() => {
-    return Object.keys(validationErrors).length === 0;
-  }, [validationErrors]);
+    const allFieldsTouched = new Set([
+      'title',
+      'mainImage',
+      'ingredients',
+      'steps',
+      'category',
+    ]);
+    const errors = computeValidationErrors(allFieldsTouched);
+    return Object.keys(errors).length === 0;
+  }, [computeValidationErrors]);
 
   /* ================= RENDER ================= */
 
@@ -418,14 +415,19 @@ export function RecipeForm({
                   Category *
                 </label>
                 <select
-                  {...register('category')}
+                  {...register('category', { required: true, onChange: () => markFieldTouched('category') })}
                   className="w-full px-3 py-3 pixel-border bg-white uppercase text-sm"
                 >
-                  <option value="Dessert">Dessert</option>
-                  <option value="Main">Main Dish</option>
-                  <option value="Drink">Drink</option>
-                  <option value="Snack">Snack</option>
+                  <option value="">Select a category</option>
+                  {categories.map(category => (
+                    <option key={category.id} value={category.name}>{category.name}</option>
+                  ))}
                 </select>
+                {validationErrors.category && (
+                  <p className="mt-1 text-sm text-pink-500">
+                    {validationErrors.category}
+                  </p>
+                )}
               </div>
 
               <PixelInput
@@ -546,6 +548,7 @@ export function RecipeForm({
               const allFieldsTouched = new Set(touchedFields);
               allFieldsTouched.add('title');
               allFieldsTouched.add('mainImage');
+              allFieldsTouched.add('category');
               allFieldsTouched.add('ingredients');
               allFieldsTouched.add('steps');
               

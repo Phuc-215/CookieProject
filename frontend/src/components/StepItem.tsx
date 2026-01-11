@@ -3,16 +3,11 @@ import { Camera, X } from 'lucide-react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent} from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { RecipeStep } from '@/types/Recipe';
 
 const MAX_STEP_IMAGES = 5;
 
 /* ================= TYPES ================= */
-
-export interface RecipeStep {
-  id: string;
-  instruction: string;
-  images: string[];
-}
 
 interface StepItemProps {
   step: RecipeStep;

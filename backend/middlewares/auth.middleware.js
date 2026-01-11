@@ -26,22 +26,23 @@ exports.requireAuth = (req, res, next) => {
 
 exports.requireVerifiedEmail = async (req, res, next) => {
   try {
+    console.log('Verifying email for user ID:', req.user.id);
     const userId = req.user.id;
-    
+    console.log('User ID type:', typeof userId);
     const result = await pool.query(
       'SELECT is_verified FROM users WHERE id = $1',
       [userId]
     );
-    
+    console.log('User query result:', result.rows);
     if (result.rowCount === 0) {
       return res.status(401).json({ message: 'USER_NOT_FOUND' });
     }
-    
+    console.log('User is_verified status:', result.rows[0].is_verified);
     const user = result.rows[0];
     if (!user.is_verified) {
+      console.log('Email not verified for user ID:', userId);
       return res.status(403).json({ message: 'EMAIL_NOT_VERIFIED' });
     }
-    
     next();
   } catch (err) {
     console.error('VERIFY EMAIL MIDDLEWARE ERROR:', err);

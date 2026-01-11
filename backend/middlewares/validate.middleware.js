@@ -7,7 +7,7 @@ const validate = (schema, source = 'body') => {
         abortEarly: false,
         stripUnknown: true,
       });
-
+      console.log(`Validation result for ${source}:`, { error, value });
       if (error) {
         return res.status(400).json({
           message: 'VALIDATION_ERROR',

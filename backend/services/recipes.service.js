@@ -166,8 +166,14 @@ exports.saveRecipe = async ({
             if (oldThumbnailUrl && updateRes.thumbnailUrl && oldThumbnailUrl !== updateRes.thumbnailUrl) {
                 imageToDelete = oldThumbnailUrl;
             }
-        }
 
+                // Trigger notification if recipe was just published (status changed to 'published')
+            if (recipeId && status === 'published' && oldStatus && oldStatus !== 'published') {
+                await notificationService.triggerNewRecipeNotification(userId, recipeId).catch(err => 
+                console.error('New recipe notification error:', err)
+                );
+            }
+        }
     } else {
         console.log("INSERT");
         // --- CREATE RECIPE/DRAFT ---
@@ -180,6 +186,11 @@ exports.saveRecipe = async ({
             RETURNING id;
         `;
 
+        console.log("Inserting recipe with values:", [
+            userId, slug, title, difficulty, categoryIdToSave, 
+            servings, cookTime, thumbnailUrl, status
+        ]);
+
         // Note: Zod has already validated these values earlier
         const insertRes = await client.query(insertQuery, [
             userId, slug, title, difficulty, categoryIdToSave, 
@@ -190,6 +201,7 @@ exports.saveRecipe = async ({
     }
 
     // --- STEP B: Process Ingredients ---
+    console.log("Ingredients:", ingredients);
     if (ingredients && ingredients.length > 0) {
         for (const item of ingredients) {
             console.log(item);
@@ -247,12 +259,7 @@ exports.saveRecipe = async ({
     // --- STEP D: Commit Transaction ---
     await client.query('COMMIT');
 
-    // Trigger notification if recipe was just published (status changed to 'published')
-    if (recipeId && status === 'published' && oldStatus && oldStatus !== 'published') {
-        await notificationService.triggerNewRecipeNotification(userId, recipeId).catch(err => 
-            console.error('New recipe notification error:', err)
-        );
-    }
+
 
     if (imageToDelete) {
         deleteFromSupabase(imageToDelete).catch(err => console.error("Cleanup failed:", err));

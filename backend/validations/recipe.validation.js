@@ -98,22 +98,21 @@ const RecipeSchema = Joi.object({
 
   isTrending: Joi.boolean()
     .default(false),
+  // ingredients: Joi.array() 
+  //   .items(IngredientSchema)
+  //   .min(1)
+  //   .required()
+  //   .messages({
+  //     'array.min': 'Recipe must have at least one ingredient'
+  //   }),
 
-  ingredients: Joi.array()
-    .items(IngredientSchema)
-    .min(1)
-    .required()
-    .messages({
-      'array.min': 'Recipe must have at least one ingredient'
-    }),
-
-  steps: Joi.array()
-    .items(StepSchema)
-    .min(1) 
-    .required()
-    .messages({
-      'array.min': 'Recipe must have at least one cooking step'
-    }),
+  // steps: Joi.array()
+  //   .items(StepSchema)
+  //   .min(1) 
+  //   .required()
+  //   .messages({
+  //     'array.min': 'Recipe must have at least one cooking step'
+  //   }),
 });
 
 export { RecipeSchema };

@@ -3,20 +3,18 @@ const router = express.Router();
 const controller = require('../controllers/recipes.controller');
 const { requireAuth, requireVerifiedEmail } = require('../middlewares/auth.middleware');
 const { upload } = require('../middlewares/upload.middleware');
-const { RecipeSchema } = require('../validations/recipe.validation');
-const { validate } = require('../middlewares/validate.middleware');
 
 router.get('/:id', controller.getDetail);
 router.use(requireAuth, requireVerifiedEmail);
 
 // Publish recipe
-router.post('/create', upload.any(), validate(RecipeSchema), controller.saveRecipe);
+router.post('/create', upload.any(), controller.saveRecipe);
 
 // Save as draft
 router.put('/save', upload.any(), controller.saveRecipe);
 
 // Update recipe
-router.patch('/:id', upload.any(), validate(RecipeSchema), controller.saveRecipe);
+router.patch('/:id', upload.any(), controller.saveRecipe);
 
 // Delete
 router.delete('/:id', controller.deleteRecipe);
